@@ -98,6 +98,8 @@ static const LookupName lookup_table[] = {
         {"tdragon3h", "썬더 드래곤 3 (뇌룡 2 해적판)"},
         {"tdragonb", "썬더 드래곤"},
         {"tdragonb3", "썬더 드래곤 (해적판,비보호됨)"},
+        {"tduno", "터치 데 우노!/ 우노 노력 체크 머신 (일본판)"},
+        {"tduno2", "터치 데 우노! 2 (일본판)"},
         {"teamht", "팀 해트 트릭"},
         {"teamqb", "존 얼웨이의 팀 쿼터백"},
         {"teamqb2", "존 얼웨이의 팀 쿼터백 (세트2)"},

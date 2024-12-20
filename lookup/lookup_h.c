@@ -232,6 +232,7 @@ static const LookupName lookup_table[] = {
         {"hldspin2v1", "홀드 앤 스핀 2 (버전2.8R 듀얼)"},
         {"hmcompm2", "힙합매니아 컴플리트 믹스 2 (버전UA-A)"},
         {"hmcompmx", "힙합매니아 컴플리트 믹스 (버전UA-B)"},
+        {"hmgeo", "헤비 메탈 지오매트릭스"},
         {"hnageman", "AV화투 꽃의 행운"},
         {"hnayayoi", "하나 야요이"},
         {"hncholms", "꼽추 올림픽 (스크램블 하드웨어)"},

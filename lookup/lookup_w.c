@@ -236,6 +236,8 @@ static const LookupName lookup_table[] = {
         {"wldarrow", "와일드 애로우"},
         {"wldcourt", "월드 코트 (일본판)"},
         {"wldgunsb", "와일드 건즈"},
+        {"wldkicks", "월드 킥스 (세계판)"},
+        {"wldrider", "와일드 라이더즈"},
         {"wldwitch", "와일드 위치"},
         {"wldwitcha", "와일드 위치"},
         {"wldwitchc", "와일드 위치"},

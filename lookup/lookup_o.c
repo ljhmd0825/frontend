@@ -151,6 +151,7 @@ static const LookupName lookup_table[] = {
         {"othunderu", "오퍼레이션 썬더볼트 (미국판,개정판1)"},
         {"othunderua", "오퍼레이션 썬더볼트 (미국판)"},
         {"othundu", "오퍼레이션 썬더볼트 (미국판)"},
+        {"otrigger", "아웃트리거"},
         {"otonano", "성인 마작"},
         {"ottopz", "오토 프로젝트 PZ (핵)"},
         {"otwalls", "오프 더 월 (센테)"},

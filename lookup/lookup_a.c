@@ -197,6 +197,8 @@ static const LookupName lookup_table[] = {
         {"alphaone", "알파 원"},
         {"alphaonea", "알파 원"},
         {"alphaxz", "알팩스 Z (일본판)"},
+        {"alpilot", "에어라인 파일럿 (세계판,개정판B)"},
+        {"alpilotj", "에어라인 파일럿 (세계판,개정판A)"},
         {"alpine", "알파인 스키 (세트1)"},
         {"alpinea", "알파인 스키 (세트2)"},
         {"alpinerc", "알파인 레이서 (개정판AR2 버전C)"},

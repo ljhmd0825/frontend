@@ -749,6 +749,7 @@ static const LookupName lookup_table[] = {
         {"gundhara", "건드하라"},
         {"gundharac", "건드하라 (중국 해적판)"},
         {"gundl94", "건 딜러 94"},
+        {"gundmct", "기동전사 건담: 연방 대 지온"},
         {"gundmgd", "기동전사 건담: 연방 대 지온 (GDL-0001)"},
         {"gundmxgd", "기동전사 건담: 연방 대 지온 DX (GDL-0006)"},
         {"gunfight", "건 파이트"},

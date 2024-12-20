@@ -843,6 +843,7 @@ static const LookupName lookup_table[] = {
         {"cutieq", "큐티 Q"},
         {"cvs2", "캡콤 vs SNK 2: 마크 오브 더 밀레니엄 2001 (미국판)(GDL-0008)"},
         {"cvs2mf", "캡콤 vs SNK 2: 밀리네어 파이팅 2001 (일본판,개정판A)(GDL-0007A)"},
+        {"cvsgd", "캡콤 vs SNK: 밀레니엄 파이트 2000 프로 (일본판)(GDL-0004)"},
         {"cworld", "캡콤 월드 (일본판)"},
         {"cworld2j", "어드벤쳐 퀴즈 캡콤 월드 2 (일본판)"},
         {"cworld2ja", "어드벤쳐 퀴즈 캡콤 월드 2 (일본판,배터리없음)"},
