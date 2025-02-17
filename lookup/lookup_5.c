@@ -6,7 +6,11 @@ typedef struct {
     const char *value;
 } LookupName;
 
-static const LookupName lookup_table[] = {};
+static const LookupName lookup_table[] = {
+        {"5clown", "파이브 클라운"},
+        {"5clowna", "파이브 클라운 (영어,세트2)"},
+        {"5clownsp", "파이브 클라운 (스페인어 핵)"},
+};
 
 const char *lookup_5(const char *name) {
     if (!name) return NULL;
