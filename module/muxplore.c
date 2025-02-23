@@ -1253,11 +1253,12 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_display();
     init_theme(1, 1);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, "");
     init_mux(ui_screen, &theme);
+    init_timer(ui_refresh_task, NULL);
 
     ui_viewport_objects[0] = lv_obj_create(ui_pnlBox);
     ui_viewport_objects[1] = lv_img_create(ui_viewport_objects[0]);
@@ -1295,7 +1296,6 @@ int main(int argc, char *argv[]) {
     }
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     int nav_vis = 0;
     if (ui_count > 0) {
@@ -1377,7 +1377,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     free_items(items, item_count);
 

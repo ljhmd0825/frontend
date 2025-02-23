@@ -249,11 +249,12 @@ void handle_a() {
 
             play_sound("confirm", nav_sound, 0, 1);
             load_mux(elements[i].mux_name);
+            mux_input_stop();
             break;
         }
     }
 
-    mux_input_stop();
+    handle_option_next();
 }
 
 
@@ -366,11 +367,12 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_display();
     init_theme(1, 1);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXCONNECT.TITLE);
     init_mux(ui_pnlContent);
+    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -386,7 +388,6 @@ int main(int argc, char *argv[]) {
     init_dropdown_settings();
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     load_kiosk(&kiosk);
     list_nav_next(direct_to_previous(ui_objects, UI_COUNT, &nav_moved));
@@ -428,7 +429,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     close(joy_general);
     close(joy_power);

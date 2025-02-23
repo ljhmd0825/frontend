@@ -51,8 +51,8 @@ void refresh_screen(lv_obj_t *screen) {
     }
 }
 
-void safe_quit() {
-    write_text_to_file("/tmp/safe_quit", "w", CHAR, "");
+void safe_quit(int exit_status) {
+    write_text_to_file("/tmp/safe_quit", "w", INT, exit_status);
 }
 
 void init_display() {
@@ -64,11 +64,14 @@ void init_display() {
     struct screen_dimension dims = get_device_dimensions();
 
     uint32_t disp_buf_size = dims.WIDTH * dims.HEIGHT;
-    lv_disp_draw_buf_init(&disp_buf, (lv_color_t *) malloc(disp_buf_size * sizeof(lv_color_t)), NULL, disp_buf_size);
+    lv_color_t *disp_buf_s1 = (lv_color_t *) malloc(disp_buf_size * sizeof(lv_color_t));
+    lv_color_t *disp_buf_s2 = (lv_color_t *) malloc(disp_buf_size * sizeof(lv_color_t));
+
+    lv_disp_draw_buf_init(&disp_buf, disp_buf_s1, disp_buf_s2, disp_buf_size);
     lv_disp_drv_init(&disp_drv);
 
     disp_drv.draw_buf = &disp_buf;
-    disp_drv.flush_cb = sdl_display_flush;
+    disp_drv.flush_cb = display_flush;
     disp_drv.hor_res = dims.WIDTH;
     disp_drv.ver_res = dims.HEIGHT;
     disp_drv.physical_hor_res = -1;
@@ -77,7 +80,7 @@ void init_display() {
     disp_drv.offset_y = 0;
     disp_drv.full_refresh = 1;
     disp_drv.direct_mode = 1;
-    disp_drv.antialiasing = 1;
+    disp_drv.antialiasing = theme.MISC.ANTIALIASING;
     disp_drv.color_chroma_key = lv_color_hex(0xFF00FF);
 
     lv_disp_drv_register(&disp_drv);

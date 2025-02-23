@@ -609,15 +609,16 @@ int main(int argc, char *argv[]) {
 
     if (safe_atoi(auto_assign) && !file_exist(MUOS_SAA_LOAD)) {
         if (automatic_assign_core(rom_dir) || !strcmp(rom_system, "none")) {
-            safe_quit();
+            safe_quit(0);
             return 0;            
         }
     }
 
-    init_display();
     init_theme(1, 0);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, "");
+    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -635,7 +636,6 @@ int main(int argc, char *argv[]) {
     }
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     if (ui_count > 0) {
         if (!strcasecmp(rom_system, "none")) {
@@ -689,7 +689,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     close(joy_general);
     close(joy_power);

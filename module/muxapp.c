@@ -102,18 +102,18 @@ void init_navigation_group_grid(const char *app_path) {
         lv_obj_t *cell_image = lv_img_create(cell_panel);
         lv_obj_t *cell_label = lv_label_create(cell_panel);
 
-        char *glyph_name = get_glyph_from_file(app_path, items[i].name, "app");
+        char *glyph_name = get_var_from_file(app_path, items[i].extra_data, "ICON", "app");
         char mux_dimension[15];
         get_mux_dimension(mux_dimension, sizeof(mux_dimension));
         char grid_image[MAX_BUFFER_SIZE];
         load_image_catalogue("Application", glyph_name, "default", mux_dimension, "grid",
-                                  grid_image, sizeof(grid_image));
+                             grid_image, sizeof(grid_image));
 
         char glyph_name_focused[MAX_BUFFER_SIZE];
         snprintf(glyph_name_focused, sizeof(glyph_name_focused), "%s_focused", glyph_name);
         char grid_image_focused[MAX_BUFFER_SIZE];
         load_image_catalogue("Application", glyph_name_focused, "default_focused", mux_dimension, "grid",
-                                  grid_image_focused, sizeof(grid_image_focused));
+                             grid_image_focused, sizeof(grid_image_focused));
 
         create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
                          grid_image, grid_image_focused, items[i].display_name);
@@ -184,12 +184,11 @@ void create_app_items() {
         if (!file_names[i]) continue;
         char *base_filename = file_names[i];
 
-        char app_name[MAX_BUFFER_SIZE];
-        snprintf(app_name, sizeof(app_name), "%s",
-                 str_remchar(str_replace(base_filename, strip_dir(base_filename), ""), '/'));
+        char *standard_app_name = strip_ext(str_remchar(str_replace(base_filename, strip_dir(base_filename), ""), '/'));
+        char *app_name_for_grid = get_var_from_file(app_path, base_filename, "GRID", standard_app_name);
 
         char app_store[MAX_BUFFER_SIZE];
-        snprintf(app_store, sizeof(app_store), "%s", strip_ext(app_name));
+        snprintf(app_store, sizeof(app_store), "%s", theme.GRID.ENABLED ? app_name_for_grid : standard_app_name);
 
         add_item(&items, &item_count, app_store, TS(app_store), file_names[i], ROM);
 
@@ -211,7 +210,7 @@ void create_app_items() {
                 lv_obj_t *ui_lblAppItemGlyph = lv_img_create(ui_pnlApp);
                 if (ui_lblAppItemGlyph) {
                     apply_theme_list_glyph(&theme, ui_lblAppItemGlyph, mux_module,
-                                           get_glyph_from_file(app_path, items[i].name, "app"));
+                                           get_var_from_file(app_path, items[i].extra_data, "ICON", "app"));
                 }
 
                 lv_group_add_obj(ui_group, ui_lblAppItem);
@@ -302,10 +301,7 @@ void handle_a() {
         play_sound("confirm", nav_sound, 0, 1);
         toast_message(lang.MUXAPP.LOAD_APP, 0, 0);
 
-        static char command[MAX_BUFFER_SIZE];
-        snprintf(command, sizeof(command), "%s/%s/%s.sh",
-                 device.STORAGE.ROM.MOUNT, MUOS_APPS_PATH, items[current_item_index].name);
-        write_text_to_file(MUOS_APP_LOAD, "w", CHAR, command);
+        write_text_to_file(MUOS_APP_LOAD, "w", CHAR, items[current_item_index].extra_data);
 
         write_text_to_file(MUOS_AIN_LOAD, "w", INT, current_item_index);
 
@@ -433,10 +429,11 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_display();
     init_theme(1, 1);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXAPP.TITLE);
+    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -457,7 +454,6 @@ int main(int argc, char *argv[]) {
     load_wallpaper(ui_screen, NULL, ui_pnlWall, ui_imgWall, APPLICATION);
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     if (ui_count > 0) {
         if (ain_index > -1 && ain_index <= ui_count && current_item_index < ui_count) list_nav_next(ain_index);
@@ -505,7 +501,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     free_items(items, item_count);
 

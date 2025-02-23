@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
                  INFO_COR_PATH, get_last_subdir(rom_dir, '/', 4));
 
         if (file_exist(core_file)) {
-            safe_quit();
+            safe_quit(0);
             return 0;
         }
 
@@ -529,22 +529,23 @@ int main(int argc, char *argv[]) {
 
                 mini_free(core_config_ini);
 
-                safe_quit();
+                safe_quit(0);
                 return 0;
             } else {
                 LOG_INFO(mux_module, "Assigned Governor To Default: %s", device.CPU.DEFAULT)
                 create_gov_assignment(device.CPU.DEFAULT, rom_name, DIRECTORY_NO_WIPE);
 
-                safe_quit();
+                safe_quit(0);
                 return 0;
             }
         }
     }
 
-    init_display();
     init_theme(1, 0);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, "");
+    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -583,7 +584,6 @@ int main(int argc, char *argv[]) {
     create_gov_items(rom_system);
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     if (ui_count > 0) {
         LOG_SUCCESS(mux_module, "%d Governor%s Detected", ui_count, ui_count == 1 ? "" : "s")
@@ -633,7 +633,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     close(joy_general);
     close(joy_power);

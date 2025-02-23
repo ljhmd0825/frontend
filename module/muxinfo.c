@@ -304,8 +304,8 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_display();
     init_theme(1, 0);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXINFO.TITLE);
     init_mux(ui_pnlContent);
@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     close(joy_general);
     close(joy_power);

@@ -157,7 +157,7 @@ void create_task_items() {
 
         ui_count++;
 
-        add_item(&items, &item_count, task_store, TS(task_store), "", ROM);
+        add_item(&items, &item_count, task_store, TS(task_store), file_names[i], ROM);
 
         lv_obj_t *ui_pnlTask = lv_obj_create(ui_pnlContent);
         if (ui_pnlTask) {
@@ -170,7 +170,7 @@ void create_task_items() {
             lv_obj_t *ui_lblTaskItemGlyph = lv_img_create(ui_pnlTask);
             if (ui_lblTaskItemGlyph) {
                 apply_theme_list_glyph(&theme, ui_lblTaskItemGlyph, mux_module,
-                                       get_glyph_from_file(task_path, items[i].name, "task"));
+                                       get_var_from_file(task_path, items[i].extra_data, "ICON", "task"));
             }
 
             lv_group_add_obj(ui_group, ui_lblTaskItem);
@@ -389,10 +389,11 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_display();
     init_theme(1, 1);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXTASK.TITLE);
+    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -412,7 +413,6 @@ int main(int argc, char *argv[]) {
     lv_obj_set_user_data(lv_group_get_focused(ui_group), items[current_item_index].name);
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     int nav_hidden = 0;
     if (ui_count > 0) {
@@ -463,7 +463,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     free_items(items, item_count);
 

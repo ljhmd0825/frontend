@@ -173,10 +173,12 @@ void restore_tweak_options() {
     int volume_index = 0;
     if (!strcasecmp(volume_type, "previous")) {
         volume_index = 0;
-    } else if (!strcasecmp(volume_type, "quiet")) {
+    } else if (!strcasecmp(volume_type, "silent")) {
         volume_index = 1;
-    } else if (!strcasecmp(volume_type, "loud")) {
+    } else if (!strcasecmp(volume_type, "soft")) {
         volume_index = 2;
+    } else if (!strcasecmp(volume_type, "loud")) {
+        volume_index = 3;
     }
     lv_dropdown_set_selected(ui_droVolume, volume_index);
 
@@ -186,8 +188,10 @@ void restore_tweak_options() {
         brightness_index = 0;
     } else if (!strcasecmp(brightness_type, "low")) {
         brightness_index = 1;
-    } else if (!strcasecmp(brightness_type, "high")) {
+    } else if (!strcasecmp(brightness_type, "medium")) {
         brightness_index = 2;
+    } else if (!strcasecmp(brightness_type, "high")) {
+        brightness_index = 3;
     }
     lv_dropdown_set_selected(ui_droBrightness, brightness_index);
 
@@ -233,9 +237,12 @@ void save_tweak_options() {
             idx_volume = "previous";
             break;
         case 1:
-            idx_volume = "quiet";
+            idx_volume = "silent";
             break;
         case 2:
+            idx_volume = "soft";
+            break;
+        case 3:
             idx_volume = "loud";
             break;
         default:
@@ -252,6 +259,9 @@ void save_tweak_options() {
             idx_brightness = "low";
             break;
         case 2:
+            idx_brightness = "medium";
+            break;
+        case 3:
             idx_brightness = "high";
             break;
         default:
@@ -569,12 +579,14 @@ void init_navigation_group() {
 
     add_drop_down_options(ui_droVolume, (char *[]) {
             lang.GENERIC.PREVIOUS,
-            lang.MUXTWEAKADV.VOLUME.QUIET,
+            lang.MUXTWEAKADV.VOLUME.SILENT,
+            lang.MUXTWEAKADV.VOLUME.SOFT,
             lang.MUXTWEAKADV.VOLUME.LOUD}, 3);
 
     add_drop_down_options(ui_droBrightness, (char *[]) {
             lang.GENERIC.PREVIOUS,
             lang.MUXTWEAKADV.BRIGHT.LOW,
+            lang.MUXTWEAKADV.BRIGHT.MEDIUM,
             lang.MUXTWEAKADV.BRIGHT.HIGH}, 3);
 
     add_drop_down_options(ui_droPasscode, disabled_enabled, 2);
@@ -787,11 +799,12 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_display();
     init_theme(1, 0);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXTWEAKADV.TITLE);
     init_mux(ui_pnlContent);
+    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -808,7 +821,6 @@ int main(int argc, char *argv[]) {
     init_dropdown_settings();
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(ui_refresh_task, NULL);
 
     load_kiosk(&kiosk);
     list_nav_next(direct_to_previous(ui_objects, UI_COUNT, &nav_moved));
@@ -850,7 +862,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(0);
 
     close(joy_general);
     close(joy_power);

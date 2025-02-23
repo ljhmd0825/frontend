@@ -180,14 +180,6 @@ void init_elements() {
     load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
 }
 
-void glyph_task() {
-    // TODO: Bluetooth connectivity!
-    //update_bluetooth_status(ui_staBluetooth, &theme);
-
-    update_network_status(ui_staNetwork, &theme);
-    update_battery_capacity(ui_staCapacity, &theme);
-}
-
 int main(int argc, char *argv[]) {
     char *cmd_help = "\nmuOS Extras - Passcode\nUsage: %s <-t>\n\nOptions:\n"
                      "\t-t Type of passcode lock <boot|launch|setting>\n\n";
@@ -229,16 +221,21 @@ int main(int argc, char *argv[]) {
         p_msg = passcode.MESSAGE.SETTING;
     } else {
         fprintf(stderr, cmd_help, argv[0]);
+        safe_quit(2);
         return 2;
     }
 
-    if (strcasecmp(p_code, "000000") == 0) return 1;
+    if (strcasecmp(p_code, "000000") == 0) {
+        safe_quit(1);
+        return 1;
+    }
 
-    init_display();
     init_theme(0, 0);
+    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXPASS.TITLE);
     init_mux(ui_pnlContent);
+    init_timer(NULL, NULL);
     init_elements();
 
     if (strlen(p_msg) > 1) toast_message(p_msg, 0, 0);
@@ -257,7 +254,6 @@ int main(int argc, char *argv[]) {
     init_navigation_sound(&nav_sound, mux_module);
 
     init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-    init_timer(NULL, NULL);
 
     load_kiosk(&kiosk);
 
@@ -293,7 +289,7 @@ int main(int argc, char *argv[]) {
             .idle_handler = ui_common_handle_idle,
     };
     mux_input_task(&input_opts);
-    safe_quit();
+    safe_quit(exit_status);
 
     close(joy_general);
     close(joy_power);

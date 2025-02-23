@@ -1156,6 +1156,15 @@ char *load_static_image(lv_obj_t *ui_screen, lv_group_t *ui_group, int wall_type
         }
     }
 
+    if (load_image_specifics(STORAGE_THEME, mux_dimension, program, "static",
+                             "png", static_image_path, sizeof(static_image_path)) ||
+        load_image_specifics(STORAGE_THEME, "", program, "static",
+                             "png", static_image_path, sizeof(static_image_path))) {
+        int written = snprintf(static_image_path, sizeof(static_image_path), "M:%s", static_image_path);
+        if (written < 0 || (size_t) written >= sizeof(static_image_path)) return "";
+        return static_image_path;
+    }
+
     return "";
 }
 
@@ -2031,15 +2040,11 @@ int get_grid_row_item_count(int current_item_index) {
     }
 }
 
-char *get_glyph_from_file(const char *storage_path, const char *item_name, char *item_default) {
-    char get_icon[MAX_BUFFER_SIZE];
-    snprintf(get_icon, sizeof(get_icon),
-             "%s/%s.sh", storage_path, item_name);
+char *get_var_from_file(const char *storage_path, const char *script_file, const char *item_var, char *item_default) {
+    char *item_value = get_script_value(script_file, item_var);
+    if (!item_value || item_value[0] == '\0') return item_default;
 
-    char *item_glyph = get_script_value(get_icon, "ICON");
-    if (!item_glyph || strlen(item_glyph) <= 1) return item_default;
-
-    return item_glyph;
+    return item_value;
 }
 
 char *kiosk_nope() {
