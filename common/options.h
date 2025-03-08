@@ -29,11 +29,13 @@
 #define CONTENT_PATH "/mnt/union/ROMS"
 #define OPTION_SKIP  "/tmp/skip_opt"
 
-#define INTERNAL_PATH  "/opt/muos/"
-#define INTERNAL_THEME INTERNAL_PATH "default/MUOS/theme/active"
+#define INTERNAL_PATH    "/opt/muos/"
+#define INTERNAL_THEME   INTERNAL_PATH "default/MUOS/theme/active"
+#define INTERNAL_OVERLAY INTERNAL_PATH "overlay"
 
 #define KIOSK_CONFIG   INTERNAL_PATH "config/kiosk.ini"
 #define LAST_PLAY_FILE INTERNAL_PATH "config/lastplay.txt"
+#define MUOS_VERSION   INTERNAL_PATH "config/version.txt"
 
 #define RUN_PATH "/run/muos/"
 
@@ -105,6 +107,7 @@
 #define VOLUME_PERC "/tmp/current_volume_percent"
 
 #define FRIENDLY_RESULT "/tmp/f_result.json"
+#define APP_LAUNCHER    "mux_launch.sh"
 
 #define FONT_PANEL_FOLDER  "panel"
 #define FONT_HEADER_FOLDER "header"

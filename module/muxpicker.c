@@ -7,7 +7,7 @@
 #include <libgen.h>
 #include <linux/limits.h>
 #include "../common/init.h"
-#include "../common/img/nothing.h"
+#include "../common/img/missing.h"
 #include "../common/common.h"
 #include "../common/options.h"
 #include "../common/language.h"
@@ -17,7 +17,6 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 
 #define EXPLORE_DIR "/tmp/explore_dir"
@@ -25,12 +24,6 @@
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -66,6 +59,9 @@ lv_group_t *ui_group_panel;
 
 lv_obj_t *ui_mux_panels[5];
 
+#define TEMP_PREVIEW "/tmp/preview.png"
+#define TEMP_VERSION "/tmp/version.txt"
+
 void show_help() {
     if (items[current_item_index].content_type == FOLDER) return;
 
@@ -76,9 +72,9 @@ void show_help() {
 
     char credits[MAX_BUFFER_SIZE];
     if (extract_file_from_zip(picker_archive, "credits.txt", "/tmp/credits.txt")) {
-        strcpy(credits, lang.MUXPICKER.NONE.CREDIT);
-    } else {
         strcpy(credits, read_text_from_file("/tmp/credits.txt"));
+    } else {
+        strcpy(credits, lang.MUXPICKER.NONE.CREDIT);
     }
 
     show_help_msgbox(ui_pnlHelp, ui_lblHelpHeader, ui_lblHelpContent,
@@ -86,11 +82,27 @@ void show_help() {
 }
 
 int version_check() {
-    char *picker_name = lv_label_get_text(lv_group_get_focused(ui_group));
     char picker_archive[MAX_BUFFER_SIZE];
+    snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s",
+             sys_dir, lv_label_get_text(lv_group_get_focused(ui_group)), picker_extension);
+    if (!extract_file_from_zip(picker_archive, "version.txt", TEMP_VERSION)) return 0;
 
-    snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s", sys_dir, picker_name, picker_extension);
-    return !extract_file_from_zip(picker_archive, "version.txt", "/tmp/version.txt");
+    char muos_version[MAX_BUFFER_SIZE];
+    snprintf(muos_version, sizeof(muos_version), "%s", read_line_from_file(MUOS_VERSION, 1));
+    return str_startswith(muos_version, read_line_from_file(TEMP_VERSION, 1));
+}
+
+int extract_preview() {
+    char picker_archive[MAX_BUFFER_SIZE];
+    snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s",
+             sys_dir, lv_label_get_text(lv_group_get_focused(ui_group)), picker_extension);
+
+    char mux_dimension[15];
+    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
+
+    char device_preview[PATH_MAX];
+    snprintf(device_preview, sizeof(device_preview), "%spreview.png", mux_dimension);
+    return extract_file_from_zip(picker_archive, device_preview, TEMP_PREVIEW);
 }
 
 void image_refresh() {
@@ -99,23 +111,11 @@ void image_refresh() {
     // Invalidate the cache for this image path
     lv_img_cache_invalidate_src(lv_img_get_src(ui_imgBox));
 
-    char *picker_name = lv_label_get_text(lv_group_get_focused(ui_group));
-    char picker_archive[MAX_BUFFER_SIZE];
-
-    snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s", sys_dir, picker_name, picker_extension);
-
-    char mux_dimension[15];
-    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
-    char device_preview[PATH_MAX];
-    snprintf(device_preview, sizeof(device_preview), "%spreview.png", mux_dimension);
-
-    if (extract_file_from_zip(picker_archive, device_preview, "/tmp/preview.png") &&
-        extract_file_from_zip(picker_archive, "preview.png", "/tmp/preview.png")) {
-        lv_img_set_src(ui_imgBox, &ui_image_Nothing);
-        return;
+    if (!extract_preview()) {
+        lv_img_set_src(ui_imgBox, &ui_image_Missing);
+    } else {
+        lv_img_set_src(ui_imgBox, "M:" TEMP_PREVIEW);
     }
-
-    lv_img_set_src(ui_imgBox, "M:/tmp/preview.png");
 }
 
 void create_picker_items() {
@@ -127,8 +127,9 @@ void create_picker_items() {
 
     while ((tf = readdir(td))) {
         if (tf->d_type == DT_DIR) {
-            if (strcasecmp(tf->d_name, "active") == 0 || 
-                strcasecmp(tf->d_name, "override") == 0) continue;
+            if (strcasecmp(tf->d_name, "active") == 0 ||
+                strcasecmp(tf->d_name, "override") == 0)
+                continue;
             add_item(&items, &item_count, tf->d_name, tf->d_name, "", FOLDER);
         } else if (tf->d_type == DT_REG) {
             char filename[FILENAME_MAX];
@@ -162,7 +163,8 @@ void create_picker_items() {
         apply_theme_list_item(&theme, ui_lblPickerItem, items[i].display_name);
 
         lv_obj_t *ui_lblPickerItemGlyph = lv_img_create(ui_pnlPicker);
-        apply_theme_list_glyph(&theme, ui_lblPickerItemGlyph, mux_module, items[i].content_type == FOLDER ? "folder" : get_last_subdir(picker_type, '/', 1));
+        apply_theme_list_glyph(&theme, ui_lblPickerItemGlyph, mux_module,
+                               items[i].content_type == FOLDER ? "folder" : get_last_subdir(picker_type, '/', 1));
 
         lv_group_add_obj(ui_group, ui_lblPickerItem);
         lv_group_add_obj(ui_group_glyph, ui_lblPickerItemGlyph);
@@ -218,7 +220,7 @@ void handle_confirm() {
     if (msgbox_active || ui_count <= 0) return;
 
     play_sound("confirm", nav_sound, 0, 1);
-    
+
     if (items[current_item_index].content_type == FOLDER) {
         char n_dir[MAX_BUFFER_SIZE];
         snprintf(n_dir, sizeof(n_dir), "%s/%s",
@@ -228,23 +230,34 @@ void handle_confirm() {
     } else {
         if (!strcasecmp(picker_type, "theme") && !version_check()) {
             play_sound("error", nav_sound, 0, 1);
-            toast_message(lang.MUXPICKER.INVALID, 1000, 1000);
+            toast_message(lang.MUXPICKER.INVALID_VER, 1000, 1000);
+            return;
+        }
+
+        char picker_archive[MAX_BUFFER_SIZE];
+        snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s",
+                 sys_dir, lv_label_get_text(lv_group_get_focused(ui_group)), picker_extension);
+        if (!strcasecmp(picker_type, "theme") && !resolution_check(picker_archive)) {
+            play_sound("error", nav_sound, 0, 1);
+            toast_message(lang.MUXPICKER.INVALID_RES, 1000, 1000);
             return;
         }
 
         static char picker_script[MAX_BUFFER_SIZE];
         snprintf(picker_script, sizeof(picker_script),
-                "%sscript/package/%s.sh", INTERNAL_PATH, get_last_subdir(picker_type, '/', 1));
+                 "%sscript/package/%s.sh", INTERNAL_PATH, get_last_subdir(picker_type, '/', 1));
+
+        char *selected_item = lv_label_get_text(lv_group_get_focused(ui_group));
 
         char relative_zip_path[PATH_MAX];
         if (strcasecmp(base_dir, sys_dir) == 0) {
-            snprintf(relative_zip_path, sizeof(relative_zip_path), "%s", 
-                lv_label_get_text(lv_group_get_focused(ui_group)));
+            snprintf(relative_zip_path, sizeof(relative_zip_path), "%s",
+                     selected_item);
         } else {
             char *relative_path = sys_dir + strlen(base_dir);
             if (*relative_path == '/') relative_path++;
-            snprintf(relative_zip_path, sizeof(relative_zip_path), "%s/%s", 
-                relative_path, lv_label_get_text(lv_group_get_focused(ui_group)));
+            snprintf(relative_zip_path, sizeof(relative_zip_path), "%s/%s",
+                     relative_path, selected_item);
         }
 
         const char *args[] = {
@@ -269,6 +282,60 @@ void handle_confirm() {
     }
 
     load_mux("picker");
+
+    safe_quit(0);
+    mux_input_stop();
+}
+
+void handle_confirm_force() {
+    if (msgbox_active || ui_count <= 0 ||
+        strcasecmp(picker_type, "theme") != 0 ||
+        items[current_item_index].content_type == FOLDER) {
+        return;
+    }
+
+    play_sound("confirm", nav_sound, 0, 1);
+
+    static char picker_script[MAX_BUFFER_SIZE];
+    snprintf(picker_script, sizeof(picker_script),
+             "%sscript/package/%s.sh", INTERNAL_PATH, get_last_subdir(picker_type, '/', 1));
+
+    char *selected_item = lv_label_get_text(lv_group_get_focused(ui_group));
+
+    char relative_zip_path[PATH_MAX];
+    if (strcasecmp(base_dir, sys_dir) == 0) {
+        snprintf(relative_zip_path, sizeof(relative_zip_path), "%s",
+                 selected_item);
+    } else {
+        char *relative_path = sys_dir + strlen(base_dir);
+        if (*relative_path == '/') relative_path++;
+        snprintf(relative_zip_path, sizeof(relative_zip_path), "%s/%s",
+                 relative_path, selected_item);
+    }
+
+    const char *args[] = {
+            (INTERNAL_PATH "bin/fbpad"),
+            "-bg", (char *) theme.TERMINAL.BACKGROUND,
+            "-fg", (char *) theme.TERMINAL.FOREGROUND,
+            picker_script, "install", relative_zip_path,
+            NULL
+    };
+
+    setenv("TERM", "xterm-256color", 1);
+
+    if (config.VISUAL.BLACKFADE) {
+        fade_to_black(ui_screen);
+    } else {
+        unload_image_animation();
+    }
+
+    run_exec(args);
+
+    write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
+
+    load_mux("picker");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -282,18 +349,17 @@ void handle_back() {
     }
 
     play_sound("back", nav_sound, 0, 1);
-    if (sys_dir) {
-        if (strcasecmp(base_dir, sys_dir) == 0) {
-            remove(EXPLORE_DIR);
-            load_mux("custom");
-        } else {
-            char *base_dir = strrchr(sys_dir, '/');
-            if (base_dir) write_text_to_file(EXPLORE_DIR, "w", CHAR, strndup(sys_dir, base_dir - sys_dir));
-            write_text_to_file(EXPLORE_NAME, "w", CHAR, get_last_subdir(sys_dir, '/', 5));
-            load_mux("picker");
-        }
+    if (strcasecmp(base_dir, sys_dir) == 0) {
+        remove(EXPLORE_DIR);
+        load_mux("custom");
+    } else {
+        char *base_dir = strrchr(sys_dir, '/');
+        if (base_dir) write_text_to_file(EXPLORE_DIR, "w", CHAR, strndup(sys_dir, base_dir - sys_dir));
+        write_text_to_file(EXPLORE_NAME, "w", CHAR, get_last_subdir(sys_dir, '/', 5));
+        load_mux("picker");
     }
-    
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -327,6 +393,8 @@ void handle_save() {
     write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
 
     load_mux("picker");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -391,7 +459,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
@@ -489,8 +557,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     if (ui_count > 0) {
         if (sys_index > -1 && sys_index <= ui_count && current_item_index < ui_count) list_nav_next(sys_index);
     } else {
@@ -515,17 +581,11 @@ int main(int argc, char *argv[]) {
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_confirm,
                     [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_X] = handle_confirm_force,
                     [MUX_INPUT_Y] = handle_save,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
@@ -538,24 +598,12 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
 
     free_items(items, item_count);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

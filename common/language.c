@@ -192,9 +192,6 @@ void load_lang(struct mux_lang *lang) {
 
     // muxhdmi
     SPECIFIC_FIELD(lang->MUXHDMI.TITLE, "HDMI SETTINGS");
-    SPECIFIC_FIELD(lang->MUXHDMI.DENY_MODIFY, "Cannot modify while HDMI is active");
-    SPECIFIC_FIELD(lang->MUXHDMI.NO_CABLE, "HDMI cable is not detected");
-    SPECIFIC_FIELD(lang->MUXHDMI.ACTIVE, "HDMI Active");
     SPECIFIC_FIELD(lang->MUXHDMI.RESOLUTION, "Resolution");
     SPECIFIC_FIELD(lang->MUXHDMI.THEME_RESOLUTION, "Theme Resolution");
     SPECIFIC_FIELD(lang->MUXHDMI.SCREEN, "Screen");
@@ -209,7 +206,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXHDMI.SCAN_SCALE.TITLE, "Scan Scaling");
     SPECIFIC_FIELD(lang->MUXHDMI.SCAN_SCALE.OVER, "Over");
     SPECIFIC_FIELD(lang->MUXHDMI.SCAN_SCALE.UNDER, "Under");
-    SPECIFIC_FIELD(lang->MUXHDMI.HELP.ACTIVE, "Enable or disable HDMI output");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.AUDIO_OUTPUT, "Switch between device speaker or external monitor audio via HDMI connection");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.RESOLUTION, "Select the resolution for HDMI output, such as 720p or 1080p");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.THEME_RESOLUTION, "Allows for testing different theme resolutions");
@@ -344,7 +340,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXPICKER.CATALOGUE, "CATALOGUE PICKER");
     SPECIFIC_FIELD(lang->MUXPICKER.CONFIG, "CONFIG PICKER");
     SPECIFIC_FIELD(lang->MUXPICKER.THEME, "THEME PICKER");
-    SPECIFIC_FIELD(lang->MUXPICKER.INVALID, "Incompatible Theme Detected");
+    SPECIFIC_FIELD(lang->MUXPICKER.INVALID_VER, "Incompatible Theme Version Detected");
+    SPECIFIC_FIELD(lang->MUXPICKER.INVALID_RES, "Incompatible Theme Resolution Detected");
     SPECIFIC_FIELD(lang->MUXPICKER.NONE.CREDIT, "There are no attributed credits!");
     SPECIFIC_FIELD(lang->MUXPICKER.NONE.CUSTOM, "No Custom Packages Found");
     SPECIFIC_FIELD(lang->MUXPICKER.NONE.CATALOGUE, "No Catalogue Packages Found");
@@ -375,7 +372,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXPOWER.IDLE.t30m, "30m");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.TITLE, "Sleep Function");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.INSTANT, "Instant Shutdown");
-    SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.SUSPEND, "Sleep Suspend");
+    SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.SUSPEND, "Sleep Until Wake");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t10s, "Sleep 10s + Shutdown");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t30s, "Sleep 30s + Shutdown");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t60s, "Sleep 60s + Shutdown");
@@ -603,9 +600,27 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXVISUAL.NAME.REM_PA, "Remove ( )");
     SPECIFIC_FIELD(lang->MUXVISUAL.NAME.REM_SQPA, "Remove [ ] and ( )");
     SPECIFIC_FIELD(lang->MUXVISUAL.HIDDEN, "Show Hidden Content");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.IMAGE, "Overlay Image");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.TRANSPARENCY, "Overlay Transparency");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.THEME, "Theme Provided");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.CHECKERBOARD.T1, "Checkerboard (1px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.CHECKERBOARD.T4, "Checkerboard (4px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.DIAGONAL.T1, "Diagonal Lines (1px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.DIAGONAL.T2, "Diagonal Lines (2px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.DIAGONAL.T4, "Diagonal Lines (4px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.LATTICE.T1, "Dot Lattice (1px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.LATTICE.T4, "Dot Lattice (4px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.HORIZONTAL.T1, "Horizontal Lines (1px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.HORIZONTAL.T2, "Horizontal Lines (2px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.HORIZONTAL.T4, "Horizontal Lines (4px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.VERTICAL.T1, "Vertical Lines (1px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.VERTICAL.T2, "Vertical Lines (2px)");
+    SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.VERTICAL.T4, "Vertical Lines (4px)");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.BATTERY, "Toggle the visibility of the battery glyph");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.NETWORK, "Toggle the visibility of the network glyph");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.CLOCK, "Toggle the visibility of the clock");
+    SPECIFIC_FIELD(lang->MUXVISUAL.HELP.OVERLAY_IMAGE, "Switch between different overlay styles for the frontend only");
+    SPECIFIC_FIELD(lang->MUXVISUAL.HELP.OVERLAY_TRANSPARENCY, "Changes the transparency of the overlay image for the frontend only");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.DASH, "Replaces the dash (-) with a colon (:) for content labels");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.FRIENDLY, "Replaces the label of shortened content folders to more appropriately named labels");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.REFORMAT, "Rearranges the label of content to move the 'The' label to the front - For example, 'Batman and Robin, The' to 'The Batman and Robin'");

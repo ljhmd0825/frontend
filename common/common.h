@@ -9,7 +9,6 @@
 extern int msgbox_active;
 extern lv_obj_t *msgbox_element;
 extern int battery_capacity;
-extern int turbo_mode;
 extern int nav_sound;
 extern int bar_header;
 extern int bar_footer;
@@ -164,7 +163,7 @@ void load_wallpaper(lv_obj_t *ui_screen, lv_group_t *ui_group, lv_obj_t *ui_pnlW
 
 char *load_static_image(lv_obj_t *ui_screen, lv_group_t *ui_group, int wall_type);
 
-void load_overlay_image(lv_obj_t *ui_screen, lv_obj_t *overlay_image, int16_t overlay_enabled);
+void load_overlay_image(lv_obj_t *ui_screen, lv_obj_t *overlay_image);
 
 void load_kiosk_image(lv_obj_t *ui_screen, lv_obj_t *kiosk_image);
 
@@ -172,8 +171,8 @@ int load_image_specifics(const char *theme_base, const char *mux_dimension, cons
                          const char *image_type, const char *image_extension, char *image_path, size_t path_size);
 
 int load_element_image_specifics(const char *theme_base, const char *mux_dimension, const char *program,
-                                 const char *image_type, const char *element, const char *image_extension,
-                                 char *image_path, size_t path_size);
+                                 const char *image_type, const char *element, const char *element_fallback, 
+                                 const char *image_extension, char *image_path, size_t path_size);
 
 void load_image_random(lv_obj_t *ui_imgWall, char *base_image_path);
 
@@ -222,9 +221,11 @@ void add_drop_down_options(lv_obj_t *ui_lblItemDropDown, char *options[], int co
 char *generate_number_string(int min, int max, int increment, const char *prefix, const char *infix,
                              const char *suffix, int infix_position);
 
-char *get_script_value(const char *filename, const char *key);
+char *get_script_value(const char *filename, const char *key, const char *not_found);
 
 void update_bars(lv_obj_t *bright_bar, lv_obj_t *volume_bar, lv_obj_t *volume_icon);
+
+int resolution_check(const char *zip_filename);
 
 int extract_file_from_zip(const char *zip_path, const char *file_name, const char *output_path);
 
@@ -247,8 +248,6 @@ int get_grid_row_index(int current_item_index);
 int get_grid_column_index(int current_item_index);
 
 int get_grid_row_item_count(int current_item_index);
-
-char *get_var_from_file(const char *storage_path, const char *script_file, const char *item_var, char *item_default);
 
 char *kiosk_nope();
 

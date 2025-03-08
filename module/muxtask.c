@@ -1,5 +1,4 @@
 #include "../lvgl/lvgl.h"
-#include <unistd.h>
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
@@ -15,17 +14,10 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -82,9 +74,8 @@ void show_help() {
     char help_info[MAX_BUFFER_SIZE];
     snprintf(help_info, sizeof(help_info),
              "%s/%s/%s.sh", device.STORAGE.ROM.MOUNT, MUOS_TASK_PATH, title);
-    char *message = get_script_value(help_info, "HELP");
 
-    if (strlen(message) <= 1) message = lang.GENERIC.NO_HELP;
+    char *message = get_script_value(help_info, "HELP", lang.GENERIC.NO_HELP);
     show_help_msgbox(ui_pnlHelp, ui_lblHelpHeader, ui_lblHelpContent, TS(title), TS(message));
 }
 
@@ -170,7 +161,7 @@ void create_task_items() {
             lv_obj_t *ui_lblTaskItemGlyph = lv_img_create(ui_pnlTask);
             if (ui_lblTaskItemGlyph) {
                 apply_theme_list_glyph(&theme, ui_lblTaskItemGlyph, mux_module,
-                                       get_var_from_file(task_path, items[i].extra_data, "ICON", "task"));
+                                       get_script_value(items[i].extra_data, "ICON", "task"));
             }
 
             lv_group_add_obj(ui_group, ui_lblTaskItem);
@@ -255,6 +246,8 @@ void handle_confirm() {
     write_text_to_file(MUOS_TIN_LOAD, "w", INT, current_item_index);
 
     load_mux("task");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -268,6 +261,8 @@ void handle_back() {
     }
 
     play_sound("back", nav_sound, 0, 1);
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -343,7 +338,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void update_footer_nav_elements() {
@@ -412,8 +407,6 @@ int main(int argc, char *argv[]) {
 
     lv_obj_set_user_data(lv_group_get_focused(ui_group), items[current_item_index].name);
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     int nav_hidden = 0;
     if (ui_count > 0) {
         nav_hidden = 1;
@@ -431,14 +424,7 @@ int main(int argc, char *argv[]) {
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_confirm,
                     [MUX_INPUT_B] = handle_back,
@@ -453,24 +439,12 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
 
     free_items(items, item_count);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

@@ -18,7 +18,6 @@
 #include "../common/kiosk.h"
 #include "../common/collection.h"
 #include "../common/json/json.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 #include "../common/log.h"
 #include "../lookup/lookup.h"
@@ -30,12 +29,6 @@ struct theme_config theme;
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -74,8 +67,6 @@ int dir_count = 0;
 int current_item_index = 0;
 int first_open = 1;
 int nav_moved = 0;
-int counter_fade = 0;
-int fade_timeout = 7;
 int starter_image = 0;
 int splash_valid = 0;
 int nogrid_file_exists = 0;
@@ -217,12 +208,9 @@ char *load_content_description() {
 void update_file_counter() {
     if ((ui_count > 0 && !file_count && config.VISUAL.COUNTERFOLDER) ||
         (file_count > 0 && config.VISUAL.COUNTERFILE)) {
-        fade_timeout = 7;
-        lv_obj_clear_flag(ui_lblCounter, LV_OBJ_FLAG_HIDDEN);
-        counter_fade = (theme.COUNTER.BORDER_ALPHA + theme.COUNTER.BACKGROUND_ALPHA + theme.COUNTER.TEXT_ALPHA);
-        if (counter_fade > 255) counter_fade = 255;
-        lv_obj_set_style_opa(ui_lblCounter, counter_fade, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_label_set_text_fmt(ui_lblCounter, "%d%s%d", current_item_index + 1, theme.COUNTER.TEXT_SEPARATOR, ui_count);
+        char counter_text[MAX_BUFFER_SIZE];
+        snprintf(counter_text, sizeof(counter_text), "%d%s%d", current_item_index + 1, theme.COUNTER.TEXT_SEPARATOR, ui_count);
+        fade_label(ui_lblCounter, counter_text, 100, theme.COUNTER.TEXT_FADE_TIME * 60);
     } else {
         lv_obj_add_flag(ui_lblCounter, LV_OBJ_FLAG_HIDDEN);
     }
@@ -739,6 +727,8 @@ void add_to_collection(char *filename, const char *pointer) {
     write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
 
     load_mux("collection");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -846,14 +836,15 @@ void list_nav_prev(int steps) {
                 update_list_items((int) item_count - theme.MUX.ITEM.COUNT);
             } else {
                 // how many items should be above the currently selected item when scrolling
-                int item_distribution = (theme.MUX.ITEM.COUNT - 1) / 2;
-                if (current_item_index >= item_distribution &&
-                    current_item_index < item_count - item_distribution - 1) {
+                int items_before_selected = (theme.MUX.ITEM.COUNT - theme.MUX.ITEM.COUNT % 2) / 2;
+                int items_after_selected = (theme.MUX.ITEM.COUNT - 1) / 2;
+                if (current_item_index >= items_before_selected &&
+                    current_item_index < item_count - items_after_selected - 1) {
                     lv_obj_t *last_item = lv_obj_get_child(ui_pnlContent,
                                                            theme.MUX.ITEM.COUNT - 1); // Get the last child
                     lv_obj_move_to_index(last_item, 0);
                     update_list_item(lv_obj_get_child(last_item, 0), lv_obj_get_child(last_item, 1),
-                                     current_item_index - item_distribution);
+                                     current_item_index - items_before_selected);
                 }
             }
         }
@@ -891,13 +882,14 @@ void list_nav_next(int steps) {
                 update_list_items(0);
             } else {
                 // how many items should be above the currently selected item when scrolling
-                int item_distribution = (theme.MUX.ITEM.COUNT - 1) / 2;
-                if (current_item_index > item_distribution &&
-                    current_item_index < item_count - item_distribution) {
+                int items_before_selected = (theme.MUX.ITEM.COUNT - theme.MUX.ITEM.COUNT % 2) / 2;
+                int items_after_selected = (theme.MUX.ITEM.COUNT - 1) / 2;
+                if (current_item_index > items_before_selected &&
+                    current_item_index < item_count - items_after_selected) {
                     lv_obj_t *first_item = lv_obj_get_child(ui_pnlContent, 0);
                     lv_obj_move_to_index(first_item, theme.MUX.ITEM.COUNT - 1);
                     update_list_item(lv_obj_get_child(first_item, 0), lv_obj_get_child(first_item, 1),
-                                     current_item_index + item_distribution);
+                                     current_item_index + items_after_selected);
                 }
             }
         }
@@ -986,6 +978,7 @@ void handle_a() {
         usleep(256);
     }
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -1010,6 +1003,8 @@ void handle_b() {
     }
 
     load_mux(file_exist(EXPLORE_DIR) ? "explore" : "launcher");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -1024,6 +1019,7 @@ void handle_x() {
     write_text_to_file(EXPLORE_DIR, "w", CHAR, sys_dir);
     load_mux("explore");
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -1049,6 +1045,7 @@ void handle_start() {
     remove(EXPLORE_DIR);
     load_mux("explore");
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -1063,6 +1060,8 @@ void handle_select() {
         if (kiosk.CONTENT.OPTION) {
             if (!kiosk.CONTENT.SEARCH) {
                 load_mux("search");
+
+                safe_quit(0);
                 mux_input_stop();
             }
             return;
@@ -1079,6 +1078,7 @@ void handle_select() {
         if (!kiosk.CONTENT.SEARCH) load_mux("search");
     }
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -1183,25 +1183,11 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
     update_bars(ui_barProgressBrightness, ui_barProgressVolume, ui_icoProgressVolume);
-
-    if (!nav_moved & !fade_timeout) {
-        if (counter_fade > 0) {
-            lv_obj_set_style_opa(ui_lblCounter, counter_fade - theme.COUNTER.TEXT_FADE_TIME,
-                                 LV_PART_MAIN | LV_STATE_DEFAULT);
-            counter_fade -= (theme.COUNTER.TEXT_FADE_TIME + 1) / 4;
-        }
-        if (lv_obj_get_style_opa(ui_lblCounter, LV_PART_MAIN | LV_STATE_DEFAULT) <= 10) {
-            lv_obj_add_flag(ui_lblCounter, LV_OBJ_FLAG_HIDDEN);
-            counter_fade = 0;
-        }
-    } else {
-        fade_timeout--;
-    }
 
     if (nav_moved) {
         starter_image = adjust_wallpaper_element(ui_group, starter_image, GENERAL);
@@ -1295,8 +1281,6 @@ int main(int argc, char *argv[]) {
         write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, get_last_subdir(sys_dir, '/', 4));
     }
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     int nav_vis = 0;
     if (ui_count > 0) {
         nav_vis = 1;
@@ -1334,15 +1318,8 @@ int main(int argc, char *argv[]) {
     }
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1 ||
                           (grid_mode_enabled && theme.GRID.NAVIGATION_TYPE >= 1 && theme.GRID.NAVIGATION_TYPE <= 5)),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -1367,24 +1344,12 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
                     [MUX_INPUT_R2] = handle_random_select,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
 
     free_items(items, item_count);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include "../font/awesome_small.h"
 #include "../font/notosans.h"
 #include "img/nothing.h"
 #include "common.h"
@@ -12,6 +11,7 @@
 #include "log.h"
 
 lv_obj_t *ui_screen_container;
+lv_obj_t *ui_blank;
 lv_obj_t *ui_screen;
 lv_obj_t *ui_pnlWall;
 lv_obj_t *ui_imgWall;
@@ -72,17 +72,17 @@ static lv_color_t *cbuf;
 
 // 4x4 Bayer Ordered Dithering Matrix (Normalized to 0-16)
 const int bayerMatrix[4][4] = {
-    {  0,  8,  2, 10 },
-    { 12,  4, 14,  6 },
-    {  3, 11,  1,  9 },
-    { 15,  7, 13,  5 }
+        {0,  8,  2,  10},
+        {12, 4,  14, 6},
+        {3,  11, 1,  9},
+        {15, 7,  13, 5}
 };
 
 // Improved dithering function using Bayer matrix
 static lv_color_t dither_color(lv_color_t color, int x, int y) {
     // Get matrix value (normalized to range -4 to +4)
     int bayerValue = bayerMatrix[y % 4][x % 4] - 7;
-    
+
     int r = LV_COLOR_GET_R(color) + bayerValue;
     int g = LV_COLOR_GET_G(color) + bayerValue;
     int b = LV_COLOR_GET_B(color) + bayerValue;
@@ -101,40 +101,40 @@ void blur_gradient(lv_color_t *buf, int width, int height, int blur_strength) {
             for (int x = 1; x < width - 1; x++) {
                 // Use a 3×3 box blur (increases smoothness)
                 int r = (
-                    LV_COLOR_GET_R(buf[(y-1) * width + (x-1)]) +
-                    LV_COLOR_GET_R(buf[(y-1) * width + x]) +
-                    LV_COLOR_GET_R(buf[(y-1) * width + (x+1)]) +
-                    LV_COLOR_GET_R(buf[y * width + (x-1)]) +
-                    LV_COLOR_GET_R(buf[y * width + x]) +
-                    LV_COLOR_GET_R(buf[y * width + (x+1)]) +
-                    LV_COLOR_GET_R(buf[(y+1) * width + (x-1)]) +
-                    LV_COLOR_GET_R(buf[(y+1) * width + x]) +
-                    LV_COLOR_GET_R(buf[(y+1) * width + (x+1)])
-                ) / 9;  // Average 9 surrounding pixels
+                                LV_COLOR_GET_R(buf[(y - 1) * width + (x - 1)]) +
+                                LV_COLOR_GET_R(buf[(y - 1) * width + x]) +
+                                LV_COLOR_GET_R(buf[(y - 1) * width + (x + 1)]) +
+                                LV_COLOR_GET_R(buf[y * width + (x - 1)]) +
+                                LV_COLOR_GET_R(buf[y * width + x]) +
+                                LV_COLOR_GET_R(buf[y * width + (x + 1)]) +
+                                LV_COLOR_GET_R(buf[(y + 1) * width + (x - 1)]) +
+                                LV_COLOR_GET_R(buf[(y + 1) * width + x]) +
+                                LV_COLOR_GET_R(buf[(y + 1) * width + (x + 1)])
+                        ) / 9;  // Average 9 surrounding pixels
 
                 int g = (
-                    LV_COLOR_GET_G(buf[(y-1) * width + (x-1)]) +
-                    LV_COLOR_GET_G(buf[(y-1) * width + x]) +
-                    LV_COLOR_GET_G(buf[(y-1) * width + (x+1)]) +
-                    LV_COLOR_GET_G(buf[y * width + (x-1)]) +
-                    LV_COLOR_GET_G(buf[y * width + x]) +
-                    LV_COLOR_GET_G(buf[y * width + (x+1)]) +
-                    LV_COLOR_GET_G(buf[(y+1) * width + (x-1)]) +
-                    LV_COLOR_GET_G(buf[(y+1) * width + x]) +
-                    LV_COLOR_GET_G(buf[(y+1) * width + (x+1)])
-                ) / 9;
+                                LV_COLOR_GET_G(buf[(y - 1) * width + (x - 1)]) +
+                                LV_COLOR_GET_G(buf[(y - 1) * width + x]) +
+                                LV_COLOR_GET_G(buf[(y - 1) * width + (x + 1)]) +
+                                LV_COLOR_GET_G(buf[y * width + (x - 1)]) +
+                                LV_COLOR_GET_G(buf[y * width + x]) +
+                                LV_COLOR_GET_G(buf[y * width + (x + 1)]) +
+                                LV_COLOR_GET_G(buf[(y + 1) * width + (x - 1)]) +
+                                LV_COLOR_GET_G(buf[(y + 1) * width + x]) +
+                                LV_COLOR_GET_G(buf[(y + 1) * width + (x + 1)])
+                        ) / 9;
 
                 int b = (
-                    LV_COLOR_GET_B(buf[(y-1) * width + (x-1)]) +
-                    LV_COLOR_GET_B(buf[(y-1) * width + x]) +
-                    LV_COLOR_GET_B(buf[(y-1) * width + (x+1)]) +
-                    LV_COLOR_GET_B(buf[y * width + (x-1)]) +
-                    LV_COLOR_GET_B(buf[y * width + x]) +
-                    LV_COLOR_GET_B(buf[y * width + (x+1)]) +
-                    LV_COLOR_GET_B(buf[(y+1) * width + (x-1)]) +
-                    LV_COLOR_GET_B(buf[(y+1) * width + x]) +
-                    LV_COLOR_GET_B(buf[(y+1) * width + (x+1)])
-                ) / 9;
+                                LV_COLOR_GET_B(buf[(y - 1) * width + (x - 1)]) +
+                                LV_COLOR_GET_B(buf[(y - 1) * width + x]) +
+                                LV_COLOR_GET_B(buf[(y - 1) * width + (x + 1)]) +
+                                LV_COLOR_GET_B(buf[y * width + (x - 1)]) +
+                                LV_COLOR_GET_B(buf[y * width + x]) +
+                                LV_COLOR_GET_B(buf[y * width + (x + 1)]) +
+                                LV_COLOR_GET_B(buf[(y + 1) * width + (x - 1)]) +
+                                LV_COLOR_GET_B(buf[(y + 1) * width + x]) +
+                                LV_COLOR_GET_B(buf[(y + 1) * width + (x + 1)])
+                        ) / 9;
 
                 buf[y * width + x] = lv_color_make(r, g, b);
             }
@@ -142,9 +142,9 @@ void blur_gradient(lv_color_t *buf, int width, int height, int blur_strength) {
     }
 }
 
-void generate_gradient_with_bayer_dither(lv_color_t *buf, int width, int height, 
-                                         lv_color_t start_color, lv_color_t end_color, 
-                                         bool apply_dither, bool vertical, 
+void generate_gradient_with_bayer_dither(lv_color_t *buf, int width, int height,
+                                         lv_color_t start_color, lv_color_t end_color,
+                                         bool apply_dither, bool vertical,
                                          uint8_t main_stop, uint8_t grad_stop) {
     // Convert gradient stop values (0-255) to pixel positions
     int start_pos = (main_stop / 255.0) * (vertical ? height : width);
@@ -163,13 +163,13 @@ void generate_gradient_with_bayer_dither(lv_color_t *buf, int width, int height,
             int pos = vertical ? y : x;
 
             // Normalize position within gradient stops
-            float ratio = (float)(pos - start_pos) / (float)(end_pos - start_pos);
+            float ratio = (float) (pos - start_pos) / (float) (end_pos - start_pos);
             ratio = LV_CLAMP(0.0f, ratio, 1.0f); // Ensure within valid range
 
             // Compute interpolated color values
-            uint8_t r = (uint8_t)((1.0f - ratio) * LV_COLOR_GET_R(start_color) + ratio * LV_COLOR_GET_R(end_color));
-            uint8_t g = (uint8_t)((1.0f - ratio) * LV_COLOR_GET_G(start_color) + ratio * LV_COLOR_GET_G(end_color));
-            uint8_t b = (uint8_t)((1.0f - ratio) * LV_COLOR_GET_B(start_color) + ratio * LV_COLOR_GET_B(end_color));
+            uint8_t r = (uint8_t) ((1.0f - ratio) * LV_COLOR_GET_R(start_color) + ratio * LV_COLOR_GET_R(end_color));
+            uint8_t g = (uint8_t) ((1.0f - ratio) * LV_COLOR_GET_G(start_color) + ratio * LV_COLOR_GET_G(end_color));
+            uint8_t b = (uint8_t) ((1.0f - ratio) * LV_COLOR_GET_B(start_color) + ratio * LV_COLOR_GET_B(end_color));
 
             // Ensure valid LVGL color format
             lv_color_t final_color = lv_color_make(r, g, b);
@@ -210,8 +210,10 @@ void apply_gradient_to_ui_screen(lv_obj_t *ui_screen, struct theme_config *theme
 
     // Generate the gradient with dithering
     generate_gradient_with_bayer_dither(cbuf, device->MUX.WIDTH, device->MUX.HEIGHT, start_color, end_color,
-        theme->SYSTEM.BACKGROUND_GRADIENT_DITHER == 1, theme->SYSTEM.BACKGROUND_GRADIENT_DIRECTION == LV_GRAD_DIR_VER,
-        theme->SYSTEM.BACKGROUND_GRADIENT_START, theme->SYSTEM.BACKGROUND_GRADIENT_STOP);
+                                        theme->SYSTEM.BACKGROUND_GRADIENT_DITHER == 1,
+                                        theme->SYSTEM.BACKGROUND_GRADIENT_DIRECTION == LV_GRAD_DIR_VER,
+                                        theme->SYSTEM.BACKGROUND_GRADIENT_START,
+                                        theme->SYSTEM.BACKGROUND_GRADIENT_STOP);
     blur_gradient(cbuf, device->MUX.WIDTH, device->MUX.HEIGHT, theme->SYSTEM.BACKGROUND_GRADIENT_BLUR);
 
     // Refresh the canvas
@@ -224,11 +226,21 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     lv_obj_clear_flag(ui_screen_container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_text_font(ui_screen_container, &ui_font_NotoSans, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    apply_gradient_to_ui_screen(ui_screen_container, theme, device);
+
+    ui_blank = lv_obj_create(ui_screen_container);
+    lv_obj_set_width(ui_blank, device->MUX.WIDTH);
+    lv_obj_set_height(ui_blank, device->MUX.HEIGHT);
+    lv_obj_set_align(ui_blank, LV_ALIGN_CENTER);
+    lv_obj_set_style_bg_color(ui_blank, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_blank, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     ui_screen = lv_obj_create(ui_screen_container);
     lv_obj_clear_flag(ui_screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(ui_screen, lv_color_hex(theme->SYSTEM.BACKGROUND), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui_screen, theme->SYSTEM.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
-    apply_gradient_to_ui_screen(ui_screen, theme, device);
+    lv_obj_set_style_bg_opa(ui_screen, theme->SYSTEM.BACKGROUND_GRADIENT_DIRECTION == LV_GRAD_DIR_NONE
+                                       ? theme->SYSTEM.BACKGROUND_ALPHA : 0,
+                            LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_set_style_text_font(ui_screen, &ui_font_NotoSans, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_width(ui_screen, device->MUX.WIDTH);
@@ -701,23 +713,12 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     lv_obj_set_style_border_width(ui_pnlProgressBrightness, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_side(ui_pnlProgressBrightness, LV_BORDER_SIDE_FULL, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    // TODO: Swap out this for a proper image glyph at some stage - reduces the requirement for an additional font!
-    ui_icoProgressBrightness = lv_label_create(ui_pnlProgressBrightness);
-    lv_obj_set_width(ui_icoProgressBrightness, 18);
-    lv_obj_set_height(ui_icoProgressBrightness, 28);
-    lv_obj_set_x(ui_icoProgressBrightness, -220);
-    lv_obj_set_y(ui_icoProgressBrightness, -205);
+    ui_icoProgressBrightness = lv_img_create(ui_pnlProgressBrightness);
     lv_obj_set_align(ui_icoProgressBrightness, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_icoProgressBrightness, "\uF185");
-    lv_label_set_recolor(ui_icoProgressBrightness, "true");
-    lv_obj_set_style_text_color(ui_icoProgressBrightness, lv_color_hex(theme->BAR.ICON),
-                                LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_icoProgressBrightness, theme->BAR.ICON_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_icoProgressBrightness, &ui_font_AwesomeSmall, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui_icoProgressBrightness, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui_icoProgressBrightness, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui_icoProgressBrightness, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui_icoProgressBrightness, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_recolor(ui_icoProgressBrightness, lv_color_hex(theme->BAR.ICON),
+                                 LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_recolor_opa(ui_icoProgressBrightness, theme->BAR.ICON_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
+    update_glyph(ui_icoProgressBrightness, "bar", "brightness");
 
     ui_barProgressBrightness = lv_bar_create(ui_pnlProgressBrightness);
     lv_bar_set_value(ui_barProgressBrightness, 0, LV_ANIM_ON);
@@ -756,22 +757,12 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     lv_obj_set_style_border_width(ui_pnlProgressVolume, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_side(ui_pnlProgressVolume, LV_BORDER_SIDE_FULL, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    // TODO: Swap out this for a proper image glyph at some stage - reduces the requirement for an additional font!
-    ui_icoProgressVolume = lv_label_create(ui_pnlProgressVolume);
-    lv_obj_set_width(ui_icoProgressVolume, 18);
-    lv_obj_set_height(ui_icoProgressVolume, 28);
-    lv_obj_set_x(ui_icoProgressVolume, -220);
-    lv_obj_set_y(ui_icoProgressVolume, -205);
+    ui_icoProgressVolume = lv_img_create(ui_pnlProgressVolume);
     lv_obj_set_align(ui_icoProgressVolume, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_icoProgressVolume, "");
-    lv_label_set_recolor(ui_icoProgressVolume, "true");
-    lv_obj_set_style_text_color(ui_icoProgressVolume, lv_color_hex(theme->BAR.ICON), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_icoProgressVolume, theme->BAR.ICON_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_icoProgressVolume, &ui_font_AwesomeSmall, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui_icoProgressVolume, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui_icoProgressVolume, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui_icoProgressVolume, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui_icoProgressVolume, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_recolor(ui_icoProgressVolume, lv_color_hex(theme->BAR.ICON),
+                                 LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_recolor_opa(ui_icoProgressVolume, theme->BAR.ICON_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
+    update_glyph(ui_icoProgressVolume, "bar", "volume_0");
 
     ui_barProgressVolume = lv_bar_create(ui_pnlProgressVolume);
     lv_bar_set_value(ui_barProgressVolume, 0, LV_ANIM_ON);
@@ -830,6 +821,16 @@ void ui_common_handle_idle() {
 
         lv_obj_invalidate(ui_screen);
         lv_refr_now(NULL);
+    }
+
+    if (file_exist("/tmp/mux_blank")) {
+        lv_obj_set_style_bg_opa(ui_blank, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_move_foreground(ui_blank);
+    } else {
+        if (lv_obj_get_style_bg_opa(ui_blank, LV_PART_MAIN | LV_STATE_DEFAULT) > 0) {
+            lv_obj_set_style_bg_opa(ui_blank, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_move_background(ui_blank);
+        }
     }
 
     lv_task_handler();
@@ -912,24 +913,39 @@ lv_obj_t *create_footer_text(lv_obj_t *parent, struct theme_config *theme, uint3
     return ui_lblNavText;
 }
 
-int load_header_glyph(const char *theme_base, const char *mux_dimension, const char *glyph_name,
-                      char *image_path, size_t image_size) {
-    return (snprintf(image_path, image_size, "%s/%sglyph/header/%s.png", theme_base,
-                     mux_dimension, glyph_name) >= 0 &&
+int load_glyph(const char *theme_base, const char *mux_dimension, const char *glyph_folder,
+               const char *glyph_name, char *image_path, size_t image_size) {
+    return (snprintf(image_path, image_size, "%s/%sglyph/%s/%s.png", theme_base,
+                     mux_dimension, glyph_folder, glyph_name) >= 0 &&
             file_exist(image_path)) ||
-           (snprintf(image_path, image_size, "%s/glyph/header/%s.png", theme_base,
-                     glyph_name) >= 0 &&
+           (snprintf(image_path, image_size, "%s/glyph/%s/%s.png", theme_base,
+                     glyph_folder, glyph_name) >= 0 &&
             file_exist(image_path));
 }
 
-int generate_image_embed(const char *base_path, const char *dimension, const char *glyph_name,
+int generate_image_embed(const char *base_path, const char *dimension, const char *glyph_folder, const char *glyph_name,
                          char *image_path, size_t path_size, char *image_embed, size_t embed_size) {
-    if (load_header_glyph(base_path, dimension, glyph_name, image_path, path_size)) {
+    if (load_glyph(base_path, dimension, glyph_folder, glyph_name, image_path, path_size)) {
         int written = snprintf(image_embed, embed_size, "M:%s", image_path);
         if (written < 0 || (size_t) written >= embed_size) return 0;
         return 1;
     }
     return 0;
+}
+
+void update_glyph(lv_obj_t *ui_img, const char *glyph_folder, const char *glyph_name) {
+    char image_path[MAX_BUFFER_SIZE];
+    char image_embed[MAX_BUFFER_SIZE];
+    char mux_dimension[15];
+    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
+    if (generate_image_embed(STORAGE_THEME, mux_dimension, glyph_folder, glyph_name, image_path,
+                             sizeof(image_path), image_embed, sizeof(image_embed)) ||
+        generate_image_embed(INTERNAL_THEME, mux_dimension, glyph_folder, glyph_name, image_path,
+                             sizeof(image_path), image_embed, sizeof(image_embed))) {
+        if (file_exist(image_path)) {
+            lv_img_set_src(ui_img, image_embed);
+        }
+    }
 }
 
 void update_battery_capacity(lv_obj_t *ui_staCapacity, struct theme_config *theme) {
@@ -957,9 +973,9 @@ void update_battery_capacity(lv_obj_t *ui_staCapacity, struct theme_config *them
                                          LV_PART_MAIN | LV_STATE_DEFAULT);
     }
 
-    if (generate_image_embed(STORAGE_THEME, mux_dimension, battery_glyph_name, image_path,
+    if (generate_image_embed(STORAGE_THEME, mux_dimension, "header", battery_glyph_name, image_path,
                              sizeof(image_path), image_embed, sizeof(image_embed)) ||
-        generate_image_embed(INTERNAL_THEME, mux_dimension, battery_glyph_name, image_path,
+        generate_image_embed(INTERNAL_THEME, mux_dimension, "header", battery_glyph_name, image_path,
                              sizeof(image_path), image_embed, sizeof(image_embed))) {
         if (file_exist(image_path)) {
             lv_img_set_src(ui_staCapacity, image_embed);
@@ -974,9 +990,9 @@ void update_bluetooth_status(lv_obj_t *ui_staBluetooth, struct theme_config *the
 
     get_mux_dimension(mux_dimension, sizeof(mux_dimension));
 
-    if (generate_image_embed(STORAGE_THEME, mux_dimension, "bluetooth", image_path,
+    if (generate_image_embed(STORAGE_THEME, mux_dimension, "header", "bluetooth", image_path,
                              sizeof(image_path), image_embed, sizeof(image_embed)) ||
-        generate_image_embed(INTERNAL_THEME, mux_dimension, "bluetooth", image_path,
+        generate_image_embed(INTERNAL_THEME, mux_dimension, "header", "bluetooth", image_path,
                              sizeof(image_path), image_embed, sizeof(image_embed))) {
         if (file_exist(image_path)) {
             lv_img_set_src(ui_staBluetooth, image_embed);
@@ -1008,9 +1024,9 @@ void update_network_status(lv_obj_t *ui_staNetwork, struct theme_config *theme) 
     get_mux_dimension(mux_dimension, sizeof(mux_dimension));
     snprintf(network_status_filename, sizeof(network_status_filename), "network_%s", network_status);
 
-    if (generate_image_embed(STORAGE_THEME, mux_dimension, network_status_filename, image_path,
+    if (generate_image_embed(STORAGE_THEME, mux_dimension, "header", network_status_filename, image_path,
                              sizeof(image_path), image_embed, sizeof(image_embed)) ||
-        generate_image_embed(INTERNAL_THEME, mux_dimension, network_status_filename, image_path,
+        generate_image_embed(INTERNAL_THEME, mux_dimension, "header", network_status_filename, image_path,
                              sizeof(image_path), image_embed, sizeof(image_embed))) {
         if (file_exist(image_path)) lv_img_set_src(ui_staNetwork, image_embed);
     }
@@ -1025,6 +1041,17 @@ void toast_message(const char *msg, uint32_t delay, uint32_t fade_duration) {
 
     lv_anim_del(ui_pnlMessage, NULL);
     lv_obj_fade_out(ui_pnlMessage, fade_duration, delay);
+}
+
+void fade_label(lv_obj_t *ui_lbl, const char *msg, uint32_t delay, uint32_t fade_duration) {
+    lv_label_set_text(ui_lbl, msg);
+    lv_obj_clear_flag(ui_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_opa(ui_lbl, LV_OPA_COVER, 0);
+
+    if (delay <= 0 || fade_duration <= 0) return;
+
+    lv_anim_del(ui_lbl, NULL);
+    lv_obj_fade_out(ui_lbl, fade_duration, delay);
 }
 
 void adjust_panel_priority(lv_obj_t *panels[], size_t num_panels) {
@@ -1138,6 +1165,8 @@ void create_grid_panel(struct theme_config *theme, int item_count) {
     lv_obj_set_style_grid_row_dsc_array(ui_pnlGrid, row_dsc, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_size(ui_pnlGrid, theme->GRID.COLUMN_COUNT * theme->GRID.COLUMN_WIDTH,
                     theme->GRID.ROW_COUNT * theme->GRID.ROW_HEIGHT);
+    //add padding to the bottom to make sure grid panel scrolls correctly
+    lv_obj_set_style_pad_bottom(ui_pnlGrid, (row_count - theme->GRID.ROW_COUNT + 1) * theme->GRID.ROW_HEIGHT , LV_PART_MAIN);
     lv_obj_set_x(ui_pnlGrid, theme->GRID.LOCATION_X);
     lv_obj_set_y(ui_pnlGrid, theme->GRID.LOCATION_Y);
     lv_obj_set_layout(ui_pnlGrid, LV_LAYOUT_GRID);
@@ -1220,10 +1249,14 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
     lv_obj_set_style_bg_color(cell_pnl, lv_color_hex(theme->GRID.CELL_DEFAULT.BACKGROUND),
                               LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_color(cell_pnl, lv_color_hex(theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_COLOR), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_main_stop(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_START, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_stop(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_STOP, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_dir(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_DIRECTION, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_color(cell_pnl, lv_color_hex(theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_COLOR),
+                                   LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_main_stop(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_START,
+                                  LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_stop(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_STOP,
+                                  LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_dir(cell_pnl, theme->GRID.CELL_DEFAULT.BACKGROUND_GRADIENT_DIRECTION,
+                                 LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(cell_pnl, lv_color_hex(theme->GRID.CELL_DEFAULT.BORDER),
                                   LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(cell_pnl, theme->GRID.CELL_DEFAULT.BORDER_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1247,10 +1280,14 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
     lv_obj_set_style_border_color(cell_pnl, lv_color_hex(theme->GRID.CELL_FOCUS.BORDER),
                                   LV_PART_MAIN | LV_STATE_FOCUSED);
 
-    lv_obj_set_style_bg_grad_color(cell_pnl, lv_color_hex(theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_COLOR), LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_main_stop(cell_pnl, theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_START, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_grad_stop(cell_pnl, theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_STOP, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_grad_dir(cell_pnl, theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_DIRECTION, LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_grad_color(cell_pnl, lv_color_hex(theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_COLOR),
+                                   LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_main_stop(cell_pnl, theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_START,
+                                  LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_grad_stop(cell_pnl, theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_STOP,
+                                  LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_grad_dir(cell_pnl, theme->GRID.CELL_FOCUS.BACKGROUND_GRADIENT_DIRECTION,
+                                 LV_PART_MAIN | LV_STATE_FOCUSED);
     lv_obj_set_style_border_opa(cell_pnl, theme->GRID.CELL_FOCUS.BORDER_ALPHA, LV_PART_MAIN | LV_STATE_FOCUSED);
 
     lv_obj_set_style_text_color(cell_label, lv_color_hex(theme->GRID.CELL_FOCUS.TEXT),
@@ -1265,7 +1302,7 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
     lv_obj_set_style_img_recolor_opa(cell_image, theme->GRID.CELL_FOCUS.IMAGE_RECOLOUR_ALPHA,
                                      LV_PART_MAIN | LV_STATE_FOCUSED);
 
-    lv_obj_set_grid_cell(cell_pnl, LV_GRID_ALIGN_CENTER, col, 1, LV_GRID_ALIGN_CENTER, row, 1);
+    lv_obj_set_grid_cell(cell_pnl, theme->GRID.CELL.COLUMN_ALIGN, col, 1, theme->GRID.CELL.ROW_ALIGN, row, 1);
 
     if (file_exist(item_image_path)) {
         char grid_image[MAX_BUFFER_SIZE];
@@ -1316,9 +1353,10 @@ void scroll_help_content(int direction, bool page_down) {
 
     if (scroll_y - (total_line_height * direction) < 0) {
         lv_obj_scroll_to_y(ui_pnlHelpContent, 0, LV_ANIM_ON);
-    } else if (scroll_y - (total_line_height * direction) >= lv_obj_get_content_height(ui_lblHelpContent) - lv_obj_get_content_height(ui_pnlHelpContent)) {
+    } else if (scroll_y - (total_line_height * direction) >=
+               lv_obj_get_content_height(ui_lblHelpContent) - lv_obj_get_content_height(ui_pnlHelpContent)) {
         lv_obj_scroll_to_y(ui_pnlHelpContent, lv_obj_get_content_height(ui_lblHelpContent), LV_ANIM_ON);
     } else {
-        lv_obj_scroll_by(ui_pnlHelpContent, 0, total_line_height * direction, LV_ANIM_ON); 
+        lv_obj_scroll_by(ui_pnlHelpContent, 0, total_line_height * direction, LV_ANIM_ON);
     }
 }

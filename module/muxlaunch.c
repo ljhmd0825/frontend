@@ -13,16 +13,9 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound;
 int bar_header = 0;
@@ -97,30 +90,14 @@ void init_navigation_group_grid(char *item_labels[], char *glyph_names[]) {
         char mux_dimension[15];
         get_mux_dimension(mux_dimension, sizeof(mux_dimension));
         char grid_image[MAX_BUFFER_SIZE];
-        if (!load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", glyph_names[i],
-                                          "png", grid_image, sizeof(grid_image)) &&
-            !load_element_image_specifics(STORAGE_THEME, "", mux_module, "grid", glyph_names[i],
-                                          "png", grid_image, sizeof(grid_image)) &&
-            !load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", "default",
-                                          "png", grid_image, sizeof(grid_image))) {
-
-            load_element_image_specifics(STORAGE_THEME, "", mux_module, "grid", "default",
-                                         "png", grid_image, sizeof(grid_image));
-        }
+        load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", glyph_names[i],
+                                     "default", "png", grid_image, sizeof(grid_image));
 
         char glyph_name_focused[MAX_BUFFER_SIZE];
         snprintf(glyph_name_focused, sizeof(glyph_name_focused), "%s_focused", glyph_names[i]);
         char grid_image_focused[MAX_BUFFER_SIZE];
-        if (!load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", glyph_name_focused,
-                                          "png", grid_image_focused, sizeof(grid_image_focused)) &&
-            !load_element_image_specifics(STORAGE_THEME, "", mux_module, "grid", glyph_name_focused,
-                                          "png", grid_image_focused, sizeof(grid_image_focused)) &&
-            !load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", "default_focused",
-                                          "png", grid_image_focused, sizeof(grid_image_focused))) {
-
-            load_element_image_specifics(STORAGE_THEME, "", mux_module, "grid", "default_focused",
-                                         "png", grid_image_focused, sizeof(grid_image_focused));
-        }
+        load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", glyph_name_focused,
+                                     "default_focused", "png", grid_image_focused, sizeof(grid_image_focused));
 
         create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
                          grid_image, grid_image_focused, item_labels[i]);
@@ -288,6 +265,7 @@ void handle_a() {
         }
     }
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -302,6 +280,8 @@ void handle_b() {
 
     load_mux("launcher");
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -594,7 +574,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
@@ -638,8 +618,6 @@ int main(int argc, char *argv[]) {
     init_navigation_group();
     init_navigation_sound(&nav_sound, mux_module);
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     load_kiosk(&kiosk);
     list_nav_next(direct_to_previous(ui_objects, UI_COUNT, &nav_moved));
 
@@ -649,15 +627,8 @@ int main(int argc, char *argv[]) {
     }
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.GRID.ENABLED && theme.GRID.NAVIGATION_TYPE >= 1 && theme.GRID.NAVIGATION_TYPE <= 5) ||
                          (!theme.GRID.ENABLED && theme.MISC.NAVIGATION_TYPE >= 1 && theme.MISC.NAVIGATION_TYPE <= 5),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -682,20 +653,30 @@ int main(int argc, char *argv[]) {
                             .press_handler = handle_kiosk_toggle,
                             .hold_handler = handle_kiosk_toggle,
                     },
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+                    {
+                            .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP),
+                            .press_handler = ui_common_handle_bright,
+                            .hold_handler = ui_common_handle_bright,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN),
+                            .press_handler = ui_common_handle_bright,
+                            .hold_handler = ui_common_handle_bright,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_VOL_UP),
+                            .press_handler = ui_common_handle_vol,
+                            .hold_handler = ui_common_handle_vol,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_VOL_DOWN),
+                            .press_handler = ui_common_handle_vol,
+                            .hold_handler = ui_common_handle_vol,
+                    },
+            }
     };
+    init_input(&input_opts, false);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

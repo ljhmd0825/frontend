@@ -1,6 +1,5 @@
 #include "../lvgl/lvgl.h"
 #include "ui/ui_muxsysinfo.h"
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,17 +16,10 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -59,6 +51,7 @@ lv_obj_t *ui_objects[UI_COUNT];
 lv_obj_t *ui_mux_panels[5];
 
 static char hostname[32];
+int tap_count = 0;
 
 struct help_msg {
     lv_obj_t *element;
@@ -404,14 +397,101 @@ void handle_a() {
 
     if (lv_group_get_focused(ui_group) == ui_lblVersion) {
         play_sound("muos", nav_sound, 0, 0);
-        toast_message( /* :) */
-                "\x54\x68\x61\x6E\x6B"
-                "\x20\x79\x6F\x75\x20"
-                "\x66\x6F\x72\x20\x75"
-                "\x73\x69\x6E\x67\x20"
-                "\x6D\x75\x4F\x53\x21",
-                1000, 1000
-        );
+
+        switch (tap_count) {
+            case 5:
+                toast_message(
+                        "\x57\x68\x61\x74\x20"
+                        "\x64\x6F\x20\x79\x6F"
+                        "\x75\x20\x77\x61\x6E"
+                        "\x74\x3F",
+                        1000, 1000
+                );
+                break;
+            case 10:
+                toast_message(
+                        "\x59\x6F\x75\x20\x73"
+                        "\x75\x72\x65\x20\x61"
+                        "\x72\x65\x20\x70\x65"
+                        "\x72\x73\x69\x73\x74"
+                        "\x65\x6E\x74\x21",
+                        1000, 1000
+                );
+                break;
+            case 20:
+                toast_message(
+                        "\x57\x68\x61\x74\x20"
+                        "\x61\x72\x65\x20\x79"
+                        "\x6F\x75\x20\x65\x78"
+                        "\x70\x65\x63\x74\x69"
+                        "\x6E\x67\x3F",
+                        1000, 1000
+                );
+                break;
+            case 30:
+                toast_message(
+                        "\x4F\x6B\x61\x79\x20"
+                        "\x6C\x69\x73\x74\x65"
+                        "\x6E\x20\x68\x65\x72"
+                        "\x65\x20\x79\x6F\x75"
+                        "\x2E\x2E\x2E",
+                        1000, 1000
+                );
+                break;
+            case 40:
+                toast_message(
+                        "\x54\x68\x69\x73\x20"
+                        "\x69\x73\x20\x79\x6F"
+                        "\x75\x72\x20\x6C\x61"
+                        "\x73\x74\x20\x77\x61"
+                        "\x72\x6E\x69\x6E\x67"
+                        "\x21",
+                        1000, 1000
+                );
+                break;
+            case 50:
+                toast_message(
+                        "\x4F\x6B\x61\x79\x20"
+                        "\x77\x65\x6C\x6C\x20"
+                        "\x79\x6F\x75\x20\x61"
+                        "\x73\x6B\x65\x64\x20"
+                        "\x66\x6F\x72\x20\x69"
+                        "\x74",
+                        1000, 1000
+                );
+                break;
+            default:
+                toast_message(
+                        "\x54\x68\x61\x6E\x6B"
+                        "\x20\x79\x6F\x75\x20"
+                        "\x66\x6F\x72\x20\x75"
+                        "\x73\x69\x6E\x67\x20"
+                        "\x6D\x75\x4F\x53\x21",
+                        1000, 1000
+                );
+                break;
+        }
+
+        if (tap_count > 50) {
+            srandom(time(NULL));
+
+            char s_rotate_str[8], s_zoom_str[8];
+            snprintf(s_rotate_str, sizeof(s_rotate_str), "%d",
+                     (int) (random() % 181) + 35);
+            snprintf(s_zoom_str, sizeof(s_zoom_str), "%.2f",
+                     (float) ((float[]) {0.45f, 0.50f, 0.55f, 0.60f, 0.65f, 0.70f, 0.75f})[random() % 7]);
+
+            write_text_to_file("/run/muos/device/screen/s_rotate", "w", CHAR, s_rotate_str);
+            write_text_to_file("/run/muos/device/screen/s_zoom", "w", CHAR, s_zoom_str);
+
+            load_mux("launcher");
+            write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "");
+
+            safe_quit(0);
+            mux_input_stop();
+        }
+
+        tap_count++;
     }
 
     if (lv_group_get_focused(ui_group) == ui_lblMemory) {
@@ -435,6 +515,8 @@ void handle_b() {
 
     play_sound("back", nav_sound, 0, 1);
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "system");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -511,7 +593,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
@@ -557,19 +639,10 @@ int main(int argc, char *argv[]) {
 
     update_system_info();
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -584,22 +657,10 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

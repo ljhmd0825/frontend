@@ -13,7 +13,6 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/log.h"
 #include "../common/collection.h"
 #include "../common/json/json.h"
@@ -21,12 +20,6 @@
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -254,7 +247,7 @@ void image_refresh(char *image_type) {
         }
     } else {
         load_image_catalogue(core_artwork, last_dir, "default", mux_dimension, image_type,
-                            image, sizeof(image));
+                             image, sizeof(image));
     }
 
     LOG_INFO(mux_module, "Loading '%s' Artwork: %s", image_type, image)
@@ -448,8 +441,8 @@ void process_results(const char *json_results) {
 
                 for (size_t i = 0; i < folder_item_count; i++) {
                     if (folder_items[i].content_type == ROM) {
-                        add_item(&t_all_items, &t_all_item_count, folder_items[i].extra_data,
-                                 folder_items[i].extra_data, folder_items[i].extra_data, ROM);
+                        add_item(&t_all_items, &t_all_item_count, folder_items[i].name,
+                                 folder_items[i].display_name, folder_items[i].extra_data, ROM);
                         gen_label("content", strip_ext(folder_items[i].display_name),
                                   "content", folder_items[i].extra_data);
                     }
@@ -545,24 +538,28 @@ void list_nav_next(int steps) {
     nav_moved = 1;
 }
 
+void handle_keyboard_OK_press(void) {
+    key_show = 0;
+    struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
+
+    if (element_focused == ui_lblLookup) {
+        lv_label_set_text(ui_lblLookupValue,
+                          lv_textarea_get_text(ui_txtEntry));
+    }
+
+    reset_osk(key_entry);
+
+    lv_textarea_set_text(ui_txtEntry, "");
+    lv_group_set_focus_cb(ui_group, NULL);
+    lv_obj_add_flag(ui_pnlEntry, LV_OBJ_FLAG_HIDDEN);
+}
+
 void handle_keyboard_press(void) {
     play_sound("navigate", nav_sound, 0, 0);
 
     const char *is_key = lv_btnmatrix_get_btn_text(key_entry, key_curr);
     if (strcasecmp(is_key, OSK_DONE) == 0) {
-        key_show = 0;
-        struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
-
-        if (element_focused == ui_lblLookup) {
-            lv_label_set_text(ui_lblLookupValue,
-                              lv_textarea_get_text(ui_txtEntry));
-        }
-
-        reset_osk(key_entry);
-
-        lv_textarea_set_text(ui_txtEntry, "");
-        lv_group_set_focus_cb(ui_group, NULL);
-        lv_obj_add_flag(ui_pnlEntry, LV_OBJ_FLAG_HIDDEN);
+        handle_keyboard_OK_press();
     } else if (strcmp(is_key, OSK_UPPER) == 0) {
         lv_btnmatrix_set_map(key_entry, key_upper_map);
     } else if (strcmp(is_key, OSK_CHAR) == 0) {
@@ -617,6 +614,8 @@ void handle_confirm(void) {
         if (file_exist(MUOS_RES_LOAD)) remove(MUOS_RES_LOAD);
 
         load_mux("search");
+
+        safe_quit(0);
         mux_input_stop();
     } else {
         if (strcasecmp(lv_obj_get_user_data(element_focused), "content") == 0) {
@@ -624,6 +623,8 @@ void handle_confirm(void) {
                                str_replace(lv_label_get_text(lv_group_get_focused(ui_group_value)), "/./", "/"));
 
             load_mux("explore");
+
+            safe_quit(0);
             mux_input_stop();
         }
     }
@@ -644,6 +645,7 @@ void handle_back(void) {
     if (file_exist(MUOS_RES_LOAD)) remove(MUOS_RES_LOAD);
     if (strlen(rom_dir) == 0 || strcasecmp(rom_dir, CONTENT_PATH) == 0 || kiosk.CONTENT.OPTION) load_mux("explore");
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -687,6 +689,8 @@ void handle_x(void) {
     if (file_exist(search_result)) remove(search_result);
 
     load_mux("search");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -866,7 +870,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void init_osk() {
@@ -953,6 +957,18 @@ void ui_refresh_task() {
     }
 }
 
+void on_key_event(struct input_event ev) {
+    if (ev.code == KEY_ENTER && ev.value == 1) {
+        handle_keyboard_OK_press();
+    }
+
+    if (ev.code == KEY_ESC && ev.value == 1) {
+        handle_b();
+    } else {
+        process_key_event(&ev, ui_txtEntry);
+    }
+}
+
 int main(int argc, char *argv[]) {
     char *cmd_help = "\nmuOS Extras - Content Search\nUsage: %s <-d>\n\nOptions:\n"
                      "\t-d Name of directory to search\n\n";
@@ -1024,20 +1040,11 @@ int main(int argc, char *argv[]) {
         free(json_content);
     }
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     init_osk();
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -1060,22 +1067,11 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_L1] = handle_l1,
                     [MUX_INPUT_R1] = handle_r1,
                     [MUX_INPUT_R2] = handle_random_select,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
+    register_key_event_callback(on_key_event);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

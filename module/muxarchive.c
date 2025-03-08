@@ -1,5 +1,4 @@
 #include "../lvgl/lvgl.h"
-#include <unistd.h>
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
@@ -15,17 +14,10 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -50,8 +42,6 @@ content_item *items = NULL;
 lv_group_t *ui_group;
 lv_group_t *ui_group_glyph;
 lv_group_t *ui_group_panel;
-
-lv_group_t *ui_group_installed;
 
 int ui_count = 0;
 int current_item_index = 0;
@@ -146,7 +136,6 @@ void create_archive_items() {
     ui_group = lv_group_create();
     ui_group_glyph = lv_group_create();
     ui_group_panel = lv_group_create();
-    ui_group_installed = lv_group_create();
 
     for (size_t i = 0; i < file_count; i++) {
         char *base_filename = file_names[i];
@@ -204,16 +193,15 @@ void create_archive_items() {
         lv_obj_t *ui_lblArchiveItem = lv_label_create(ui_pnlArchive);
         apply_theme_list_item(&theme, ui_lblArchiveItem, strip_ext(archive_store));
 
-        lv_obj_t *ui_lblArchiveItemInstalled = lv_label_create(ui_pnlArchive);
-        apply_theme_list_value(&theme, ui_lblArchiveItemInstalled, is_installed ? lang.MUXARCHIVE.INSTALLED : "");
-
         lv_obj_t *ui_lblArchiveItemGlyph = lv_img_create(ui_pnlArchive);
         apply_theme_list_glyph(&theme, ui_lblArchiveItemGlyph, mux_module, items[i].extra_data);
 
         lv_group_add_obj(ui_group, ui_lblArchiveItem);
         lv_group_add_obj(ui_group_glyph, ui_lblArchiveItemGlyph);
         lv_group_add_obj(ui_group_panel, ui_pnlArchive);
-        lv_group_add_obj(ui_group_installed, ui_lblArchiveItemInstalled);
+
+        apply_size_to_content(&theme, ui_pnlContent, ui_lblArchiveItem, ui_lblArchiveItemGlyph, items[i].display_name);
+        apply_text_long_dot(&theme, ui_pnlContent, ui_lblArchiveItem, items[i].display_name);
 
         free(base_filename);
     }
@@ -225,13 +213,15 @@ void create_archive_items() {
 void list_nav_prev(int steps) {
     play_sound("navigate", nav_sound, 0, 0);
     for (int step = 0; step < steps; ++step) {
+        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
+                            items[current_item_index].display_name);
         current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
         nav_prev(ui_group, 1);
         nav_prev(ui_group_glyph, 1);
         nav_prev(ui_group_panel, 1);
-        nav_prev(ui_group_installed, 1);
     }
     update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
+    set_label_long_mode(&theme, lv_group_get_focused(ui_group), items[current_item_index].display_name);
     nav_moved = 1;
 }
 
@@ -242,13 +232,15 @@ void list_nav_next(int steps) {
         play_sound("navigate", nav_sound, 0, 0);
     }
     for (int step = 0; step < steps; ++step) {
+        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
+                            items[current_item_index].display_name);
         current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
         nav_next(ui_group, 1);
         nav_next(ui_group_glyph, 1);
         nav_next(ui_group_panel, 1);
-        nav_next(ui_group_installed, 1);
     }
     update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
+    set_label_long_mode(&theme, lv_group_get_focused(ui_group), items[current_item_index].display_name);
     nav_moved = 1;
 }
 
@@ -284,6 +276,8 @@ void handle_a() {
         write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
 
         load_mux("archive");
+
+        safe_quit(0);
         mux_input_stop();
     }
 }
@@ -298,6 +292,8 @@ void handle_b() {
     }
 
     play_sound("back", nav_sound, 0, 1);
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -360,7 +356,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
@@ -392,7 +388,7 @@ int main(int argc, char *argv[]) {
     load_config(&config);
     load_lang(&lang);
 
-    init_theme(1, 0);
+    init_theme(1, 1);
     init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXARCHIVE.TITLE);
@@ -413,8 +409,6 @@ int main(int argc, char *argv[]) {
         remove(MUOS_IDX_LOAD);
     }
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     int nav_hidden = 0;
     if (ui_count > 0) {
         nav_hidden = 1;
@@ -432,14 +426,7 @@ int main(int argc, char *argv[]) {
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -454,22 +441,10 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

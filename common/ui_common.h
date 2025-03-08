@@ -5,10 +5,6 @@ struct mux_device;
 struct mux_lang;
 struct footer_glyph;
 
-#define COMBO_ENTRY(mask, handler) { .type_mask = (mask), .press_handler = (handler), .hold_handler = (handler) }
-#define COMBO_VOLUME(mask) COMBO_ENTRY(mask, ui_common_handle_vol)
-#define COMBO_BRIGHT(mask) COMBO_ENTRY(mask, ui_common_handle_bright)
-
 void init_ui_common_screen(struct theme_config *theme, struct mux_device *device,
                            struct mux_lang *lang, const char *title);
 
@@ -28,6 +24,9 @@ lv_obj_t *create_footer_text(lv_obj_t *parent, struct theme_config *theme, uint3
 int load_header_glyph(const char *theme_base, const char *mux_dimension, const char *glyph_name,
                       char *image_path, size_t image_size);
 
+int generate_image_embed(const char *base_path, const char *dimension, const char *glyph_folder, const char *glyph_name,
+                         char *image_path, size_t path_size, char *image_embed, size_t embed_size);
+
 void update_battery_capacity(lv_obj_t *ui_staCapacity, struct theme_config *theme);
 
 void update_bluetooth_status(lv_obj_t *ui_staBluetooth, struct theme_config *theme);
@@ -35,6 +34,8 @@ void update_bluetooth_status(lv_obj_t *ui_staBluetooth, struct theme_config *the
 void update_network_status(lv_obj_t *ui_staNetwork, struct theme_config *theme);
 
 void toast_message(const char *msg, uint32_t delay, uint32_t fade_duration);
+
+void fade_label(lv_obj_t *ui_lbl, const char *msg, uint32_t delay, uint32_t fade_duration);
 
 void adjust_panel_priority(lv_obj_t *panels[], size_t num_panels);
 
@@ -50,6 +51,8 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
                       int16_t col, int16_t row, char *item_image_path, char *item_image_focused_path, char *item_text);
 
 void scroll_help_content(int direction, bool page_down);
+
+void update_glyph(lv_obj_t *ui_img, const char *glyph_folder, const char *glyph_name);
 
 extern lv_obj_t *ui_screen_container;
 extern lv_obj_t *ui_screen;

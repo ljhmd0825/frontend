@@ -1,5 +1,4 @@
 #include "../lvgl/lvgl.h"
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +13,7 @@
 #include "../common/theme.h"
 
 char *mux_module;
+
 int msgbox_active = 0;
 int nav_sound = 0;
 
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 
     refresh_screen(ui_screen);
 

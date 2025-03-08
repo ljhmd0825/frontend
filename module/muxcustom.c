@@ -1,6 +1,5 @@
 #include "../lvgl/lvgl.h"
 #include "ui/ui_muxcustom.h"
-#include <unistd.h>
 #include <string.h>
 #include <dirent.h>
 #include <libgen.h>
@@ -14,17 +13,10 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -423,6 +415,17 @@ void save_options() {
         printf("attempt updating file: %s\n", (STORAGE_THEME "/active.txt"));
         if (strcasecmp(theme_alt, theme_alt_original) != 0) {
             write_text_to_file((STORAGE_THEME "/active.txt"), "w", CHAR, theme_alt);
+
+            static char rgb_script[MAX_BUFFER_SIZE];
+            snprintf(rgb_script, sizeof(rgb_script),
+                     "%s/alternate/rgb/%s/rgbconf.sh", STORAGE_THEME, theme_alt);
+            if (file_exist(rgb_script)) {
+                run_exec((const char *[]) {rgb_script, NULL});
+                static char rgb_script_dest[MAX_BUFFER_SIZE];
+                snprintf(rgb_script_dest, sizeof(rgb_script_dest), "%s/rgb/rgbconf.sh", STORAGE_THEME);
+                create_directories(strip_dir(rgb_script_dest));
+                write_text_to_file(rgb_script_dest, "w", CHAR, read_text_from_file(rgb_script));
+            }
         }
     }
 
@@ -450,7 +453,10 @@ void handle_confirm() {
         if (strcasecmp(u_data, "themealternate") == 0) {
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "themealternate");
             load_mux("custom");
+
+            safe_quit(0);
             mux_input_stop();
+
             return;
         } else if (strcasecmp(u_data, elements[i].mux_name) == 0) {
             if (elements[i].kiosk_flag && *elements[i].kiosk_flag) {
@@ -463,7 +469,10 @@ void handle_confirm() {
 
             play_sound("confirm", nav_sound, 0, 1);
             load_mux("picker");
+
+            safe_quit(0);
             mux_input_stop();
+
             break;
         }
     }
@@ -481,8 +490,11 @@ void handle_back() {
     }
 
     play_sound("back", nav_sound, 0, 1);
+
     save_options();
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "custom");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -559,7 +571,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
@@ -605,20 +617,11 @@ int main(int argc, char *argv[]) {
     restore_options();
     init_dropdown_settings();
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     load_kiosk(&kiosk);
     list_nav_next(direct_to_previous(ui_objects, UI_COUNT, &nav_moved));
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_confirm,
                     [MUX_INPUT_B] = handle_back,
@@ -637,22 +640,10 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

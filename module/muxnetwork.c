@@ -11,17 +11,10 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -323,6 +316,39 @@ void list_nav_next(int steps) {
     nav_moved = 1;
 }
 
+void handle_keyboard_OK_press(void) {
+    key_show = 0;
+    struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
+
+    if (element_focused == ui_lblIdentifier) {
+        lv_label_set_text(ui_lblIdentifierValue,
+                          lv_textarea_get_text(ui_txtEntry));
+    } else if (element_focused == ui_lblPassword) {
+        lv_label_set_text(ui_lblPasswordValue,
+                          lv_textarea_get_text(ui_txtEntry));
+    } else if (element_focused == ui_lblAddress) {
+        lv_label_set_text(ui_lblAddressValue,
+                          lv_textarea_get_text(ui_txtEntry));
+    } else if (element_focused == ui_lblSubnet) {
+        lv_label_set_text(ui_lblSubnetValue, lv_textarea_get_text(ui_txtEntry));
+    } else if (element_focused == ui_lblGateway) {
+        lv_label_set_text(ui_lblGatewayValue,
+                          lv_textarea_get_text(ui_txtEntry));
+    } else if (element_focused == ui_lblDNS) {
+        lv_label_set_text(ui_lblDNSValue, lv_textarea_get_text(ui_txtEntry));
+    }
+
+    if (lv_obj_has_state(key_entry, LV_STATE_DISABLED)) {
+        reset_osk(num_entry);
+    } else {
+        reset_osk(key_entry);
+    }
+
+    lv_textarea_set_text(ui_txtEntry, "");
+    lv_group_set_focus_cb(ui_group, NULL);
+    lv_obj_add_flag(ui_pnlEntry, LV_OBJ_FLAG_HIDDEN);
+}
+
 void handle_keyboard_press(void) {
     play_sound("navigate", nav_sound, 0, 0);
 
@@ -334,36 +360,7 @@ void handle_keyboard_press(void) {
     }
 
     if (!strcasecmp(is_key, OSK_DONE)) {
-        key_show = 0;
-        struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
-
-        if (element_focused == ui_lblIdentifier) {
-            lv_label_set_text(ui_lblIdentifierValue,
-                              lv_textarea_get_text(ui_txtEntry));
-        } else if (element_focused == ui_lblPassword) {
-            lv_label_set_text(ui_lblPasswordValue,
-                              lv_textarea_get_text(ui_txtEntry));
-        } else if (element_focused == ui_lblAddress) {
-            lv_label_set_text(ui_lblAddressValue,
-                              lv_textarea_get_text(ui_txtEntry));
-        } else if (element_focused == ui_lblSubnet) {
-            lv_label_set_text(ui_lblSubnetValue, lv_textarea_get_text(ui_txtEntry));
-        } else if (element_focused == ui_lblGateway) {
-            lv_label_set_text(ui_lblGatewayValue,
-                              lv_textarea_get_text(ui_txtEntry));
-        } else if (element_focused == ui_lblDNS) {
-            lv_label_set_text(ui_lblDNSValue, lv_textarea_get_text(ui_txtEntry));
-        }
-
-        if (lv_obj_has_state(key_entry, LV_STATE_DISABLED)) {
-            reset_osk(num_entry);
-        } else {
-            reset_osk(key_entry);
-        }
-
-        lv_textarea_set_text(ui_txtEntry, "");
-        lv_group_set_focus_cb(ui_group, NULL);
-        lv_obj_add_flag(ui_pnlEntry, LV_OBJ_FLAG_HIDDEN);
+        handle_keyboard_OK_press();
     } else if (!strcmp(is_key, OSK_UPPER)) {
         lv_btnmatrix_set_map(key_entry, key_upper_map);
     } else if (!strcmp(is_key, OSK_CHAR)) {
@@ -549,6 +546,8 @@ void handle_back(void) {
     toast_message(lang.MUXNETWORK.SAVE, 1000, 1000);
 
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "network");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -561,6 +560,7 @@ void handle_scan(void) {
 
         write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, lv_obj_get_user_data(lv_group_get_focused(ui_group)));
 
+        safe_quit(0);
         mux_input_stop();
     }
 }
@@ -575,6 +575,7 @@ void handle_profiles(void) {
 
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, lv_obj_get_user_data(lv_group_get_focused(ui_group)));
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -817,7 +818,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void init_osk() {
@@ -943,6 +944,17 @@ void ui_refresh_task() {
     }
 }
 
+void on_key_event(struct input_event ev) {
+    if (ev.code == KEY_ENTER && ev.value == 1) {
+        handle_keyboard_OK_press();
+    }
+    if (ev.code == KEY_ESC && ev.value == 1) {
+        handle_b();
+    } else {
+        process_key_event(&ev, ui_txtEntry);
+    }
+}
+
 int main(int argc, char *argv[]) {
     (void) argc;
 
@@ -972,22 +984,13 @@ int main(int argc, char *argv[]) {
     restore_network_values();
     init_navigation_sound(&nav_sound, mux_module);
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     init_osk();
     can_scan_check();
     load_kiosk(&kiosk);
     list_nav_next(direct_to_previous(ui_objects, UI_COUNT, &nav_moved));
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -1008,22 +1011,11 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_RIGHT] = handle_right_hold,
                     [MUX_INPUT_L1] = handle_l1,
                     [MUX_INPUT_R1] = handle_r1,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
+    register_key_event_callback(on_key_event);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

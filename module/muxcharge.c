@@ -1,6 +1,5 @@
 #include "../lvgl/lvgl.h"
 #include "ui/ui_muxcharge.h"
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <libgen.h>
@@ -12,16 +11,9 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int exit_status = -1;
@@ -66,7 +58,7 @@ void check_for_cable() {
 void set_brightness(int brightness) {
     char bright_value[8];
     snprintf(bright_value, sizeof(bright_value), "%d", brightness);
-    run_exec((const char *[]) {(char *) INTERNAL_PATH "device/current/input/combo/bright.sh", bright_value, NULL});
+    run_exec((const char *[]) {(char *) INTERNAL_PATH "device/current/input/bright.sh", bright_value, NULL});
 }
 
 void handle_power_short(void) {
@@ -92,9 +84,22 @@ void handle_power_short(void) {
 }
 
 void handle_idle(void) {
+    if (file_exist("/tmp/mux_blank")) {
+        lv_obj_set_style_bg_opa(ui_blank, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_move_foreground(ui_blank);
+    } else {
+        if (lv_obj_get_style_bg_opa(ui_blank, LV_PART_MAIN | LV_STATE_DEFAULT) > 0) {
+            lv_obj_set_style_bg_opa(ui_blank, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_move_background(ui_blank);
+        }
+    }
+
     if (exit_status >= 0) {
         write_text_to_file(CHARGER_EXIT, "w", INT, exit_status);
+
+        safe_quit(0);
         mux_input_stop();
+
         return;
     }
 
@@ -140,34 +145,20 @@ int main(int argc, char *argv[]) {
 #endif
 
     overlay_image = lv_img_create(ui_scrCharge);
-    load_overlay_image(ui_scrCharge, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_scrCharge, overlay_image);
 
     init_navigation_sound(&nav_sound, mux_module);
     lv_obj_set_y(ui_pnlCharge, theme.CHARGER.Y_POS);
-
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
 
     battery_task();
     battery_timer = lv_timer_create(battery_task, TIMER_BATTERY, NULL);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .press_handler = {
-                    [MUX_INPUT_POWER_SHORT] = handle_power_short,
-            },
-            .idle_handler = handle_idle,
+            .press_handler = {[MUX_INPUT_POWER_SHORT] = handle_power_short},
+            .idle_handler = handle_idle
     };
+    init_input(&input_opts, false);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

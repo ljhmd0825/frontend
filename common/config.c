@@ -24,7 +24,6 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->CLOCK.NOTATION, "clock/notation", 0)
     CFG_STR_FIELD(config->CLOCK.POOL, "clock/pool", "pool.ntp.org")
 
-    CFG_INT_FIELD(config->NETWORK.ENABLED, "network/enabled", 0)
     CFG_INT_FIELD(config->NETWORK.TYPE, "network/type", 0)
     CFG_STR_FIELD(config->NETWORK.INTERFACE, "network/interface", "wlan0")
     CFG_STR_FIELD(config->NETWORK.SSID, "network/ssid", "")
@@ -65,7 +64,6 @@ void load_config(struct mux_config *config) {
     CFG_STR_FIELD(config->SETTINGS.GENERAL.STARTUP, "settings/general/startup", "launcher")
     CFG_STR_FIELD(config->SETTINGS.GENERAL.LANGUAGE, "settings/general/language", "English")
 
-    CFG_INT_FIELD(config->SETTINGS.HDMI.ENABLED, "settings/hdmi/enabled", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.RESOLUTION, "settings/hdmi/resolution", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.THEME_RESOLUTION, "settings/hdmi/theme_resolution", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.SPACE, "settings/hdmi/space", 0)
@@ -91,6 +89,10 @@ void load_config(struct mux_config *config) {
             config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 720;
             break;
         case 5:
+            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 1024;
+            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 768;
+            break;
+        case 6:
             config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 1280;
             config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 720;
             break;
@@ -105,6 +107,8 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->VISUAL.NETWORK, "visual/network", 0)
     CFG_INT_FIELD(config->VISUAL.BLUETOOTH, "visual/bluetooth", 0)
     CFG_INT_FIELD(config->VISUAL.CLOCK, "visual/clock", 1)
+    CFG_INT_FIELD(config->VISUAL.OVERLAY_IMAGE, "visual/overlayimage", 1)
+    CFG_INT_FIELD(config->VISUAL.OVERLAY_TRANSPARENCY, "visual/overlaytransparency", 85)
     CFG_INT_FIELD(config->VISUAL.BOX_ART, "visual/boxart", 0)
     CFG_INT_FIELD(config->VISUAL.BOX_ART_ALIGN, "visual/boxartalign", 0)
     CFG_INT_FIELD(config->VISUAL.NAME, "visual/name", 0)

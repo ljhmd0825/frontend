@@ -9,8 +9,9 @@
 #include "../lvgl/src/drivers/display/sdl.h"
 #include "../lvgl/src/drivers/input/evdev.h"
 #include "init.h"
-#include "ui_common.h"
+#include "input.h"
 #include "common.h"
+#include "ui_common.h"
 #include "language.h"
 #include "options.h"
 #include "config.h"
@@ -21,6 +22,11 @@ __thread uint64_t start_ms = 0;
 static struct dt_task_param dt_par;
 static struct bat_task_param bat_par;
 int current_capacity = -1;
+
+static int joy_general;
+static int joy_power;
+static int joy_volume;
+static int joy_extra;
 
 uint32_t mux_tick(void) {
     struct timespec tv_now;
@@ -53,6 +59,11 @@ void refresh_screen(lv_obj_t *screen) {
 
 void safe_quit(int exit_status) {
     write_text_to_file("/tmp/safe_quit", "w", INT, exit_status);
+
+    close(joy_general);
+    close(joy_power);
+    close(joy_volume);
+    close(joy_extra);
 }
 
 void init_display() {
@@ -61,9 +72,8 @@ void init_display() {
 
     static lv_disp_drv_t disp_drv;
     static lv_disp_draw_buf_t disp_buf;
-    struct screen_dimension dims = get_device_dimensions();
 
-    uint32_t disp_buf_size = dims.WIDTH * dims.HEIGHT;
+    uint32_t disp_buf_size = device.MUX.WIDTH * device.MUX.HEIGHT;
     lv_color_t *disp_buf_s1 = (lv_color_t *) malloc(disp_buf_size * sizeof(lv_color_t));
     lv_color_t *disp_buf_s2 = (lv_color_t *) malloc(disp_buf_size * sizeof(lv_color_t));
 
@@ -72,8 +82,8 @@ void init_display() {
 
     disp_drv.draw_buf = &disp_buf;
     disp_drv.flush_cb = display_flush;
-    disp_drv.hor_res = dims.WIDTH;
-    disp_drv.ver_res = dims.HEIGHT;
+    disp_drv.hor_res = device.MUX.WIDTH;
+    disp_drv.ver_res = device.MUX.HEIGHT;
     disp_drv.physical_hor_res = -1;
     disp_drv.physical_ver_res = -1;
     disp_drv.offset_x = 0;
@@ -96,20 +106,56 @@ int open_input(const char *path, const char *error_message) {
     return fd;
 }
 
-void init_input(int *joy_general, int *joy_power, int *joy_volume, int *joy_extra) {
-    *joy_general = open_input(device.INPUT_EVENT.JOY_GENERAL, lang.SYSTEM.NO_JOY_GENERAL);
-    *joy_power = open_input(device.INPUT_EVENT.JOY_POWER, lang.SYSTEM.NO_JOY_POWER);
-    *joy_volume = open_input(device.INPUT_EVENT.JOY_VOLUME, lang.SYSTEM.NO_JOY_VOLUME);
-    *joy_extra = open_input(device.INPUT_EVENT.JOY_EXTRA, lang.SYSTEM.NO_JOY_EXTRA);
+void init_input(mux_input_options *opts, int def_combo) {
+    if (!opts) return;
+
+    joy_general = open_input(device.INPUT_EVENT.JOY_GENERAL, lang.SYSTEM.NO_JOY_GENERAL);
+    joy_power = open_input(device.INPUT_EVENT.JOY_POWER, lang.SYSTEM.NO_JOY_POWER);
+    joy_volume = open_input(device.INPUT_EVENT.JOY_VOLUME, lang.SYSTEM.NO_JOY_VOLUME);
+    joy_extra = open_input(device.INPUT_EVENT.JOY_EXTRA, lang.SYSTEM.NO_JOY_EXTRA);
+
+    opts->general_fd = joy_general;
+    opts->power_fd = joy_power;
+    opts->volume_fd = joy_volume;
+    opts->extra_fd = joy_extra;
 
     lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
 
     indev_drv.type = LV_INDEV_TYPE_KEYPAD;
     indev_drv.read_cb = evdev_read;
-    indev_drv.user_data = (void *) (intptr_t) (*joy_general);
+    indev_drv.user_data = (void *) (intptr_t) opts->general_fd;
 
     lv_indev_drv_register(&indev_drv);
+
+    opts->max_idle_ms = IDLE_MS;
+    opts->swap_btn = config.SETTINGS.ADVANCED.SWAP;
+    opts->stick_nav = true;
+
+    if (def_combo) {
+        opts->combo[0] = (mux_input_combo) {
+                .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP),
+                .press_handler = ui_common_handle_bright,
+                .hold_handler = ui_common_handle_bright
+        };
+        opts->combo[1] = (mux_input_combo) {
+                .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN),
+                .press_handler = ui_common_handle_bright,
+                .hold_handler = ui_common_handle_bright
+        };
+        opts->combo[2] = (mux_input_combo) {
+                .type_mask = BIT(MUX_INPUT_VOL_UP),
+                .press_handler = ui_common_handle_vol,
+                .hold_handler = ui_common_handle_vol
+        };
+        opts->combo[3] = (mux_input_combo) {
+                .type_mask = BIT(MUX_INPUT_VOL_DOWN),
+                .press_handler = ui_common_handle_vol,
+                .hold_handler = ui_common_handle_vol
+        };
+    }
+
+    if (opts->idle_handler == NULL) opts->idle_handler = ui_common_handle_idle;
 }
 
 void init_timer(void (*ui_refresh_task)(lv_timer_t *), void (*update_system_info)(lv_timer_t *)) {

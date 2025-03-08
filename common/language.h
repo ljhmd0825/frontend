@@ -211,9 +211,6 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
-        char NO_CABLE[MAX_BUFFER_SIZE];
-        char DENY_MODIFY[MAX_BUFFER_SIZE];
-        char ACTIVE[MAX_BUFFER_SIZE];
         char RESOLUTION[MAX_BUFFER_SIZE];
         char THEME_RESOLUTION[MAX_BUFFER_SIZE];
         char SCREEN[MAX_BUFFER_SIZE];
@@ -237,7 +234,6 @@ struct mux_lang {
             char UNDER[MAX_BUFFER_SIZE];
         } SCAN_SCALE;
         struct {
-            char ACTIVE[MAX_BUFFER_SIZE];
             char AUDIO_OUTPUT[MAX_BUFFER_SIZE];
             char RESOLUTION[MAX_BUFFER_SIZE];
             char THEME_RESOLUTION[MAX_BUFFER_SIZE];
@@ -389,7 +385,8 @@ struct mux_lang {
         char CATALOGUE[MAX_BUFFER_SIZE];
         char CONFIG[MAX_BUFFER_SIZE];
         char THEME[MAX_BUFFER_SIZE];
-        char INVALID[MAX_BUFFER_SIZE];
+        char INVALID_VER[MAX_BUFFER_SIZE];
+        char INVALID_RES[MAX_BUFFER_SIZE];
         struct {
             char CREDIT[MAX_BUFFER_SIZE];
             char CUSTOM[MAX_BUFFER_SIZE];
@@ -689,8 +686,8 @@ struct mux_lang {
     struct {
         char TITLE[MAX_BUFFER_SIZE];
         char BATTERY[MAX_BUFFER_SIZE];
-        char NETWORK[MAX_BUFFER_SIZE];
         char CLOCK[MAX_BUFFER_SIZE];
+        char NETWORK[MAX_BUFFER_SIZE];
         char DASH[MAX_BUFFER_SIZE];
         char FRIENDLY[MAX_BUFFER_SIZE];
         char REFORMAT[MAX_BUFFER_SIZE];
@@ -701,6 +698,34 @@ struct mux_lang {
         char COUNT_FILE[MAX_BUFFER_SIZE];
         char HIDDEN[MAX_BUFFER_SIZE];
         struct {
+            char IMAGE[MAX_BUFFER_SIZE];
+            char TRANSPARENCY[MAX_BUFFER_SIZE];
+            char THEME[MAX_BUFFER_SIZE];
+            struct {
+                char T1[MAX_BUFFER_SIZE];
+                char T4[MAX_BUFFER_SIZE];
+            } CHECKERBOARD;
+            struct {
+                char T1[MAX_BUFFER_SIZE];
+                char T2[MAX_BUFFER_SIZE];
+                char T4[MAX_BUFFER_SIZE];
+            } DIAGONAL;
+            struct {
+                char T1[MAX_BUFFER_SIZE];
+                char T4[MAX_BUFFER_SIZE];
+            } LATTICE;
+            struct {
+                char T1[MAX_BUFFER_SIZE];
+                char T2[MAX_BUFFER_SIZE];
+                char T4[MAX_BUFFER_SIZE];
+            } HORIZONTAL;
+            struct {
+                char T1[MAX_BUFFER_SIZE];
+                char T2[MAX_BUFFER_SIZE];
+                char T4[MAX_BUFFER_SIZE];
+            } VERTICAL;
+        } OVERLAY;
+        struct {
             char TITLE[MAX_BUFFER_SIZE];
             char FULL[MAX_BUFFER_SIZE];
             char REM_SQ[MAX_BUFFER_SIZE];
@@ -709,8 +734,8 @@ struct mux_lang {
         } NAME;
         struct {
             char BATTERY[MAX_BUFFER_SIZE];
-            char NETWORK[MAX_BUFFER_SIZE];
             char CLOCK[MAX_BUFFER_SIZE];
+            char NETWORK[MAX_BUFFER_SIZE];
             char DASH[MAX_BUFFER_SIZE];
             char FRIENDLY[MAX_BUFFER_SIZE];
             char REFORMAT[MAX_BUFFER_SIZE];
@@ -721,6 +746,8 @@ struct mux_lang {
             char COUNT_FILE[MAX_BUFFER_SIZE];
             char NAME[MAX_BUFFER_SIZE];
             char HIDDEN[MAX_BUFFER_SIZE];
+            char OVERLAY_IMAGE[MAX_BUFFER_SIZE];
+            char OVERLAY_TRANSPARENCY[MAX_BUFFER_SIZE];
         } HELP;
     } MUXVISUAL;
 

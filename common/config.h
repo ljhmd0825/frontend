@@ -15,7 +15,6 @@ struct mux_config {
     } CLOCK;
 
     struct {
-        int16_t ENABLED;
         char INTERFACE[MAX_BUFFER_SIZE];
         int16_t TYPE;
         char SSID[MAX_BUFFER_SIZE];
@@ -61,7 +60,6 @@ struct mux_config {
             char LANGUAGE[MAX_BUFFER_SIZE];
         } GENERAL;
         struct {
-            int16_t ENABLED;
             int16_t RESOLUTION;
             int16_t THEME_RESOLUTION;
             int16_t THEME_RESOLUTION_WIDTH;
@@ -85,6 +83,8 @@ struct mux_config {
         int16_t NETWORK;
         int16_t BLUETOOTH;
         int16_t CLOCK;
+        int16_t OVERLAY_IMAGE;
+        int16_t OVERLAY_TRANSPARENCY;
         int16_t BOX_ART;
         int16_t BOX_ART_ALIGN;
         int16_t NAME;

@@ -19,7 +19,6 @@
 #include "../common/kiosk.h"
 #include "../common/collection.h"
 #include "../common/json/json.h"
-#include "../common/input.h"
 #include "../common/input/list_nav.h"
 #include "../common/log.h"
 #include "../lookup/lookup.h"
@@ -30,12 +29,6 @@ struct theme_config theme;
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -79,8 +72,6 @@ int dir_count = 0;
 int current_item_index = 0;
 int first_open = 1;
 int nav_moved = 0;
-int counter_fade = 0;
-int fade_timeout = 7;
 int starter_image = 0;
 int splash_valid = 0;
 int nogrid_file_exists = 0;
@@ -150,12 +141,9 @@ char *load_content_description() {
 void update_file_counter() {
     if ((ui_count > 0 && file_count == 0 && config.VISUAL.COUNTERFOLDER) ||
         (file_count > 0 && config.VISUAL.COUNTERFILE)) {
-        fade_timeout = 7;
-        lv_obj_clear_flag(ui_lblCounter, LV_OBJ_FLAG_HIDDEN);
-        counter_fade = (theme.COUNTER.BORDER_ALPHA + theme.COUNTER.BACKGROUND_ALPHA + theme.COUNTER.TEXT_ALPHA);
-        if (counter_fade > 255) counter_fade = 255;
-        lv_obj_set_style_opa(ui_lblCounter, counter_fade, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_label_set_text_fmt(ui_lblCounter, "%d%s%d", current_item_index + 1, theme.COUNTER.TEXT_SEPARATOR, ui_count);
+        char counter_text[MAX_BUFFER_SIZE];
+        snprintf(counter_text, sizeof(counter_text), "%d%s%d", current_item_index + 1, theme.COUNTER.TEXT_SEPARATOR, ui_count);
+        fade_label(ui_lblCounter, counter_text, 100, theme.COUNTER.TEXT_FADE_TIME * 60);
     } else {
         lv_obj_add_flag(ui_lblCounter, LV_OBJ_FLAG_HIDDEN);
     }
@@ -243,7 +231,7 @@ void image_refresh(char *image_type) {
         }
     } else {
         load_image_catalogue(h_core_artwork, h_file_name, "default", mux_dimension, image_type,
-                            image, sizeof(image));
+                             image, sizeof(image));
         if (!strcasecmp(image_type, "splash") && !file_exist(image)) {
             load_splash_image_fallback(mux_dimension, image, sizeof(image));
         }
@@ -505,14 +493,14 @@ void init_navigation_group_grid() {
 
         char grid_image[MAX_BUFFER_SIZE];
         load_image_catalogue("Collection", strip_ext(items[i].name), "default", mux_dimension, "grid",
-                                  grid_image, sizeof(grid_image));
+                             grid_image, sizeof(grid_image));
 
         char glyph_name_focused[MAX_BUFFER_SIZE];
         snprintf(glyph_name_focused, sizeof(glyph_name_focused), "%s_focused", strip_ext(items[i].name));
 
         char grid_image_focused[MAX_BUFFER_SIZE];
         load_image_catalogue("Collection", glyph_name_focused, "default_focused", mux_dimension, "grid",
-                                  grid_image_focused, sizeof(grid_image_focused));
+                             grid_image_focused, sizeof(grid_image_focused));
 
         create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
                          grid_image, grid_image_focused, items[i].display_name);
@@ -624,6 +612,11 @@ int load_content(const char *content_name) {
     return 0;
 }
 
+void update_footer_glyph() {
+    if (!add_mode) return;
+    lv_label_set_text(ui_lblNavA, items[current_item_index].content_type == FOLDER ? lang.GENERIC.OPEN : lang.GENERIC.ADD);
+}
+
 void list_nav_prev(int steps) {
     play_sound("navigate", nav_sound, 0, 0);
 
@@ -648,6 +641,7 @@ void list_nav_prev(int steps) {
     lv_label_set_text(ui_lblGridCurrentItem, items[current_item_index].display_name);
 
     image_refresh("box");
+    update_footer_glyph();
     nav_moved = 1;
 }
 
@@ -679,7 +673,22 @@ void list_nav_next(int steps) {
     lv_label_set_text(ui_lblGridCurrentItem, items[current_item_index].display_name);
 
     image_refresh("box");
+    update_footer_glyph();
     nav_moved = 1;
+}
+
+void handle_keyboard_OK_press(void) {
+    key_show = 0;
+
+    snprintf(new_dir, sizeof(new_dir), "%s/%s",
+             sys_dir, lv_textarea_get_text(ui_txtEntry));
+    create_directories(new_dir);
+
+    write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, lv_textarea_get_text(ui_txtEntry));
+    load_mux("collection");
+
+    safe_quit(0);
+    mux_input_stop();
 }
 
 void handle_keyboard_press(void) {
@@ -687,13 +696,7 @@ void handle_keyboard_press(void) {
 
     const char *is_key = lv_btnmatrix_get_btn_text(key_entry, key_curr);
     if (strcasecmp(is_key, OSK_DONE) == 0) {
-        key_show = 0;
-        snprintf(new_dir, sizeof(new_dir), "%s/%s",
-                 sys_dir, lv_textarea_get_text(ui_txtEntry));
-        create_directories(new_dir);
-        write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, lv_textarea_get_text(ui_txtEntry));
-        load_mux("collection");
-        mux_input_stop();
+        handle_keyboard_OK_press();
     } else if (strcmp(is_key, OSK_UPPER) == 0) {
         lv_btnmatrix_set_map(key_entry, key_upper_map);
     } else if (strcmp(is_key, OSK_CHAR) == 0) {
@@ -763,12 +766,12 @@ void handle_a() {
 
         write_text_to_file(COLLECTION_DIR, "w", CHAR, n_dir);
     } else {
-        write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
         load_message = 0;
         if (add_mode) {
             add_collection_item();
             goto acq;
         } else {
+            write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
             char f_content[MAX_BUFFER_SIZE];
             snprintf(f_content, sizeof(f_content), "%s.cfg",
                      strip_ext(items[current_item_index].name));
@@ -817,6 +820,8 @@ void handle_a() {
     } else {
         load_mux("collection");
     }
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -859,6 +864,7 @@ void handle_b() {
         }
     }
 
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -890,6 +896,8 @@ void handle_x() {
     }
 
     load_mux("collection");
+
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -1097,7 +1105,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void init_osk() {
@@ -1174,20 +1182,6 @@ void init_osk() {
 void ui_refresh_task() {
     update_bars(ui_barProgressBrightness, ui_barProgressVolume, ui_icoProgressVolume);
 
-    if (!nav_moved & !fade_timeout) {
-        if (counter_fade > 0) {
-            lv_obj_set_style_opa(ui_lblCounter, counter_fade - theme.COUNTER.TEXT_FADE_TIME,
-                                 LV_PART_MAIN | LV_STATE_DEFAULT);
-            counter_fade -= (theme.COUNTER.TEXT_FADE_TIME + 1) / 4;
-        }
-        if (lv_obj_get_style_opa(ui_lblCounter, LV_PART_MAIN | LV_STATE_DEFAULT) <= 10) {
-            lv_obj_add_flag(ui_lblCounter, LV_OBJ_FLAG_HIDDEN);
-            counter_fade = 0;
-        }
-    } else {
-        fade_timeout--;
-    }
-
     if (nav_moved) {
         starter_image = adjust_wallpaper_element(ui_group, starter_image, GENERAL);
         adjust_panel_priority(ui_mux_panels, sizeof(ui_mux_panels) / sizeof(ui_mux_panels[0]));
@@ -1203,6 +1197,18 @@ void ui_refresh_task() {
         lv_obj_move_foreground(overlay_image);
 
         nav_moved = 0;
+    }
+}
+
+void on_key_event(struct input_event ev) {
+    if (ev.code == KEY_ENTER && ev.value == 1) {
+        handle_keyboard_OK_press();
+    }
+
+    if (ev.code == KEY_ESC && ev.value == 1) {
+        handle_b();
+    } else {
+        process_key_event(&ev, ui_txtEntry);
     }
 }
 
@@ -1283,8 +1289,6 @@ int main(int argc, char *argv[]) {
         write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, get_last_subdir(sys_dir, '/', 4));
     }
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     if (ui_count > 0) {
         if (sys_index > -1 && sys_index <= ui_count &&
             current_item_index < ui_count) {
@@ -1312,10 +1316,11 @@ int main(int argc, char *argv[]) {
     if (add_mode) {
         if (at_base(sys_dir, "collection")) {
             if (!ui_count) {
-                int hidden[] = {0, 1, 2, 3, 6, 7};
-                for (int i = 0; i < 6; ++i) {
+                int hidden[] = {2, 3, 6, 7};
+                for (int i = 0; i < 4; ++i) {
                     nav_e[hidden[i]].visible = 0;
                 }
+                lv_label_set_text(ui_lblNavA, lang.GENERIC.ADD);
             } else {
                 int hidden[] = {2, 3};
                 for (int i = 0; i < 2; ++i) {
@@ -1367,15 +1372,8 @@ int main(int argc, char *argv[]) {
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1 ||
                           (grid_mode_enabled && theme.GRID.NAVIGATION_TYPE >= 1 && theme.GRID.NAVIGATION_TYPE <= 5)),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
@@ -1398,24 +1396,13 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_L1] = handle_l1,
                     [MUX_INPUT_R1] = handle_r1,
                     [MUX_INPUT_R2] = handle_random_select,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
+    register_key_event_callback(on_key_event);
     mux_input_task(&input_opts);
-    safe_quit(0);
 
     free_items(items, item_count);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }

@@ -1,6 +1,5 @@
 #include "../lvgl/lvgl.h"
 #include "ui/ui_muxvisual.h"
-#include <unistd.h>
 #include <string.h>
 #include <libgen.h>
 #include "../common/init.h"
@@ -12,17 +11,11 @@
 #include "../common/config.h"
 #include "../common/device.h"
 #include "../common/kiosk.h"
-#include "../common/input.h"
+#include "../common/overlay.h"
 #include "../common/input/list_nav.h"
 
 char *mux_module;
 
-static int joy_general;
-static int joy_power;
-static int joy_volume;
-static int joy_extra;
-
-int turbo_mode = 0;
 int msgbox_active = 0;
 int nav_sound = 0;
 int bar_header = 0;
@@ -43,13 +36,16 @@ lv_obj_t *overlay_image = NULL;
 lv_obj_t *kiosk_image = NULL;
 
 int progress_onscreen = -1;
+int overlay_count;
 
-int battery_original, network_original, mux_clock_original, 
-        name_original, dash_original, friendlyfolder_original, thetitleformat_original,
-        titleincluderootdrive_original, folderitemcount_original, menu_counter_folder_original,
-        display_empty_folder_original, menu_counter_file_original, hidden_original;
+int battery_original, mux_clock_original, network_original, name_original,
+        dash_original, friendlyfolder_original, thetitleformat_original,
+        titleincluderootdrive_original, folderitemcount_original,
+        menu_counter_folder_original, overlayimage_original,
+        overlaytransparency_original, display_empty_folder_original,
+        menu_counter_file_original, hidden_original;
 
-#define UI_COUNT 13
+#define UI_COUNT 15
 lv_obj_t *ui_objects[UI_COUNT];
 
 lv_obj_t *ui_mux_panels[5];
@@ -67,8 +63,8 @@ struct help_msg {
 void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
             {ui_lblBattery,               lang.MUXVISUAL.HELP.BATTERY},
-            {ui_lblNetwork,               lang.MUXVISUAL.HELP.NETWORK},
             {ui_lblClock,                 lang.MUXVISUAL.HELP.CLOCK},
+            {ui_lblNetwork,               lang.MUXVISUAL.HELP.NETWORK},
             {ui_lblName,                  lang.MUXVISUAL.HELP.NAME},
             {ui_lblDash,                  lang.MUXVISUAL.HELP.DASH},
             {ui_lblFriendlyFolder,        lang.MUXVISUAL.HELP.FRIENDLY},
@@ -79,6 +75,8 @@ void show_help(lv_obj_t *element_focused) {
             {ui_lblMenuCounterFolder,     lang.MUXVISUAL.HELP.COUNT_FOLDER},
             {ui_lblMenuCounterFile,       lang.MUXVISUAL.HELP.COUNT_FILE},
             {ui_lblHidden,                lang.MUXVISUAL.HELP.HIDDEN},
+            {ui_lblOverlayImage,          lang.MUXVISUAL.HELP.OVERLAY_TRANSPARENCY},
+            {ui_lblOverlayTransparency,   lang.MUXVISUAL.HELP.OVERLAY_IMAGE},
     };
 
     char *message = lang.GENERIC.NO_HELP;
@@ -110,8 +108,8 @@ static void dropdown_event_handler(lv_event_t *e) {
 void init_element_events() {
     lv_obj_t *dropdowns[] = {
             ui_droBattery,
-            ui_droNetwork,
             ui_droClock,
+            ui_droNetwork,
             ui_droName,
             ui_droDash,
             ui_droFriendlyFolder,
@@ -122,6 +120,8 @@ void init_element_events() {
             ui_droMenuCounterFolder,
             ui_droMenuCounterFile,
             ui_droHidden,
+            ui_droOverlayImage,
+            ui_droOverlayTransparency,
     };
 
     for (unsigned int i = 0; i < sizeof(dropdowns) / sizeof(dropdowns[0]); i++) {
@@ -131,8 +131,8 @@ void init_element_events() {
 
 void init_dropdown_settings() {
     battery_original = lv_dropdown_get_selected(ui_droBattery);
-    network_original = lv_dropdown_get_selected(ui_droNetwork);
     mux_clock_original = lv_dropdown_get_selected(ui_droClock);
+    network_original = lv_dropdown_get_selected(ui_droNetwork);
     name_original = lv_dropdown_get_selected(ui_droName);
     dash_original = lv_dropdown_get_selected(ui_droDash);
     friendlyfolder_original = lv_dropdown_get_selected(ui_droFriendlyFolder);
@@ -143,12 +143,14 @@ void init_dropdown_settings() {
     menu_counter_folder_original = lv_dropdown_get_selected(ui_droMenuCounterFolder);
     menu_counter_file_original = lv_dropdown_get_selected(ui_droMenuCounterFile);
     hidden_original = lv_dropdown_get_selected(ui_droHidden);
+    overlayimage_original = lv_dropdown_get_selected(ui_droOverlayImage);
+    overlaytransparency_original = lv_dropdown_get_selected(ui_droOverlayTransparency);
 }
 
 void restore_visual_options() {
     lv_dropdown_set_selected(ui_droBattery, config.VISUAL.BATTERY);
-    lv_dropdown_set_selected(ui_droNetwork, config.VISUAL.NETWORK);
     lv_dropdown_set_selected(ui_droClock, config.VISUAL.CLOCK);
+    lv_dropdown_set_selected(ui_droNetwork, config.VISUAL.NETWORK);
     lv_dropdown_set_selected(ui_droName, config.VISUAL.NAME);
     lv_dropdown_set_selected(ui_droDash, config.VISUAL.DASH);
     lv_dropdown_set_selected(ui_droFriendlyFolder, config.VISUAL.FRIENDLYFOLDER);
@@ -159,12 +161,14 @@ void restore_visual_options() {
     lv_dropdown_set_selected(ui_droMenuCounterFolder, config.VISUAL.COUNTERFOLDER);
     lv_dropdown_set_selected(ui_droMenuCounterFile, config.VISUAL.COUNTERFILE);
     lv_dropdown_set_selected(ui_droHidden, config.SETTINGS.GENERAL.HIDDEN);
+    lv_dropdown_set_selected(ui_droOverlayImage, (config.VISUAL.OVERLAY_IMAGE > overlay_count) ? 0 : config.VISUAL.OVERLAY_IMAGE);
+    lv_dropdown_set_selected(ui_droOverlayTransparency, config.VISUAL.OVERLAY_TRANSPARENCY);
 }
 
 void save_visual_options() {
     int idx_battery = lv_dropdown_get_selected(ui_droBattery);
-    int idx_network = lv_dropdown_get_selected(ui_droNetwork);
     int idx_clock = lv_dropdown_get_selected(ui_droClock);
+    int idx_network = lv_dropdown_get_selected(ui_droNetwork);
     int idx_name = lv_dropdown_get_selected(ui_droName);
     int idx_dash = lv_dropdown_get_selected(ui_droDash);
     int idx_friendlyfolder = lv_dropdown_get_selected(ui_droFriendlyFolder);
@@ -175,17 +179,19 @@ void save_visual_options() {
     int idx_counterfolder = lv_dropdown_get_selected(ui_droMenuCounterFolder);
     int idx_counterfile = lv_dropdown_get_selected(ui_droMenuCounterFile);
     int idx_hidden = lv_dropdown_get_selected(ui_droHidden);
+    int idx_overlayimage = lv_dropdown_get_selected(ui_droOverlayImage);
+    int idx_overlaytransparency = lv_dropdown_get_selected(ui_droOverlayTransparency);
 
     if (lv_dropdown_get_selected(ui_droBattery) != battery_original) {
         write_text_to_file((RUN_GLOBAL_PATH "visual/battery"), "w", INT, idx_battery);
     }
 
-    if (lv_dropdown_get_selected(ui_droNetwork) != network_original) {
-        write_text_to_file((RUN_GLOBAL_PATH "visual/network"), "w", INT, idx_network);
-    }
-
     if (lv_dropdown_get_selected(ui_droClock) != mux_clock_original) {
         write_text_to_file((RUN_GLOBAL_PATH "visual/clock"), "w", INT, idx_clock);
+    }
+
+    if (lv_dropdown_get_selected(ui_droNetwork) != network_original) {
+        write_text_to_file((RUN_GLOBAL_PATH "visual/network"), "w", INT, idx_network);
     }
 
     if (lv_dropdown_get_selected(ui_droName) != name_original) {
@@ -227,6 +233,14 @@ void save_visual_options() {
     if (lv_dropdown_get_selected(ui_droHidden) != hidden_original) {
         write_text_to_file((RUN_GLOBAL_PATH "settings/general/hidden"), "w", INT, idx_hidden);
     }
+
+    if (lv_dropdown_get_selected(ui_droOverlayImage) != overlayimage_original) {
+        write_text_to_file((RUN_GLOBAL_PATH "visual/overlayimage"), "w", INT, idx_overlayimage);
+    }
+
+    if (lv_dropdown_get_selected(ui_droOverlayTransparency) != overlaytransparency_original) {
+        write_text_to_file((RUN_GLOBAL_PATH "visual/overlaytransparency"), "w", INT, idx_overlaytransparency);
+    }
 }
 
 void init_navigation_group() {
@@ -242,23 +256,27 @@ void init_navigation_group() {
             ui_pnlFriendlyFolder,
             ui_pnlMenuCounterFile,
             ui_pnlMenuCounterFolder,
+            ui_pnlOverlayImage,
+            ui_pnlOverlayTransparency,
             ui_pnlHidden,
-            ui_pnlTitleIncludeRootDrive
+            ui_pnlTitleIncludeRootDrive,
     };
 
-    ui_objects[0] =  ui_lblBattery;
-    ui_objects[1] =  ui_lblClock;
-    ui_objects[2] =  ui_lblNetwork;
-    ui_objects[3] =  ui_lblDash;
-    ui_objects[4] =  ui_lblName;
-    ui_objects[5] =  ui_lblDisplayEmptyFolder;
-    ui_objects[6] =  ui_lblTheTitleFormat;
-    ui_objects[7] =  ui_lblFolderItemCount;
-    ui_objects[8] =  ui_lblFriendlyFolder;
-    ui_objects[9] =  ui_lblMenuCounterFile;
+    ui_objects[0] = ui_lblBattery;
+    ui_objects[1] = ui_lblClock;
+    ui_objects[2] = ui_lblNetwork;
+    ui_objects[3] = ui_lblDash;
+    ui_objects[4] = ui_lblName;
+    ui_objects[5] = ui_lblDisplayEmptyFolder;
+    ui_objects[6] = ui_lblTheTitleFormat;
+    ui_objects[7] = ui_lblFolderItemCount;
+    ui_objects[8] = ui_lblFriendlyFolder;
+    ui_objects[9] = ui_lblMenuCounterFile;
     ui_objects[10] = ui_lblMenuCounterFolder;
-    ui_objects[11] = ui_lblHidden;
-    ui_objects[12] = ui_lblTitleIncludeRootDrive;
+    ui_objects[11] = ui_lblOverlayImage;
+    ui_objects[12] = ui_lblOverlayTransparency;
+    ui_objects[13] = ui_lblHidden;
+    ui_objects[14] = ui_lblTitleIncludeRootDrive;
 
 
     lv_obj_t *ui_objects_value[] = {
@@ -273,6 +291,8 @@ void init_navigation_group() {
             ui_droFriendlyFolder,
             ui_droMenuCounterFile,
             ui_droMenuCounterFolder,
+            ui_droOverlayImage,
+            ui_droOverlayTransparency,
             ui_droHidden,
             ui_droTitleIncludeRootDrive
     };
@@ -289,13 +309,15 @@ void init_navigation_group() {
             ui_icoFriendlyFolder,
             ui_icoMenuCounterFile,
             ui_icoMenuCounterFolder,
+            ui_icoOverlayImage,
+            ui_icoOverlayTransparency,
             ui_icoHidden,
             ui_icoTitleIncludeRootDrive
     };
 
     apply_theme_list_panel(ui_pnlBattery);
-    apply_theme_list_panel(ui_pnlNetwork);
     apply_theme_list_panel(ui_pnlClock);
+    apply_theme_list_panel(ui_pnlNetwork);
     apply_theme_list_panel(ui_pnlName);
     apply_theme_list_panel(ui_pnlDash);
     apply_theme_list_panel(ui_pnlFriendlyFolder);
@@ -304,12 +326,14 @@ void init_navigation_group() {
     apply_theme_list_panel(ui_pnlFolderItemCount);
     apply_theme_list_panel(ui_pnlDisplayEmptyFolder);
     apply_theme_list_panel(ui_pnlMenuCounterFolder);
+    apply_theme_list_panel(ui_pnlOverlayImage);
+    apply_theme_list_panel(ui_pnlOverlayTransparency);
     apply_theme_list_panel(ui_pnlHidden);
     apply_theme_list_panel(ui_pnlMenuCounterFile);
 
     apply_theme_list_item(&theme, ui_lblBattery, lang.MUXVISUAL.BATTERY);
-    apply_theme_list_item(&theme, ui_lblNetwork, lang.MUXVISUAL.NETWORK);
     apply_theme_list_item(&theme, ui_lblClock, lang.MUXVISUAL.CLOCK);
+    apply_theme_list_item(&theme, ui_lblNetwork, lang.MUXVISUAL.NETWORK);
     apply_theme_list_item(&theme, ui_lblName, lang.MUXVISUAL.NAME.TITLE);
     apply_theme_list_item(&theme, ui_lblDash, lang.MUXVISUAL.DASH);
     apply_theme_list_item(&theme, ui_lblFriendlyFolder, lang.MUXVISUAL.FRIENDLY);
@@ -318,12 +342,14 @@ void init_navigation_group() {
     apply_theme_list_item(&theme, ui_lblFolderItemCount, lang.MUXVISUAL.COUNT);
     apply_theme_list_item(&theme, ui_lblDisplayEmptyFolder, lang.MUXVISUAL.EMPTY);
     apply_theme_list_item(&theme, ui_lblMenuCounterFolder, lang.MUXVISUAL.COUNT_FOLDER);
+    apply_theme_list_item(&theme, ui_lblOverlayImage, lang.MUXVISUAL.OVERLAY.IMAGE);
+    apply_theme_list_item(&theme, ui_lblOverlayTransparency, lang.MUXVISUAL.OVERLAY.TRANSPARENCY);
     apply_theme_list_item(&theme, ui_lblHidden, lang.MUXVISUAL.HIDDEN);
     apply_theme_list_item(&theme, ui_lblMenuCounterFile, lang.MUXVISUAL.COUNT_FILE);
 
     apply_theme_list_glyph(&theme, ui_icoBattery, mux_module, "battery");
-    apply_theme_list_glyph(&theme, ui_icoNetwork, mux_module, "network");
     apply_theme_list_glyph(&theme, ui_icoClock, mux_module, "clock");
+    apply_theme_list_glyph(&theme, ui_icoNetwork, mux_module, "network");
     apply_theme_list_glyph(&theme, ui_icoName, mux_module, "name");
     apply_theme_list_glyph(&theme, ui_icoDash, mux_module, "dash");
     apply_theme_list_glyph(&theme, ui_icoFriendlyFolder, mux_module, "friendlyfolder");
@@ -332,12 +358,14 @@ void init_navigation_group() {
     apply_theme_list_glyph(&theme, ui_icoFolderItemCount, mux_module, "folderitemcount");
     apply_theme_list_glyph(&theme, ui_icoDisplayEmptyFolder, mux_module, "folderempty");
     apply_theme_list_glyph(&theme, ui_icoMenuCounterFolder, mux_module, "counterfolder");
+    apply_theme_list_glyph(&theme, ui_icoOverlayImage, mux_module, "overlayimage");
+    apply_theme_list_glyph(&theme, ui_icoOverlayTransparency, mux_module, "overlaytransparency");
     apply_theme_list_glyph(&theme, ui_icoHidden, mux_module, "hidden");
     apply_theme_list_glyph(&theme, ui_icoMenuCounterFile, mux_module, "counterfile");
 
     apply_theme_list_drop_down(&theme, ui_droBattery, NULL);
-    apply_theme_list_drop_down(&theme, ui_droNetwork, NULL);
     apply_theme_list_drop_down(&theme, ui_droClock, NULL);
+    apply_theme_list_drop_down(&theme, ui_droNetwork, NULL);
     apply_theme_list_drop_down(&theme, ui_droName, NULL);
     apply_theme_list_drop_down(&theme, ui_droDash, NULL);
     apply_theme_list_drop_down(&theme, ui_droFriendlyFolder, NULL);
@@ -346,13 +374,14 @@ void init_navigation_group() {
     apply_theme_list_drop_down(&theme, ui_droFolderItemCount, NULL);
     apply_theme_list_drop_down(&theme, ui_droDisplayEmptyFolder, NULL);
     apply_theme_list_drop_down(&theme, ui_droMenuCounterFolder, NULL);
+    apply_theme_list_drop_down(&theme, ui_droOverlayImage, NULL);
     apply_theme_list_drop_down(&theme, ui_droHidden, NULL);
     apply_theme_list_drop_down(&theme, ui_droMenuCounterFile, NULL);
 
     char *disabled_enabled[] = {lang.GENERIC.DISABLED, lang.GENERIC.ENABLED};
     add_drop_down_options(ui_droBattery, disabled_enabled, 2);
-    add_drop_down_options(ui_droNetwork, disabled_enabled, 2);
     add_drop_down_options(ui_droClock, disabled_enabled, 2);
+    add_drop_down_options(ui_droNetwork, disabled_enabled, 2);
     add_drop_down_options(ui_droHidden, disabled_enabled, 2);
 
     add_drop_down_options(ui_droName, (char *[]) {
@@ -369,6 +398,12 @@ void init_navigation_group() {
     add_drop_down_options(ui_droDisplayEmptyFolder, disabled_enabled, 2);
     add_drop_down_options(ui_droMenuCounterFolder, disabled_enabled, 2);
     add_drop_down_options(ui_droMenuCounterFile, disabled_enabled, 2);
+
+    overlay_count = load_overlay_set(ui_droOverlayImage);
+
+    char *transparency_string = generate_number_string(0, 100, 1, NULL, NULL, NULL, 0);
+    apply_theme_list_drop_down(&theme, ui_droOverlayTransparency, transparency_string);
+    free(transparency_string);
 
     ui_group = lv_group_create();
     ui_group_value = lv_group_create();
@@ -443,6 +478,7 @@ void handle_back(void) {
     save_visual_options();
 
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "interface");
+    safe_quit(0);
     mux_input_stop();
 }
 
@@ -500,8 +536,8 @@ void init_elements() {
     }
 
     lv_obj_set_user_data(ui_lblBattery, "battery");
-    lv_obj_set_user_data(ui_lblNetwork, "network");
     lv_obj_set_user_data(ui_lblClock, "clock");
+    lv_obj_set_user_data(ui_lblNetwork, "network");
     lv_obj_set_user_data(ui_lblName, "name");
     lv_obj_set_user_data(ui_lblDash, "dash");
     lv_obj_set_user_data(ui_lblFriendlyFolder, "friendlyfolder");
@@ -512,6 +548,8 @@ void init_elements() {
     lv_obj_set_user_data(ui_lblMenuCounterFolder, "counterfolder");
     lv_obj_set_user_data(ui_lblMenuCounterFile, "counterfile");
     lv_obj_set_user_data(ui_lblHidden, "hidden");
+    lv_obj_set_user_data(ui_lblOverlayImage, "overlayimage");
+    lv_obj_set_user_data(ui_lblOverlayTransparency, "overlaytransparency");
 
 #if TEST_IMAGE
     display_testing_message(ui_screen);
@@ -521,7 +559,7 @@ void init_elements() {
     load_kiosk_image(ui_screen, kiosk_image);
 
     overlay_image = lv_img_create(ui_screen);
-    load_overlay_image(ui_screen, overlay_image, theme.MISC.IMAGE_OVERLAY);
+    load_overlay_image(ui_screen, overlay_image);
 }
 
 void ui_refresh_task() {
@@ -569,19 +607,10 @@ int main(int argc, char *argv[]) {
     restore_visual_options();
     init_dropdown_settings();
 
-    init_input(&joy_general, &joy_power, &joy_volume, &joy_extra);
-
     load_kiosk(&kiosk);
 
     mux_input_options input_opts = {
-            .general_fd = joy_general,
-            .power_fd = joy_power,
-            .volume_fd = joy_volume,
-            .extra_fd = joy_extra,
-            .max_idle_ms = IDLE_MS,
-            .swap_btn = config.SETTINGS.ADVANCED.SWAP,
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
-            .stick_nav = true,
             .press_handler = {
                     [MUX_INPUT_A] = handle_option_next,
                     [MUX_INPUT_B] = handle_back,
@@ -600,22 +629,10 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
-            },
-            .combo = {
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_BRIGHT(BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_UP)),
-                    COMBO_VOLUME(BIT(MUX_INPUT_VOL_DOWN)),
-            },
-            .idle_handler = ui_common_handle_idle,
+            }
     };
+    init_input(&input_opts, true);
     mux_input_task(&input_opts);
-    safe_quit(0);
-
-    close(joy_general);
-    close(joy_power);
-    close(joy_volume);
-    close(joy_extra);
 
     return 0;
 }
