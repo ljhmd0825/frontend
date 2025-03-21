@@ -266,7 +266,7 @@ static const LookupName lookup_table[] = {
         {"hookhd2", "후크 (파이어릿 워즈II,핵)"},
         {"hookj", "후크 (일본판)"},
         {"hookjy", "후크 (엘리트,핵)"},
-        {"hookk", "후크 (한글패치)"},
+        {"hookk", "후크 (한글)"},
         {"hooknx", "후크 (후크의 리버설,핵)"},
         {"hooknx2", "후크 (후크의 리버설II,핵)"},
         {"hookpj", "후크 (POK KAI,핵)"},

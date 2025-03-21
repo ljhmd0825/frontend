@@ -12,7 +12,7 @@ static const LookupName lookup_table[] = {
         {"uccopsar", "언더커버 캅스 - 알파 리뉴얼 버전(세계판)"},
         {"uccopsaru", "언더커버 캅스 - 알파 리뉴얼 버전(미국판)"},
         {"uccopsj", "언더커버 캅스 (일본판)"},
-        {"uccopsk", "언더커버 캅스 (한글패치)"},
+        {"uccopsk", "언더커버 캅스 (한글)"},
         {"uccopsu", "언더커버 캅스 (미국판)"},
         {"uchuuai", "마작 우주보다 사랑을 담아"},
         {"ucytokyu", "우주 특급 메달리안"},

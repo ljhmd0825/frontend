@@ -167,7 +167,7 @@ static const LookupName lookup_table[] = {
         {"tenballs", "텐 볼즈 (버전1.05)"},
         {"tengai", "전국 블레이드-전국 에이스 2/ 텐가이 (세계판)"},
         {"tengaij", "전국 블레이드-전국 에이스 2/ 텐가이 (일본판)"},
-        {"tengaik", "전국 블레이드-전국 에이스 2/ 텐가이 (한글패치)"},
+        {"tengaik", "전국 블레이드-전국 에이스 2/ 텐가이 (한글)"},
         {"tenkai", "마작 전개원"},
         {"tenkaibb", "마작 전개원 (해적판 b)"},
         {"tenkaicb", "마작 전개원 (해적판 c)"},

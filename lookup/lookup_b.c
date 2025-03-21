@@ -340,7 +340,7 @@ static const LookupName lookup_table[] = {
         {"blitz99", "NFL 블리츠 99"},
         {"blitz99a", "NFL 블리츠 99 (버전1.2, Aug 28 1998)"},
         {"blkbustr", "블럭 버스터/ 미스터 종"},
-        {"blkdrgnk", "블랙 드래곤 (한글패치)"},
+        {"blkdrgnk", "블랙 드래곤 (한글)"},
         {"blkdrgon", "블랙 드래곤 (일본판)"},
         {"blkdrgonb", "블랙 드래곤"},
         {"blkhearj", "블랙 하트 (일본판)"},

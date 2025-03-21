@@ -116,7 +116,7 @@ static const LookupName lookup_table[] = {
         {"leadang", "데드 앵글/ 리드 앵글 (일본판)"},
         {"leader", "리더"},
         {"leadera", "리더"},
-        {"leaguemk", "야구 격투 리그맨 (한글패치)"},
+        {"leaguemk", "야구 격투 리그맨 (한글)"},
         {"leaguemn", "야구 격투 리그맨 (일본판)"},
         {"leaguemna", "야구 격투 리그맨 (일본판,세트2)"},
         {"leds2011", "레드 스톰 랠리 2011 (세계판)"},

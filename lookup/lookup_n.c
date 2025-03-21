@@ -128,7 +128,7 @@ static const LookupName lookup_table[] = {
         {"neobattl", "SD건담 네오 배틀링 (일본판)"},
         {"neobombe", "네오 봄버맨"},
         {"neocstlv", "네오 캐슬배니아 데모"},
-        {"neocu98k", "네오지오컵 98-승리로 향하는 길 (한글패치)"},
+        {"neocu98k", "네오지오컵 98-승리로 향하는 길 (한글)"},
         {"neocup98", "네오지오컵 98-승리로 향하는 길"},
         {"neodemo", "카오스 데모 (네오지오)"},
         {"neodrift", "네오 드리프트 아웃 - 뉴 테크놀러지"},
