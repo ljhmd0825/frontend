@@ -335,6 +335,7 @@ static const LookupName lookup_table[] = {
         {"flagrall", "96 플래그 랠리"},
         {"flamegun", "프레임 거너"},
         {"flamegunj", "프레임 거너 (일본판)"},
+        {"flapchck", "플래피 치킨 (HB)"},
         {"flashgal", "플래시걸 (세트1)"},
         {"flashgala", "플래시걸 (세트2)"},
         {"flashgalk", "플래시걸 (세트1,큐고 로고)"},

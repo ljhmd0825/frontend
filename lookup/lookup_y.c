@@ -41,7 +41,7 @@ static const LookupName lookup_table[] = {
         {"youma2", "닌자회권/ 요마인법첩 (일본판,대체)"},
         {"youmab", "닌자회권/ 요마인법첩 (해적판,세트1)"},
         {"youmab2", "닌자회권/ 요마인법첩 (해적판,세트2)"},
-        {"yoyoshkn", "요요 수리검"},
+        {"yoyoshkn", "요요 수리검 (HB)"},
         {"yoyospel", "요요 스펠"},
         {"yujan", "유쟝"},
         {"yuka", "유카"},
