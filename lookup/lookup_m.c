@@ -919,7 +919,7 @@ static const LookupName lookup_table[] = {
         {"mslug3uh", "메탈 슬러그 3 (AES 미검열 핵)"},
         {"mslug3unity", "메탈 슬러그 3 유니티 (타이머 추가된 버전)"},
         {"mslug3v", "메탈 슬러그 3 (강화된 바이올런스,핵)"},
-        {"mslug3x", "메탈 슬러그 3X (홈브류)"},
+        {"mslug3x", "메탈 슬러그 3X 컴플리트 컬렉션(핵)"},
         {"mslug3zh", "메탈 슬러그 3 (비히클 서몬,핵)"},
         {"mslug4", "메탈 슬러그 4"},
         {"mslug4a", "메탈 슬러그 4 (20주년 기념,핵)"},
