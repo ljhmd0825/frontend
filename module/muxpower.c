@@ -1,54 +1,20 @@
-#include "../lvgl/lvgl.h"
+#include "muxshare.h"
+#include "muxpower.h"
 #include "ui/ui_muxpower.h"
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
 #include "../common/init.h"
 #include "../common/common.h"
-#include "../common/options.h"
-#include "../common/language.h"
-#include "../common/theme.h"
 #include "../common/ui_common.h"
-#include "../common/config.h"
-#include "../common/device.h"
-#include "../common/kiosk.h"
 #include "../common/input/list_nav.h"
 
-char *mux_module;
-
-int msgbox_active = 0;
-int nav_sound = 0;
-int bar_header = 0;
-int bar_footer = 0;
-
-struct mux_lang lang;
-struct mux_config config;
-struct mux_device device;
-struct mux_kiosk kiosk;
-struct theme_config theme;
-
-int nav_moved = 1;
-int current_item_index = 0;
-int ui_count = 0;
-
-lv_obj_t *msgbox_element = NULL;
-lv_obj_t *overlay_image = NULL;
-lv_obj_t *kiosk_image = NULL;
-
-int progress_onscreen = -1;
-
-int shutdown_original, battery_original, idle_display_original, idle_sleep_original;
-
-lv_group_t *ui_group;
-lv_group_t *ui_group_value;
-lv_group_t *ui_group_glyph;
-lv_group_t *ui_group_panel;
+static int shutdown_original, battery_original, idle_display_original, idle_sleep_original;
 
 #define UI_COUNT 4
-lv_obj_t *ui_objects[UI_COUNT];
+static lv_obj_t *ui_objects[UI_COUNT];
 
-lv_obj_t *ui_mux_panels[5];
+#define UI_PANEL 5
+static lv_obj_t *ui_mux_panels[UI_PANEL];
 
 static const int shutdown_values[] = {-2, -1, 2, 10, 30, 60, 120, 300, 600, 900, 1800, 3600};
 static const int battery_values[] = {-255, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50};
@@ -62,7 +28,7 @@ struct help_msg {
     char *message;
 };
 
-void show_help(lv_obj_t *element_focused) {
+static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
             {ui_lblShutdown,    lang.MUXPOWER.HELP.SLEEP_FUNCTION},
             {ui_lblBattery,     lang.MUXPOWER.HELP.LOW_BATTERY},
@@ -86,42 +52,19 @@ void show_help(lv_obj_t *element_focused) {
                      TS(lv_label_get_text(element_focused)), message);
 }
 
-static void dropdown_event_handler(lv_event_t *e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *obj = lv_event_get_target(e);
-
-    if (code == LV_EVENT_VALUE_CHANGED) {
-        char buf[MAX_BUFFER_SIZE];
-        lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
-    }
-}
-
-void init_element_events() {
-    lv_obj_t *dropdowns[] = {
-            ui_droShutdown,
-            ui_droBattery,
-            ui_droIdleDisplay,
-            ui_droIdleSleep
-    };
-
-    for (unsigned int i = 0; i < sizeof(dropdowns) / sizeof(dropdowns[0]); i++) {
-        lv_obj_add_event_cb(dropdowns[i], dropdown_event_handler, LV_EVENT_ALL, NULL);
-    }
-}
-
-void init_dropdown_settings() {
+static void init_dropdown_settings() {
     shutdown_original = lv_dropdown_get_selected(ui_droShutdown);
-    battery_original = lv_dropdown_get_selected(ui_droBattery);
+    battery_original = lv_dropdown_get_selected(ui_droBattery_power);
     idle_display_original = lv_dropdown_get_selected(ui_droIdleDisplay);
     idle_sleep_original = lv_dropdown_get_selected(ui_droIdleSleep);
 }
 
-void restore_tweak_options() {
+static void restore_tweak_options() {
     lv_obj_t *ui_droIdle[2] = {ui_droIdleDisplay, ui_droIdleSleep};
     int16_t *config_values[2] = {&config.SETTINGS.POWER.IDLE_DISPLAY, &config.SETTINGS.POWER.IDLE_SLEEP};
 
     map_drop_down_to_index(ui_droShutdown, config.SETTINGS.POWER.SHUTDOWN, shutdown_values, SHUTDOWN_COUNT, 0);
-    map_drop_down_to_index(ui_droBattery, config.SETTINGS.POWER.LOW_BATTERY, battery_values, BATTERY_COUNT, 5);
+    map_drop_down_to_index(ui_droBattery_power, config.SETTINGS.POWER.LOW_BATTERY, battery_values, BATTERY_COUNT, 5);
 
     for (int i = 0; i < 2; i++) {
         int is_custom = 1;
@@ -141,11 +84,11 @@ void restore_tweak_options() {
     }
 }
 
-void save_tweak_options() {
+static void save_tweak_options() {
     int idx_shutdown = map_drop_down_to_value(lv_dropdown_get_selected(ui_droShutdown),
                                               shutdown_values, SHUTDOWN_COUNT, -2);
 
-    int idx_battery = map_drop_down_to_value(lv_dropdown_get_selected(ui_droBattery),
+    int idx_battery = map_drop_down_to_value(lv_dropdown_get_selected(ui_droBattery_power),
                                              battery_values, BATTERY_COUNT, 25);
 
     int idx_idle_display = map_drop_down_to_value(lv_dropdown_get_selected(ui_droIdleDisplay),
@@ -161,7 +104,7 @@ void save_tweak_options() {
         write_text_to_file((RUN_GLOBAL_PATH "settings/power/shutdown"), "w", INT, idx_shutdown);
     }
 
-    if (lv_dropdown_get_selected(ui_droBattery) != battery_original) {
+    if (lv_dropdown_get_selected(ui_droBattery_power) != battery_original) {
         is_modified++;
         write_text_to_file((RUN_GLOBAL_PATH "settings/power/low_battery"), "w", INT, idx_battery);
     }
@@ -179,14 +122,16 @@ void save_tweak_options() {
     }
 
     if (is_modified > 0) {
-        static char tweak_script[MAX_BUFFER_SIZE];
-        snprintf(tweak_script, sizeof(tweak_script),
-                 "%s/script/mux/tweak.sh", INTERNAL_PATH);
-        run_exec((const char *[]) {tweak_script, NULL});
+        toast_message(lang.GENERIC.SAVING, 0, 0);
+        refresh_screen(ui_screen);
+
+        const char *args[] = {(INTERNAL_PATH "script/mux/tweak.sh"), NULL};
+        run_exec(args, A_SIZE(args), 0);
+        refresh_config = 1;
     }
 }
 
-void init_navigation_group() {
+static void init_navigation_group() {
     lv_obj_t *ui_objects_panel[] = {
             ui_pnlBattery,
             ui_pnlIdleDisplay,
@@ -198,10 +143,8 @@ void init_navigation_group() {
     ui_objects[1] = ui_lblIdleDisplay;
     ui_objects[2] = ui_lblIdleSleep;
     ui_objects[3] = ui_lblShutdown;
-
-
     lv_obj_t *ui_objects_value[] = {
-            ui_droBattery,
+            ui_droBattery_power,
             ui_droIdleDisplay,
             ui_droIdleSleep,
             ui_droShutdown
@@ -232,7 +175,7 @@ void init_navigation_group() {
     apply_theme_list_drop_down(&theme, ui_droShutdown, NULL);
 
     char *battery_string = generate_number_string(5, 50, 5, lang.GENERIC.DISABLED, NULL, NULL, 0);
-    apply_theme_list_drop_down(&theme, ui_droBattery, battery_string);
+    apply_theme_list_drop_down(&theme, ui_droBattery_power, battery_string);
     free(battery_string);
 
     apply_theme_list_drop_down(&theme, ui_droIdleDisplay, "");
@@ -268,81 +211,81 @@ void init_navigation_group() {
     }
 }
 
-void list_nav_prev(int steps) {
-    play_sound("navigate", nav_sound, 0, 0);
+static void list_nav_move(int steps, int direction) {
+    first_open ? (first_open = 0) : play_sound(SND_NAVIGATE, 0);
+
     for (int step = 0; step < steps; ++step) {
-        current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
-        nav_prev(ui_group, 1);
-        nav_prev(ui_group_value, 1);
-        nav_prev(ui_group_glyph, 1);
-        nav_prev(ui_group_panel, 1);
+        if (direction < 0) {
+            current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
+        } else {
+            current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
+        }
+
+        nav_move(ui_group, direction);
+        nav_move(ui_group_value, direction);
+        nav_move(ui_group_glyph, direction);
+        nav_move(ui_group_panel, direction);
     }
+
     update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
     nav_moved = 1;
 }
 
-void list_nav_next(int steps) {
-    play_sound("navigate", nav_sound, 0, 0);
-    for (int step = 0; step < steps; ++step) {
-        current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
-        nav_next(ui_group, 1);
-        nav_next(ui_group_value, 1);
-        nav_next(ui_group_glyph, 1);
-        nav_next(ui_group_panel, 1);
-    }
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
-    nav_moved = 1;
+static void list_nav_prev(int steps) {
+    list_nav_move(steps, -1);
 }
 
-void handle_option_prev(void) {
+static void list_nav_next(int steps) {
+    list_nav_move(steps, +1);
+}
+
+static void handle_option_prev(void) {
     if (msgbox_active) return;
 
-    play_sound("navigate", nav_sound, 0, 0);
     decrease_option_value(lv_group_get_focused(ui_group_value));
 }
 
-void handle_option_next(void) {
+static void handle_option_next(void) {
     if (msgbox_active) return;
 
-    play_sound("navigate", nav_sound, 0, 0);
     increase_option_value(lv_group_get_focused(ui_group_value));
 }
 
-void handle_confirm(void) {
+static void handle_confirm(void) {
     if (msgbox_active) return;
 
     handle_option_next();
 }
 
-void handle_back(void) {
+static void handle_back(void) {
     if (msgbox_active) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         msgbox_active = 0;
         progress_onscreen = 0;
         lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
-    play_sound("back", nav_sound, 0, 1);
+    play_sound(SND_BACK, 0);
 
     save_tweak_options();
 
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "power");
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_help(void) {
+static void handle_help(void) {
     if (msgbox_active) return;
 
     if (progress_onscreen == -1) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         show_help(lv_group_get_focused(ui_group));
     }
 }
 
-void init_elements() {
+static void init_elements() {
     ui_mux_panels[0] = ui_pnlFooter;
     ui_mux_panels[1] = ui_pnlHeader;
     ui_mux_panels[2] = ui_pnlHelp;
@@ -367,23 +310,13 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.SAVE);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavAGlyph,
-            ui_lblNavA,
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
     lv_obj_set_user_data(ui_lblShutdown, "shutdown");
@@ -402,7 +335,7 @@ void init_elements() {
     load_overlay_image(ui_screen, overlay_image);
 }
 
-void ui_refresh_task() {
+static void ui_refresh_task() {
     update_bars(ui_barProgressBrightness, ui_barProgressVolume, ui_icoProgressVolume);
 
     if (nav_moved) {
@@ -416,22 +349,13 @@ void ui_refresh_task() {
     }
 }
 
-int main(int argc, char *argv[]) {
-    (void) argc;
-
-    mux_module = basename(argv[0]);
-    setup_background_process();
-
-    load_device(&device);
-    load_config(&config);
-    load_lang(&lang);
+int muxpower_main() {
+    init_module("muxpower");
 
     init_theme(1, 0);
-    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXPOWER.TITLE);
-    init_mux(ui_pnlContent);
-    init_timer(ui_refresh_task, NULL);
+    init_muxpower(ui_pnlContent);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -441,13 +365,13 @@ int main(int argc, char *argv[]) {
 
     init_fonts();
     init_navigation_group();
-    init_element_events();
-    init_navigation_sound(&nav_sound, mux_module);
 
     restore_tweak_options();
     init_dropdown_settings();
 
     load_kiosk(&kiosk);
+
+    init_timer(ui_refresh_task, NULL);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -471,6 +395,7 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };
+    list_nav_set_callbacks(list_nav_prev, list_nav_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

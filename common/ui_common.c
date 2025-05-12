@@ -11,6 +11,7 @@
 #include "log.h"
 
 lv_obj_t *ui_screen_container;
+lv_obj_t *ui_screen_temp;
 lv_obj_t *ui_blank;
 lv_obj_t *ui_screen;
 lv_obj_t *ui_pnlWall;
@@ -223,6 +224,7 @@ void apply_gradient_to_ui_screen(lv_obj_t *ui_screen, struct theme_config *theme
 void init_ui_common_screen(struct theme_config *theme, struct mux_device *device,
                            struct mux_lang *lang, const char *title) {
     ui_screen_container = lv_obj_create(NULL);
+    if (ui_screen_temp == NULL) ui_screen_temp = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_screen_container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_text_font(ui_screen_container, &ui_font_NotoSans, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -412,7 +414,8 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     //update_bluetooth_status(ui_staBluetooth, theme);
 
     ui_staNetwork = create_header_glyph(ui_conGlyphs, theme);
-    update_network_status(ui_staNetwork, theme);
+    update_network_status(ui_staNetwork, theme, 0);
+    if (!config.VISUAL.NETWORK) lv_obj_add_flag(ui_staNetwork, LV_OBJ_FLAG_HIDDEN);
 
     ui_staCapacity = create_header_glyph(ui_conGlyphs, theme);
     battery_capacity = read_battery_capacity();
@@ -429,7 +432,7 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     lv_obj_set_style_bg_color(ui_pnlFooter, lv_color_hex(theme->FOOTER.BACKGROUND), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_pnlFooter, theme->FOOTER.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(ui_pnlFooter, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui_pnlFooter, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui_pnlFooter, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_right(ui_pnlFooter, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui_pnlFooter, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_bottom(ui_pnlFooter, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -441,6 +444,7 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
             e_align = LV_FLEX_ALIGN_CENTER;
             break;
         case 2:
+            lv_obj_set_style_pad_right(ui_pnlFooter, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
             e_align = LV_FLEX_ALIGN_END;
             break;
         case 3:
@@ -453,6 +457,7 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
             e_align = LV_FLEX_ALIGN_SPACE_EVENLY;
             break;
         default:
+            lv_obj_set_style_pad_left(ui_pnlFooter, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
             e_align = LV_FLEX_ALIGN_START;
             break;
     }
@@ -486,7 +491,7 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     ui_lblScreenMessage = lv_label_create(ui_screen);
     lv_label_set_text(ui_lblScreenMessage, "");
     lv_obj_set_width(ui_lblScreenMessage, device->MUX.WIDTH);
-    lv_obj_set_height(ui_lblScreenMessage, 28);
+    lv_obj_set_height(ui_lblScreenMessage, LV_SIZE_CONTENT);
     lv_obj_set_align(ui_lblScreenMessage, LV_ALIGN_LEFT_MID);
     lv_obj_add_flag(ui_lblScreenMessage, LV_OBJ_FLAG_FLOATING);
     lv_obj_set_scroll_dir(ui_lblScreenMessage, LV_DIR_HOR);
@@ -513,7 +518,7 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
 
     ui_pnlMessage = lv_obj_create(ui_screen);
     lv_obj_set_width(ui_pnlMessage, device->MUX.WIDTH - 25);
-    lv_obj_set_height(ui_pnlMessage, 42);
+    lv_obj_set_height(ui_pnlMessage, LV_SIZE_CONTENT);
     lv_obj_set_x(ui_pnlMessage, 0);
     lv_obj_set_y(ui_pnlMessage, -theme->FOOTER.HEIGHT - 5);
     lv_obj_set_align(ui_pnlMessage, LV_ALIGN_BOTTOM_MID);
@@ -532,8 +537,6 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     ui_lblMessage = lv_label_create(ui_pnlMessage);
     lv_obj_set_width(ui_lblMessage, device->MUX.WIDTH - 50);
     lv_obj_set_height(ui_lblMessage, LV_SIZE_CONTENT);
-    lv_obj_set_x(ui_lblMessage, -220);
-    lv_obj_set_y(ui_lblMessage, -205);
     lv_obj_set_align(ui_lblMessage, LV_ALIGN_CENTER);
     lv_label_set_text(ui_lblMessage, "");
     lv_label_set_recolor(ui_lblMessage, "true");
@@ -883,7 +886,7 @@ lv_obj_t *create_footer_glyph(lv_obj_t *parent, struct theme_config *theme, char
 
     lv_obj_set_height(ui_glyph, LV_SIZE_CONTENT);
     lv_obj_set_align(ui_glyph, LV_ALIGN_CENTER);
-    lv_obj_set_style_pad_left(ui_glyph, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui_glyph, theme->NAV.SPACING, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui_glyph, theme->FONT.FOOTER_ICON_PAD_TOP * 2, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_bottom(ui_glyph, theme->FONT.FOOTER_ICON_PAD_BOTTOM * 2, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -891,6 +894,7 @@ lv_obj_t *create_footer_glyph(lv_obj_t *parent, struct theme_config *theme, char
     lv_obj_set_style_img_recolor_opa(ui_glyph, nav_footer_glyph.GLYPH_RECOLOUR_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     if (nav_footer_glyph.GLYPH_ALPHA == 0) lv_obj_set_width(ui_glyph, 0);
+    lv_obj_add_flag(ui_glyph, LV_OBJ_FLAG_HIDDEN);
     return ui_glyph;
 }
 
@@ -898,18 +902,17 @@ lv_obj_t *create_footer_text(lv_obj_t *parent, struct theme_config *theme, uint3
     lv_obj_t *ui_lblNavText = lv_label_create(parent);
     lv_obj_set_width(ui_lblNavText, LV_SIZE_CONTENT);
     lv_obj_set_height(ui_lblNavText, LV_SIZE_CONTENT);
-    lv_obj_set_x(ui_lblNavText, -220);
-    lv_obj_set_y(ui_lblNavText, -205);
     lv_obj_set_align(ui_lblNavText, LV_ALIGN_CENTER);
     lv_label_set_text(ui_lblNavText, "");
     lv_label_set_recolor(ui_lblNavText, "true");
     lv_obj_set_style_text_color(ui_lblNavText, lv_color_hex(text_color), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_lblNavText, text_alpha, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_left(ui_lblNavText, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui_lblNavText, 9, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui_lblNavText, theme->NAV.SPACING, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui_lblNavText, theme->FONT.FOOTER_PAD_TOP * 2, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_bottom(ui_lblNavText, theme->FONT.FOOTER_PAD_BOTTOM * 2, LV_PART_MAIN | LV_STATE_DEFAULT);
     if (text_alpha == 0) lv_obj_set_width(ui_lblNavText, 0);
+    lv_obj_add_flag(ui_lblNavText, LV_OBJ_FLAG_HIDDEN);
     return ui_lblNavText;
 }
 
@@ -1000,35 +1003,40 @@ void update_bluetooth_status(lv_obj_t *ui_staBluetooth, struct theme_config *the
     }
 }
 
-void update_network_status(lv_obj_t *ui_staNetwork, struct theme_config *theme) {
-    char *network_status;
-    if (device.DEVICE.HAS_NETWORK && is_network_connected()) {
-        network_status = "active";
-        lv_obj_set_style_img_recolor(ui_staNetwork, lv_color_hex(theme->STATUS.NETWORK.ACTIVE),
-                                     LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_img_recolor_opa(ui_staNetwork, theme->STATUS.NETWORK.ACTIVE_ALPHA,
-                                         LV_PART_MAIN | LV_STATE_DEFAULT);
+void update_network_status(lv_obj_t *ui_staNetwork, struct theme_config *theme, int force_glyph) {
+    struct {
+        lv_color_t color;
+        lv_opa_t alpha;
+        const char *status;
+    } status_style;
+
+    if (force_glyph == 1 || (force_glyph == 0 && device.DEVICE.HAS_NETWORK && is_network_connected())) {
+        status_style.color = lv_color_hex(theme->STATUS.NETWORK.ACTIVE);
+        status_style.alpha = theme->STATUS.NETWORK.ACTIVE_ALPHA;
+        status_style.status = "active";
     } else {
-        network_status = "normal";
-        lv_obj_set_style_img_recolor(ui_staNetwork, lv_color_hex(theme->STATUS.NETWORK.NORMAL),
-                                     LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_img_recolor_opa(ui_staNetwork, theme->STATUS.NETWORK.NORMAL_ALPHA,
-                                         LV_PART_MAIN | LV_STATE_DEFAULT);
+        status_style.color = lv_color_hex(theme->STATUS.NETWORK.NORMAL);
+        status_style.alpha = theme->STATUS.NETWORK.NORMAL_ALPHA;
+        status_style.status = "normal";
     }
+
+    lv_obj_set_style_img_recolor(ui_staNetwork, status_style.color, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_recolor_opa(ui_staNetwork, status_style.alpha, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    char mux_dimension[15];
+    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
+
+    char network_status_filename[20];
+    snprintf(network_status_filename, sizeof(network_status_filename), "network_%s", status_style.status);
 
     char image_path[MAX_BUFFER_SIZE];
     char image_embed[MAX_BUFFER_SIZE];
-    char mux_dimension[15];
-    char network_status_filename[15];
-
-    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
-    snprintf(network_status_filename, sizeof(network_status_filename), "network_%s", network_status);
-
-    if (generate_image_embed(STORAGE_THEME, mux_dimension, "header", network_status_filename, image_path,
-                             sizeof(image_path), image_embed, sizeof(image_embed)) ||
-        generate_image_embed(INTERNAL_THEME, mux_dimension, "header", network_status_filename, image_path,
-                             sizeof(image_path), image_embed, sizeof(image_embed))) {
-        if (file_exist(image_path)) lv_img_set_src(ui_staNetwork, image_embed);
+    if ((generate_image_embed(STORAGE_THEME, mux_dimension, "header", network_status_filename, image_path,
+                              sizeof(image_path), image_embed, sizeof(image_embed)) ||
+         generate_image_embed(INTERNAL_THEME, mux_dimension, "header", network_status_filename, image_path,
+                              sizeof(image_path), image_embed, sizeof(image_embed))) &&
+        file_exist(image_path)) {
+        lv_img_set_src(ui_staNetwork, image_embed);
     }
 }
 
@@ -1166,7 +1174,8 @@ void create_grid_panel(struct theme_config *theme, int item_count) {
     lv_obj_set_size(ui_pnlGrid, theme->GRID.COLUMN_COUNT * theme->GRID.COLUMN_WIDTH,
                     theme->GRID.ROW_COUNT * theme->GRID.ROW_HEIGHT);
     //add padding to the bottom to make sure grid panel scrolls correctly
-    lv_obj_set_style_pad_bottom(ui_pnlGrid, (row_count - theme->GRID.ROW_COUNT + 1) * theme->GRID.ROW_HEIGHT , LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(ui_pnlGrid, (row_count - theme->GRID.ROW_COUNT + 1) * theme->GRID.ROW_HEIGHT,
+                                LV_PART_MAIN);
     lv_obj_set_x(ui_pnlGrid, theme->GRID.LOCATION_X);
     lv_obj_set_y(ui_pnlGrid, theme->GRID.LOCATION_Y);
     lv_obj_set_layout(ui_pnlGrid, LV_LAYOUT_GRID);
@@ -1220,7 +1229,13 @@ void create_grid_panel(struct theme_config *theme, int item_count) {
 void grid_item_focus_event_cb(lv_event_t *e) {
     lv_obj_t *cell_pnl = lv_event_get_target(e);
     uint32_t child_cnt = lv_obj_get_child_cnt(cell_pnl);
+    if (child_cnt == 0) {
+        // Panel has no children (maybe being deleted)
+        return;
+    }
+
     lv_obj_t *cell_image_focused = lv_obj_get_child(cell_pnl, child_cnt - 1);
+    if (!cell_image_focused) return;    
 
     if (lv_event_get_code(e) == LV_EVENT_FOCUSED) {
         lv_obj_set_style_img_opa(cell_image_focused, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -1326,7 +1341,8 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
             lv_obj_align(cell_image_focused, LV_ALIGN_TOP_MID, 0, theme->GRID.CELL.IMAGE_PADDING_TOP);
         }
         lv_obj_set_style_img_opa(cell_image_focused, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_add_event_cb(cell_pnl, grid_item_focus_event_cb, LV_EVENT_ALL, NULL); // Add event callback
+        lv_obj_add_event_cb(cell_pnl, grid_item_focus_event_cb, LV_EVENT_FOCUSED, NULL);
+        lv_obj_add_event_cb(cell_pnl, grid_item_focus_event_cb, LV_EVENT_DEFOCUSED, NULL);
     }
 
     lv_obj_set_width(cell_label, theme->GRID.CELL.WIDTH - (theme->GRID.CELL.TEXT_PADDING_SIDE * 2));

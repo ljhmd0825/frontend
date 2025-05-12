@@ -1,20 +1,27 @@
 #pragma once
 
+#include <SDL2/SDL_mixer.h>
 #include "../lvgl/lvgl.h"
 #include "mini/mini.h"
+#include "options.h"
 
+#define A_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define BIT(n) (UINT64_C(1) << (n))
 #define TS(str) translate_specific(str)
 
 extern int msgbox_active;
 extern lv_obj_t *msgbox_element;
 extern int battery_capacity;
-extern int nav_sound;
-extern int bar_header;
-extern int bar_footer;
+extern int fe_snd;
+extern int fe_bgm;
 extern int progress_onscreen;
 extern struct mux_config config;
-extern char *mux_module;
+extern char mux_module[MAX_BUFFER_SIZE];
+extern char current_wall[MAX_BUFFER_SIZE];
+extern int is_silence_playing;
+extern Mix_Music *current_bgm;
+
+#define SOUND_TOTAL 12
 
 struct ImageSettings {
     char *image_path;
@@ -48,6 +55,22 @@ enum visual_type {
     CLOCK, BLUETOOTH, NETWORK, BATTERY
 };
 
+enum time_type {
+    TIME_12H, TIME_24H
+};
+
+enum sound_type {
+    SND_CONFIRM, SND_BACK, SND_KEYPRESS, SND_NAVIGATE,
+    SND_ERROR, SND_MUOS, SND_REBOOT, SND_SHUTDOWN,
+    SND_STARTUP, SND_INFO_OPEN, SND_INFO_CLOSE, SND_OPTION
+};
+
+typedef struct {
+    Mix_Chunk *chunk;
+} CachedSound;
+
+extern CachedSound sound_cache[SOUND_TOTAL];
+
 enum write_file_type {
     CHAR, INT
 };
@@ -66,6 +89,10 @@ struct nav_flag {
 int file_exist(char *filename);
 
 int directory_exist(char *dirname);
+
+const char **build_term_exec(const char **term_cmd, size_t *term_cnt);
+
+void extract_archive(char *filename);
 
 unsigned long long total_file_size(const char *path);
 
@@ -100,6 +127,8 @@ char *strip_dir(char *text);
 
 char *strip_ext(char *text);
 
+char *grab_ext(char *text);
+
 char *get_execute_result(const char *command);
 
 int read_battery_capacity();
@@ -111,6 +140,8 @@ char *read_text_from_file(const char *filename);
 char *read_line_from_file(const char *filename, size_t line_number);
 
 int read_int_from_file(const char *filename, size_t line_number);
+
+unsigned long long read_ll_from_file(const char *filename);
 
 const char *get_random_hex();
 
@@ -129,6 +160,8 @@ void show_help_msgbox(lv_obj_t *panel, lv_obj_t *header_element, lv_obj_t *conte
 
 void show_rom_info(lv_obj_t *panel, lv_obj_t *e_title, lv_obj_t *p_title, lv_obj_t *e_desc,
                    char *t_title, char *t_desc);
+
+void nav_move(lv_group_t *group, int direction);
 
 void nav_prev(lv_group_t *group, int count);
 
@@ -152,7 +185,7 @@ void load_gov(const char *rom, const char *dir, const char *sys, int forced);
 
 void load_mux(const char *value);
 
-void play_sound(const char *sound, int enabled, int wait, int background);
+void play_sound(int sound, int wait);
 
 void delete_files_of_type(const char *dir_path, const char *extension, const char *exception[], int recursive);
 
@@ -167,11 +200,13 @@ void load_overlay_image(lv_obj_t *ui_screen, lv_obj_t *overlay_image);
 
 void load_kiosk_image(lv_obj_t *ui_screen, lv_obj_t *kiosk_image);
 
+int load_terminal_resource(const char *resource, const char *extension, char *buffer, size_t size);
+
 int load_image_specifics(const char *theme_base, const char *mux_dimension, const char *program,
                          const char *image_type, const char *image_extension, char *image_path, size_t path_size);
 
 int load_element_image_specifics(const char *theme_base, const char *mux_dimension, const char *program,
-                                 const char *image_type, const char *element, const char *element_fallback, 
+                                 const char *image_type, const char *element, const char *element_fallback,
                                  const char *image_extension, char *image_path, size_t path_size);
 
 void load_image_random(lv_obj_t *ui_imgWall, char *base_image_path);
@@ -237,7 +272,13 @@ void map_drop_down_to_index(lv_obj_t *dropdown, int value, const int *options, i
 
 int map_drop_down_to_value(int selected_index, const int *options, int num_options, int def_value);
 
-void init_navigation_sound(int *nav_sound, const char *mux_module);
+void play_silence_bgm(void);
+
+int init_audio_backend(void);
+
+void init_fe_snd(int *fe_snd, int snd_type, int re_init);
+
+void init_fe_bgm(int *fe_bgm, int bgm_type, int re_init);
 
 int safe_atoi(const char *str);
 
@@ -251,7 +292,7 @@ int get_grid_row_item_count(int current_item_index);
 
 char *kiosk_nope();
 
-void run_exec(const char *args[]);
+void run_exec(const char *args[], size_t size, int background);
 
 char *get_directory_core(char *rom_dir, size_t line_number);
 
@@ -276,7 +317,8 @@ int search_for_config(const char *base_path, const char *file_name, const char *
 
 uint32_t fnv1a_hash(const char *str);
 
-bool get_glyph_path(const char *mux_module, char *glyph_name, char *glyph_image_embed, size_t glyph_image_embed_size);
+bool get_glyph_path(const char *mux_module, const char *glyph_name,
+                    char *glyph_image_embed, size_t glyph_image_embed_size);
 
 void populate_history_items();
 
@@ -289,3 +331,5 @@ int direct_to_previous(lv_obj_t **ui_objects, size_t ui_count, int *nav_moved);
 void load_splash_image_fallback(const char *mux_dimension, char *image, size_t image_size);
 
 int theme_compat();
+
+void update_bootlogo();

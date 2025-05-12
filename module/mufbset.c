@@ -14,11 +14,6 @@
 #include "../common/kiosk.h"
 #include "../common/theme.h"
 
-char *mux_module;
-
-int msgbox_active = 0;
-int nav_sound = 0;
-
 struct mux_lang lang;
 struct mux_config config;
 struct mux_device device;
@@ -113,6 +108,10 @@ int set_framebuffer(int width, int height, int depth, int hsync_len, int vsync_l
 
     vinfo.xres_virtual = vinfo.xres;
     vinfo.yres_virtual = vinfo.yres * ignore_dh;
+
+    // Set pan offset to match what fbset does
+    vinfo.xoffset = vinfo.xres_virtual - vinfo.xres;
+    vinfo.yoffset = vinfo.yres_virtual - vinfo.yres;
 
     if (depth > 0) vinfo.bits_per_pixel = depth;
 

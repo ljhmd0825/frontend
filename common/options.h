@@ -21,27 +21,37 @@
 #define TIME_STRING_12 "%I:%M %p"
 #define TIME_STRING_24 "%H:%M"
 
+#define LOCAL_TIME "/etc/localtime"
+
 #define OSK_UPPER "ABC"
 #define OSK_LOWER "abc"
 #define OSK_CHAR  "!@#"
 #define OSK_DONE  "OK"
+
+#define CHIME_DONE "/tmp/chime_done"
+#define SAFE_QUIT  "/tmp/safe_quit"
+
+#define EXPLORE_DIR "/tmp/explore_dir"
+#define EXPLORE_NAME "/tmp/explore_name"
 
 #define CONTENT_PATH "/mnt/union/ROMS"
 #define OPTION_SKIP  "/tmp/skip_opt"
 
 #define INTERNAL_PATH    "/opt/muos/"
 #define INTERNAL_THEME   INTERNAL_PATH "default/MUOS/theme/active"
-#define INTERNAL_OVERLAY INTERNAL_PATH "overlay"
+#define INTERNAL_OVERLAY INTERNAL_PATH "share/overlay"
 
 #define KIOSK_CONFIG   INTERNAL_PATH "config/kiosk.ini"
 #define LAST_PLAY_FILE INTERNAL_PATH "config/lastplay.txt"
 #define MUOS_VERSION   INTERNAL_PATH "config/version.txt"
+#define BGM_SILENCE    INTERNAL_PATH "share/media/silence.ogg"
 
 #define RUN_PATH "/run/muos/"
 
 #define ADD_MODE_WORK "/tmp/add_mode_work"
 #define ADD_MODE_DONE "/tmp/add_mode_done"
 #define ADD_MODE_FROM "/tmp/add_mode_from"
+#define COLLECTION_DIR "/tmp/collection_dir"
 
 #define RUN_DEVICE_PATH  RUN_PATH "device/"
 #define RUN_GLOBAL_PATH  RUN_PATH "global/"
@@ -51,6 +61,8 @@
 
 #define STORAGE_THEME RUN_STORAGE_PATH "theme/active"
 #define STORAGE_SHOTS RUN_STORAGE_PATH "screenshot"
+#define STORAGE_MUSIC RUN_STORAGE_PATH "music"
+#define STORAGE_SOUND RUN_STORAGE_PATH "sound"
 
 #define INFO_CAT_PATH RUN_STORAGE_PATH "info/catalogue"
 #define INFO_COR_PATH RUN_STORAGE_PATH "info/core"
@@ -67,6 +79,7 @@
 #define STORE_LOC_BIOS "MUOS/bios"
 #define STORE_LOC_RARC "MUOS/retroarch"
 #define STORE_LOC_MUSC "MUOS/music"
+#define STORE_LOC_SOUN "MUOS/sound"
 #define STORE_LOC_SAVE "MUOS/save"
 #define STORE_LOC_SCRS "MUOS/screenshot"
 #define STORE_LOC_THEM "MUOS/theme"
@@ -103,6 +116,9 @@
 #define MUOS_SYS_LOAD "/tmp/sys_go" // Core/System Assignment Flag
 #define MUOS_TIN_LOAD "/tmp/tin_go" // Task Toolkit Last Index
 
+#define MUX_AUTH "/tmp/mux_auth" // Muxpass Config Authorization
+#define MUX_LAUNCHER_AUTH "/tmp/mux_launcher_auth" // Muxpass App and Launcher Authorization
+
 #define BRIGHT_PERC "/tmp/current_brightness_percent"
 #define VOLUME_PERC "/tmp/current_volume_percent"
 
@@ -112,3 +128,16 @@
 #define FONT_PANEL_FOLDER  "panel"
 #define FONT_HEADER_FOLDER "header"
 #define FONT_FOOTER_FOLDER "footer"
+
+#define CFG_INT_FIELD(field, path, def)                             \
+    snprintf(buffer, sizeof(buffer), (RUN_GLOBAL_PATH "%s"), path); \
+    field = (int)({                                                 \
+        char *ep;                                                   \
+        long val = strtol(read_text_from_file(buffer), &ep, 10);    \
+        *ep ? def : val;                                            \
+    });
+
+#define CFG_STR_FIELD(field, path, def)                                      \
+    snprintf(buffer, sizeof(buffer), (RUN_GLOBAL_PATH "%s"), path);          \
+    strncpy(field, read_text_from_file(buffer) ?: def, MAX_BUFFER_SIZE - 1); \
+    field[MAX_BUFFER_SIZE - 1] = '\0';

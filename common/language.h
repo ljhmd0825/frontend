@@ -37,10 +37,12 @@ struct mux_lang {
         char EXTRACT[MAX_BUFFER_SIZE];
         char INDIVIDUAL[MAX_BUFFER_SIZE];
         char INFO[MAX_BUFFER_SIZE];
+        char INSTALL[MAX_BUFFER_SIZE];
         char KIOSK_DISABLE[MAX_BUFFER_SIZE];
         char LAUNCH[MAX_BUFFER_SIZE];
         char LOAD[MAX_BUFFER_SIZE];
         char LOADING[MAX_BUFFER_SIZE];
+        char SAVING[MAX_BUFFER_SIZE];
         char MIGRATE[MAX_BUFFER_SIZE];
         char NEW[MAX_BUFFER_SIZE];
         char NO_HELP[MAX_BUFFER_SIZE];
@@ -59,10 +61,14 @@ struct mux_lang {
         char SWITCH_INFO[MAX_BUFFER_SIZE];
         char SYNC[MAX_BUFFER_SIZE];
         char UNKNOWN[MAX_BUFFER_SIZE];
+        char CHANNEL[MAX_BUFFER_SIZE];
         char USE[MAX_BUFFER_SIZE];
         char USER_DEFINED[MAX_BUFFER_SIZE];
         char REBOOTING[MAX_BUFFER_SIZE];
         char SHUTTING_DOWN[MAX_BUFFER_SIZE];
+        char NOT_CONNECTED[MAX_BUFFER_SIZE];
+        char EDIT[MAX_BUFFER_SIZE];
+        char CHANGE[MAX_BUFFER_SIZE];
     } GENERIC;
 
     struct {
@@ -143,12 +149,14 @@ struct mux_lang {
         char CATALOGUE[MAX_BUFFER_SIZE];
         char CONFIG[MAX_BUFFER_SIZE];
         char THEME[MAX_BUFFER_SIZE];
+        char THEME_RESOLUTION[MAX_BUFFER_SIZE];
+        char SCREEN[MAX_BUFFER_SIZE];
         char THEME_ALTERNATE[MAX_BUFFER_SIZE];
         char TITLE[MAX_BUFFER_SIZE];
         char ANIMATION[MAX_BUFFER_SIZE];
         char FADE[MAX_BUFFER_SIZE];
         char SPLASH[MAX_BUFFER_SIZE];
-        char SOUND[MAX_BUFFER_SIZE];
+        char CHIME[MAX_BUFFER_SIZE];
         struct {
             char TITLE[MAX_BUFFER_SIZE];
             char BEHIND[MAX_BUFFER_SIZE];
@@ -179,9 +187,15 @@ struct mux_lang {
             char THEME[MAX_BUFFER_SIZE];
         } MUSIC;
         struct {
+            char TITLE[MAX_BUFFER_SIZE];
+            char GLOBAL[MAX_BUFFER_SIZE];
+            char THEME[MAX_BUFFER_SIZE];
+        } SOUND;
+        struct {
             char CATALOGUE[MAX_BUFFER_SIZE];
             char CONFIG[MAX_BUFFER_SIZE];
             char THEME[MAX_BUFFER_SIZE];
+            char THEME_RESOLUTION[MAX_BUFFER_SIZE];
             char ANIMATION[MAX_BUFFER_SIZE];
             char BOX_ART[MAX_BUFFER_SIZE];
             char BOX_ALIGN[MAX_BUFFER_SIZE];
@@ -190,6 +204,7 @@ struct mux_lang {
             char FONT[MAX_BUFFER_SIZE];
             char MUSIC[MAX_BUFFER_SIZE];
             char SOUND[MAX_BUFFER_SIZE];
+            char CHIME[MAX_BUFFER_SIZE];
         } HELP;
     } MUXCUSTOM;
 
@@ -212,8 +227,6 @@ struct mux_lang {
     struct {
         char TITLE[MAX_BUFFER_SIZE];
         char RESOLUTION[MAX_BUFFER_SIZE];
-        char THEME_RESOLUTION[MAX_BUFFER_SIZE];
-        char SCREEN[MAX_BUFFER_SIZE];
         struct {
             char DEPTH[MAX_BUFFER_SIZE];
             char SPACE[MAX_BUFFER_SIZE];
@@ -236,7 +249,6 @@ struct mux_lang {
         struct {
             char AUDIO_OUTPUT[MAX_BUFFER_SIZE];
             char RESOLUTION[MAX_BUFFER_SIZE];
-            char THEME_RESOLUTION[MAX_BUFFER_SIZE];
             char SCAN_SCALE[MAX_BUFFER_SIZE];
             struct {
                 char DEPTH[MAX_BUFFER_SIZE];
@@ -248,14 +260,16 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
-        char SYSTEM[MAX_BUFFER_SIZE];
+        char SYSINFO[MAX_BUFFER_SIZE];
+        char NETINFO[MAX_BUFFER_SIZE];
         char ACTIVITY[MAX_BUFFER_SIZE];
         char SCREENSHOT[MAX_BUFFER_SIZE];
         char SPACE[MAX_BUFFER_SIZE];
         char INPUT[MAX_BUFFER_SIZE];
         char CREDIT[MAX_BUFFER_SIZE];
         struct {
-            char SYSTEM[MAX_BUFFER_SIZE];
+            char SYSINFO[MAX_BUFFER_SIZE];
+            char NETINFO[MAX_BUFFER_SIZE];
             char ACTIVITY[MAX_BUFFER_SIZE];
             char SCREENSHOT[MAX_BUFFER_SIZE];
             char SPACE[MAX_BUFFER_SIZE];
@@ -306,6 +320,32 @@ struct mux_lang {
             char REBOOT[MAX_BUFFER_SIZE];
         } HELP;
     } MUXLAUNCH;
+
+    struct {
+        char TITLE[MAX_BUFFER_SIZE];
+        char HOSTNAME[MAX_BUFFER_SIZE];
+        char MAC[MAX_BUFFER_SIZE];
+        char IP[MAX_BUFFER_SIZE];
+        char SSID[MAX_BUFFER_SIZE];
+        char GATEWAY[MAX_BUFFER_SIZE];
+        char DNS[MAX_BUFFER_SIZE];
+        char SIGNAL[MAX_BUFFER_SIZE];
+        char CHANNEL[MAX_BUFFER_SIZE];
+        char ACTRAFFIC[MAX_BUFFER_SIZE];
+        char TPTRAFFIC[MAX_BUFFER_SIZE];
+        struct {
+            char HOSTNAME[MAX_BUFFER_SIZE];
+            char MAC[MAX_BUFFER_SIZE];
+            char IP[MAX_BUFFER_SIZE];
+            char SSID[MAX_BUFFER_SIZE];
+            char GATEWAY[MAX_BUFFER_SIZE];
+            char DNS[MAX_BUFFER_SIZE];
+            char SIGNAL[MAX_BUFFER_SIZE];
+            char CHANNEL[MAX_BUFFER_SIZE];
+            char ACTRAFFIC[MAX_BUFFER_SIZE];
+            char TPTRAFFIC[MAX_BUFFER_SIZE];
+        } HELP;
+    } MUXNETINFO;
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
@@ -604,6 +644,7 @@ struct mux_lang {
         char DPAD[MAX_BUFFER_SIZE];
         char OVERDRIVE[MAX_BUFFER_SIZE];
         char SWAPFILE[MAX_BUFFER_SIZE];
+        char ZRAMFILE[MAX_BUFFER_SIZE];
         char STATE[MAX_BUFFER_SIZE];
         char TUNING[MAX_BUFFER_SIZE];
         struct {
@@ -645,6 +686,7 @@ struct mux_lang {
             char DPAD[MAX_BUFFER_SIZE];
             char OVERDRIVE[MAX_BUFFER_SIZE];
             char SWAPFILE[MAX_BUFFER_SIZE];
+            char ZRAMFILE[MAX_BUFFER_SIZE];
             char TUNING[MAX_BUFFER_SIZE];
             char RUMBLE[MAX_BUFFER_SIZE];
             char STATE[MAX_BUFFER_SIZE];

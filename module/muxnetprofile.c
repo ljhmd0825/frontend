@@ -1,62 +1,25 @@
-#include "../lvgl/lvgl.h"
+#include "muxshare.h"
+#include "muxnetprofile.h"
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
 #include "../common/init.h"
 #include "../common/common.h"
-#include "../common/options.h"
-#include "../common/language.h"
-#include "../common/theme.h"
 #include "../common/ui_common.h"
-#include "../common/collection.h"
-#include "../common/config.h"
-#include "../common/device.h"
-#include "../common/kiosk.h"
 #include "../common/input/list_nav.h"
 
-char *mux_module;
+#define UI_PANEL 5
+static lv_obj_t *ui_mux_panels[UI_PANEL];
 
-int msgbox_active = 0;
-int nav_sound = 0;
-int bar_header = 0;
-int bar_footer = 0;
-
-struct mux_lang lang;
-struct mux_config config;
-struct mux_device device;
-struct mux_kiosk kiosk;
-struct theme_config theme;
-
-int nav_moved = 1;
-lv_obj_t *msgbox_element = NULL;
-lv_obj_t *overlay_image = NULL;
-lv_obj_t *kiosk_image = NULL;
-
-int progress_onscreen = -1;
-
-size_t item_count = 0;
-content_item *items = NULL;
-
-lv_group_t *ui_group;
-lv_group_t *ui_group_glyph;
-lv_group_t *ui_group_panel;
-
-lv_obj_t *ui_mux_panels[5];
-
-int ui_count = 0;
-int current_item_index = 0;
-int first_open = 1;
-
-void show_help() {
+static void show_help() {
     show_help_msgbox(ui_pnlHelp, ui_lblHelpHeader, ui_lblHelpContent,
                      lang.MUXNETPROFILE.TITLE, lang.MUXNETPROFILE.HELP);
 }
 
-void sanitize_ssid_name(char *dest, const char *src, size_t max_len) {
+static void sanitise_ssid_name(char *dest, const char *src) {
     size_t j = 0;
-    while (*src && j < max_len - 1) {
+    while (*src && j < MAX_BUFFER_SIZE - 1) {
         // replace any slashes with underscores, to prevent some valid SSID names leading to invalid profile file names
         dest[j++] = (*src == '/' || *src == '\\') ? '_' : *src;
         src++;
@@ -64,7 +27,7 @@ void sanitize_ssid_name(char *dest, const char *src, size_t max_len) {
     dest[j] = '\0';
 }
 
-int remove_profile(char *name) {
+static int remove_profile(char *name) {
     static char profile_file[MAX_BUFFER_SIZE];
     snprintf(profile_file, sizeof(profile_file),
              (RUN_STORAGE_PATH "network/%s.ini"), name);
@@ -77,7 +40,10 @@ int remove_profile(char *name) {
     return 0;
 }
 
-void load_profile(char *name) {
+static void load_profile(char *name) {
+    toast_message(lang.GENERIC.LOADING, 0, 0);
+    refresh_screen(ui_screen);
+
     static char profile_file[MAX_BUFFER_SIZE];
     snprintf(profile_file, sizeof(profile_file),
              (RUN_STORAGE_PATH "network/%s.ini"), name);
@@ -111,7 +77,10 @@ void load_profile(char *name) {
     mini_free(net_profile);
 }
 
-int save_profile() {
+static int save_profile() {
+    toast_message(lang.GENERIC.SAVING, 0, 0);
+    refresh_screen(ui_screen);
+
     const char *p_type = read_text_from_file((RUN_GLOBAL_PATH "network/type"));
     const char *p_ssid = read_text_from_file((RUN_GLOBAL_PATH "network/ssid"));
     const char *p_pass = read_text_from_file((RUN_GLOBAL_PATH "network/pass"));
@@ -145,15 +114,15 @@ int save_profile() {
     static char profile_file[MAX_BUFFER_SIZE];
     int counter = 1;
 
-    char sanitized_ssid[MAX_BUFFER_SIZE];
-    sanitize_ssid_name(sanitized_ssid, p_ssid, sizeof(sanitized_ssid));
+    char sanitised_ssid[MAX_BUFFER_SIZE];
+    sanitise_ssid_name(sanitised_ssid, p_ssid);
 
     snprintf(profile_file, sizeof(profile_file),
-             (RUN_STORAGE_PATH "network/%s.ini"), sanitized_ssid);
+             (RUN_STORAGE_PATH "network/%s.ini"), sanitised_ssid);
 
     while (file_exist(profile_file)) {
         snprintf(profile_file, sizeof(profile_file),
-                 (RUN_STORAGE_PATH "network/%s - %d.ini"), sanitized_ssid, ++counter);
+                 (RUN_STORAGE_PATH "network/%s - %d.ini"), sanitised_ssid, ++counter);
     }
 
     mini_t *net_profile = mini_try_load(profile_file);
@@ -173,43 +142,40 @@ int save_profile() {
     return 1;
 }
 
-void list_nav_prev(int steps) {
-    play_sound("navigate", nav_sound, 0, 0);
+static void list_nav_move(int steps, int direction) {
+    if (ui_count <= 0) return;
+    first_open ? (first_open = 0) : play_sound(SND_NAVIGATE, 0);
+
     for (int step = 0; step < steps; ++step) {
         apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
                             lv_obj_get_user_data(lv_group_get_focused(ui_group_panel)));
-        current_item_index = !current_item_index ? ui_count - 1 : current_item_index - 1;
-        nav_prev(ui_group, 1);
-        nav_prev(ui_group_glyph, 1);
-        nav_prev(ui_group_panel, 1);
+
+        if (direction < 0) {
+            current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
+        } else {
+            current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
+        }
+
+        nav_move(ui_group, direction);
+        nav_move(ui_group_glyph, direction);
+        nav_move(ui_group_panel, direction);
     }
+
     update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
     set_label_long_mode(&theme, lv_group_get_focused(ui_group),
                         lv_obj_get_user_data(lv_group_get_focused(ui_group_panel)));
     nav_moved = 1;
 }
 
-void list_nav_next(int steps) {
-    if (first_open) {
-        first_open = 0;
-    } else {
-        play_sound("navigate", nav_sound, 0, 0);
-    }
-    for (int step = 0; step < steps; ++step) {
-        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
-                            lv_obj_get_user_data(lv_group_get_focused(ui_group_panel)));
-        current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
-        nav_next(ui_group, 1);
-        nav_next(ui_group_glyph, 1);
-        nav_next(ui_group_panel, 1);
-    }
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
-    set_label_long_mode(&theme, lv_group_get_focused(ui_group),
-                        lv_obj_get_user_data(lv_group_get_focused(ui_group_panel)));
-    nav_moved = 1;
+static void list_nav_prev(int steps) {
+    list_nav_move(steps, -1);
 }
 
-void create_profile_items() {
+static void list_nav_next(int steps) {
+    list_nav_move(steps, +1);
+}
+
+static void create_profile_items() {
     char profile_path[MAX_BUFFER_SIZE];
     snprintf(profile_path, sizeof(profile_path), (RUN_STORAGE_PATH "network"));
 
@@ -316,73 +282,75 @@ void create_profile_items() {
         lv_obj_clear_flag(ui_lblNavY, LV_OBJ_FLAG_FLOATING);
         lv_obj_clear_flag(ui_lblNavYGlyph, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_lblNavYGlyph, LV_OBJ_FLAG_FLOATING);
-        list_nav_next(0);
+        list_nav_move(0, +1);
     }
 }
 
-void handle_confirm(void) {
+static void handle_confirm(void) {
     if (msgbox_active || is_network_connected() || ui_count <= 0) {
         return;
     }
 
-    play_sound("confirm", nav_sound, 0, 1);
+    play_sound(SND_CONFIRM, 0);
     load_profile(lv_label_get_text(lv_group_get_focused(ui_group)));
 
-    safe_quit(0);
+    refresh_config = 1;
+
+    close_input();
     mux_input_stop();
 }
 
-void handle_back(void) {
+static void handle_back(void) {
     if (msgbox_active) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         msgbox_active = 0;
         progress_onscreen = 0;
         lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
-    play_sound("back", nav_sound, 0, 1);
+    play_sound(SND_BACK, 0);
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_save(void) {
+static void handle_save(void) {
     if (msgbox_active) return;
 
     if (save_profile()) {
-        play_sound("confirm", nav_sound, 0, 1);
+        play_sound(SND_CONFIRM, 0);
         load_mux("net_profile");
 
-        safe_quit(0);
+        close_input();
         mux_input_stop();
     }
 }
 
-void handle_remove(void) {
+static void handle_remove(void) {
     if (msgbox_active || ui_count <= 0) {
         return;
     }
 
     if (remove_profile(lv_label_get_text(lv_group_get_focused(ui_group)))) {
-        play_sound("confirm", nav_sound, 0, 1);
+        play_sound(SND_CONFIRM, 0);
         load_mux("net_profile");
 
-        safe_quit(0);
+        close_input();
         mux_input_stop();
     }
 }
 
-void handle_help(void) {
+static void handle_help(void) {
     if (msgbox_active) return;
 
     if (progress_onscreen == -1) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         show_help();
     }
 }
 
-void init_elements() {
+static void init_elements() {
     ui_mux_panels[0] = ui_pnlFooter;
     ui_mux_panels[1] = ui_pnlHeader;
     ui_mux_panels[2] = ui_pnlHelp;
@@ -408,28 +376,25 @@ void init_elements() {
     lv_label_set_text(ui_lblNavY, lang.GENERIC.REMOVE);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB,
+            ui_lblNavXGlyph,
+            ui_lblNavX,
+            ui_lblNavYGlyph,
+            ui_lblNavY
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
     }
 
     if (!ui_count) {
-        lv_obj_add_flag(ui_lblNavA, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lblNavA, LV_OBJ_FLAG_FLOATING);
-        lv_obj_add_flag(ui_lblNavAGlyph, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lblNavAGlyph, LV_OBJ_FLAG_FLOATING);
-        lv_obj_add_flag(ui_lblNavY, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lblNavY, LV_OBJ_FLAG_FLOATING);
-        lv_obj_add_flag(ui_lblNavYGlyph, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lblNavYGlyph, LV_OBJ_FLAG_FLOATING);
+        lv_obj_add_flag(ui_lblNavA, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
+        lv_obj_add_flag(ui_lblNavAGlyph, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
+        lv_obj_add_flag(ui_lblNavY, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
+        lv_obj_add_flag(ui_lblNavYGlyph, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
     }
 
 #if TEST_IMAGE
@@ -443,7 +408,7 @@ void init_elements() {
     load_overlay_image(ui_screen, overlay_image);
 }
 
-void ui_refresh_task() {
+static void ui_refresh_task() {
     update_bars(ui_barProgressBrightness, ui_barProgressVolume, ui_icoProgressVolume);
 
     if (nav_moved) {
@@ -457,21 +422,12 @@ void ui_refresh_task() {
     }
 }
 
-int main(int argc, char *argv[]) {
-    (void) argc;
-
-    mux_module = basename(argv[0]);
-    setup_background_process();
-
-    load_device(&device);
-    load_config(&config);
-    load_lang(&lang);
+int muxnetprofile_main() {
+    init_module("muxnetprofile");
 
     init_theme(1, 1);
-    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXNETPROFILE.TITLE);
-    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -480,12 +436,13 @@ int main(int argc, char *argv[]) {
     load_wallpaper(ui_screen, NULL, ui_pnlWall, ui_imgWall, GENERAL);
 
     init_fonts();
-    init_navigation_sound(&nav_sound, mux_module);
 
     create_profile_items();
     if (!ui_count) lv_label_set_text(ui_lblScreenMessage, lang.MUXNETPROFILE.NONE);
 
     load_kiosk(&kiosk);
+
+    init_timer(ui_refresh_task, NULL);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -507,8 +464,11 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };
+    list_nav_set_callbacks(list_nav_prev, list_nav_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
+
+    free_items(&items, &item_count);
 
     return 0;
 }

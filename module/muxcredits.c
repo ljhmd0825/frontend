@@ -1,57 +1,36 @@
-#include "../lvgl/lvgl.h"
-#include "ui/ui_muxcredits.h"
 #include <string.h>
-#include <libgen.h>
+#include "muxshare.h"
+#include "ui/ui_muxcredits.h"
 #include "../common/init.h"
 #include "../common/common.h"
-#include "../common/config.h"
-#include "../common/language.h"
-#include "../common/device.h"
-#include "../common/kiosk.h"
-#include "../common/theme.h"
+#include "../font/notosans_big.h"
+#include "../font/notosans_big_hd.h"
 
-char *mux_module;
-
-int msgbox_active = 0;
-int nav_sound = 0;
-int bar_header = 0;
-int bar_footer = 0;
-
-struct mux_lang lang;
-struct mux_config config;
-struct mux_device device;
-struct mux_kiosk kiosk;
-struct theme_config theme;
-
-int progress_onscreen = -1;
-int ui_count = 0;
-int current_item_index = 0;
-
-lv_obj_t *msgbox_element = NULL;
-lv_obj_t *overlay_image = NULL;
-
-// Stubs to appease the compiler!
-void list_nav_prev(void) {}
-
-void list_nav_next(void) {}
-
-void timeout_task() {
+static void timeout_task() {
+    close_input();
     safe_quit(0);
     mux_input_stop();
 }
 
-int main(int argc, char *argv[]) {
-    (void) argc;
-
-    mux_module = basename(argv[0]);
-    setup_background_process();
+int main(void) {
+    init_module("muxcredits");
+    //setup_background_process();
 
     load_device(&device);
     load_config(&config);
 
     init_theme(0, 0);
     init_display();
-    init_mux();
+
+    const lv_font_t *header_font;
+    if (strcasecmp(device.DEVICE.NAME, "tui-brick") == 0) {
+        header_font = &ui_font_NotoSansBigHD;
+    } else {
+        header_font = &ui_font_NotoSansBig;
+    }
+
+    init_muxcredits(header_font);
+    load_font_text(ui_scrCredits);
 
     animFade_Animation(ui_conStart, -1000);
     animFade_Animation(ui_conOfficial, 8000);
@@ -71,7 +50,11 @@ int main(int argc, char *argv[]) {
     mux_input_options input_opts = {
             .combo = {
                     {
-                            .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_START),
+                            .type_mask = BIT(MUX_INPUT_START) | BIT(MUX_INPUT_MENU_SHORT),
+                            .press_handler = timeout_task,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_START) | BIT(MUX_INPUT_MENU_LONG),
                             .press_handler = timeout_task,
                     },
             }

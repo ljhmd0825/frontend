@@ -18,6 +18,7 @@
 #include "../lvgl/lvgl.h"
 #include "../font/notosans.h"
 #include "../font/notosans_jp.h"
+#include "../font/notosans_ar.h"
 #include "../font/notosans_kr.h"
 #include "../font/notosans_sc.h"
 #include "../font/notosans_tc.h"
@@ -35,6 +36,10 @@
 #include "theme.h"
 #include "mini/mini.h"
 
+char mux_module[MAX_BUFFER_SIZE];
+int msgbox_active;
+int fe_snd;
+int fe_bgm;
 struct json translation_generic;
 struct json translation_specific;
 struct pattern skip_pattern_list = {NULL, 0, 0};
@@ -50,6 +55,17 @@ int collection_item_count = 0;
 char current_wall[MAX_BUFFER_SIZE];
 lv_obj_t *wall_img = NULL;
 struct grid_info grid_info;
+CachedSound sound_cache[SOUND_TOTAL];
+int is_silence_playing = 0;
+Mix_Music *current_bgm = NULL;
+char **bgm_files = NULL;
+size_t bgm_file_count = 0;
+
+const char *snd_names[SOUND_TOTAL] = {
+        "confirm", "back", "keypress", "navigate",
+        "error", "muos", "reboot", "shutdown",
+        "startup", "info_open", "info_close", "option"
+};
 
 int file_exist(char *filename) {
     return access(filename, F_OK) == 0;
@@ -58,6 +74,59 @@ int file_exist(char *filename) {
 int directory_exist(char *dirname) {
     struct stat stats;
     return stat(dirname, &stats) == 0 && S_ISDIR(stats.st_mode);
+}
+
+const char **build_term_exec(const char **term_cmd, size_t *term_cnt) {
+    size_t arg_count = 0;
+    for (const char **p = term_cmd; p && *p; p++) arg_count++;
+
+    size_t total_args = 16 + arg_count + 1;
+    const char **exec = malloc(sizeof(char *) * total_args);
+    if (!exec) return NULL;
+
+    size_t i = 0;
+    exec[i++] = (INTERNAL_PATH "extra/muterm");
+    exec[i++] = "-s";
+    exec[i++] = (char *) theme.TERMINAL.FONT_SIZE;
+
+    static char font_path[MAX_BUFFER_SIZE];
+    if (load_terminal_resource("font", "ttf", font_path, sizeof(font_path))) {
+        exec[i++] = "-f";
+        exec[i++] = font_path;
+    }
+
+    static char image_path[MAX_BUFFER_SIZE];
+    if (load_terminal_resource("image", "png", image_path, sizeof(image_path))) {
+        exec[i++] = "-i";
+        exec[i++] = image_path;
+    }
+
+    exec[i++] = "-bg";
+    exec[i++] = (char *) theme.TERMINAL.BACKGROUND;
+    exec[i++] = "-fg";
+    exec[i++] = (char *) theme.TERMINAL.FOREGROUND;
+
+    for (const char **p = term_cmd; p && *p; p++) exec[i++] = *p;
+
+    exec[i] = NULL;
+    if (term_cnt) *term_cnt = i;
+    return exec;
+}
+
+void extract_archive(char *filename) {
+    size_t exec_count;
+    const char *args[] = {(INTERNAL_PATH "script/mux/extract.sh"), filename, NULL};
+    const char **exec = build_term_exec(args, &exec_count);
+
+    if (exec) {
+        if (config.VISUAL.BLACKFADE) {
+            fade_to_black(ui_screen);
+        } else {
+            unload_image_animation();
+        }
+        run_exec(exec, exec_count, 0);
+    }
+    free(exec);
 }
 
 unsigned long long total_file_size(const char *path) {
@@ -363,6 +432,16 @@ char *strip_ext(char *text) {
     return result;
 }
 
+char *grab_ext(char *text) {
+    char *ext = strrchr(text, '.');
+
+    if (ext != NULL && *(ext + 1) != '\0') {
+        return strdup(ext + 1);
+    }
+
+    return strdup("");
+}
+
 char *get_execute_result(const char *command) {
     FILE *fp = popen(command, "r");
     if (fp == NULL) {
@@ -519,6 +598,18 @@ int read_int_from_file(const char *filename, size_t line_number) {
     return 0;
 }
 
+unsigned long long read_ll_from_file(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) return 0;
+
+    unsigned long long value = 0;
+
+    fscanf(file, "%llu", &value);
+    fclose(file);
+
+    return value;
+}
+
 const char *get_random_hex() {
     int red = rand() % UINT8_MAX;
     int green = rand() % UINT8_MAX;
@@ -635,6 +726,10 @@ void show_rom_info(lv_obj_t *panel, lv_obj_t *i_title, lv_obj_t *p_title, lv_obj
     }
 }
 
+void nav_move(lv_group_t *group, int direction) {
+    (direction < 0 ? nav_prev : nav_next)(group, 1);
+}
+
 void nav_prev(lv_group_t *group, int count) {
     int i;
     for (i = 0; i < count; i++) {
@@ -723,6 +818,8 @@ void capacity_task() {
 }
 
 void increase_option_value(lv_obj_t *element) {
+    play_sound(SND_OPTION, 0);
+
     uint16_t total = lv_dropdown_get_option_cnt(element);
     if (total <= 1) return;
     uint16_t current = lv_dropdown_get_selected(element);
@@ -737,6 +834,8 @@ void increase_option_value(lv_obj_t *element) {
 }
 
 void decrease_option_value(lv_obj_t *element) {
+    play_sound(SND_OPTION, 0);
+
     uint16_t total = lv_dropdown_get_option_cnt(element);
     if (total <= 1) return;
     uint16_t current = lv_dropdown_get_selected(element);
@@ -783,39 +882,15 @@ void load_mux(const char *value) {
     fclose(file);
 }
 
-void play_sound(const char *sound, int enabled, int wait, int background) {
-    if (!enabled) return;
+void play_sound(int sound, int wait) {
+    if (!fe_snd || sound < 0 || sound >= SOUND_TOTAL) return;
 
-    char ns_file[MAX_BUFFER_SIZE];
-    snprintf(ns_file, sizeof(ns_file), "%s/sound/%s.wav", STORAGE_THEME, sound);
-
-    if (!file_exist(ns_file)) {
-        LOG_ERROR(mux_module, "Sound file not found: %s", ns_file)
-        return;
-    }
-
-    if (background) {
-        pid_t pid = fork();
-        if (pid == 0) {
-            snprintf(ns_file, sizeof(ns_file), "%s", sound);
-            execlp((INTERNAL_PATH "extra/muplay"), "muplay", ns_file, (char *) NULL);
-            LOG_ERROR(mux_module, "Failed to start 'muplay' for sound playback")
-            _exit(1);
-        } else if (pid < 0) {
-            LOG_ERROR(mux_module, "Failed to fork sound process!")
-        }
+    CachedSound *cs = &sound_cache[sound];
+    if (cs->chunk) {
+        int channel = Mix_PlayChannel(-1, cs->chunk, 0);
+        if (wait) while (Mix_Playing(channel)) SDL_Delay(5);
     } else {
-        Mix_Chunk *sound_chunk = Mix_LoadWAV(ns_file);
-
-        if (sound_chunk) {
-            int sound_play = Mix_PlayChannel(-1, sound_chunk, 0);
-
-            if (wait) {
-                while (Mix_Playing(sound_play)) {
-                    SDL_Delay(MAX_BUFFER_SIZE); // Could be shorter but some sounds get cut off so I'm cheating!~~
-                }
-            }
-        }
+        LOG_ERROR("sound", "Sound not found or cached: %s.wav", snd_names[sound])
     }
 }
 
@@ -909,7 +984,7 @@ int load_element_image_specifics(const char *theme_base, const char *mux_dimensi
     for (size_t i = 0; i < sizeof(dimensions) / sizeof(dimensions[0]); ++i) {
         for (size_t j = 0; j < sizeof(paths) / sizeof(paths[0]); ++j) {
             for (size_t k = 0; k < sizeof(elements) / sizeof(elements[0]); ++k) {
-                int written = 0;
+                int written;
 
                 switch (j) {
                     case 0:
@@ -945,7 +1020,7 @@ int load_image_specifics(const char *theme_base, const char *mux_dimension, cons
     };
 
     for (size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
-        int written = 0;
+        int written;
 
         switch (i) {
             case 0:
@@ -994,7 +1069,7 @@ int load_image_catalogue(const char *catalogue_name, const char *program, const 
     const char *programs[] = {program, program_fallback};
     for (size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
         for (size_t j = 0; j < sizeof(programs) / sizeof(programs[0]); ++j) {
-            int written = 0;
+            int written;
 
             switch (i) {
                 case 0:
@@ -1233,6 +1308,21 @@ void load_kiosk_image(lv_obj_t *ui_screen, lv_obj_t *kiosk_image) {
     }
 }
 
+int load_terminal_resource(const char *resource, const char *extension, char *buffer, size_t size) {
+    char mux_dimension[15];
+    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
+
+    const char *dimensions[] = {mux_dimension, ""};
+    const char *theme = theme_compat() ? STORAGE_THEME : INTERNAL_THEME;
+
+    for (size_t i = 0; i < 2; i++) {
+        snprintf(buffer, size, "%s/%s%s/muterm.%s", theme, dimensions[i], resource, extension);
+        if (file_exist(buffer)) return 1;
+    }
+
+    return 0;
+}
+
 static void image_anim_cb(void *var, int32_t img_idx) {
     lv_img_set_src(img_obj, img_paths[img_idx]);
 }
@@ -1330,6 +1420,8 @@ const lv_font_t *get_language_font() {
         return &ui_font_NotoSans_TC;
     } else if (strcasecmp(config.SETTINGS.GENERAL.LANGUAGE, "Japanese") == 0) {
         return &ui_font_NotoSans_JP;
+    } else if (strcasecmp(config.SETTINGS.GENERAL.LANGUAGE, "Arabic") == 0) {
+        return &ui_font_NotoSans_AR;
     } else if (strcasecmp(config.SETTINGS.GENERAL.LANGUAGE, "Korean") == 0) {
         return &ui_font_NotoSans_KR;
     } else {
@@ -1359,25 +1451,26 @@ void load_font_text(lv_obj_t *screen) {
         char mux_dimension[15];
         get_mux_dimension(mux_dimension, sizeof(mux_dimension));
         char *mux_dimensions[15] = {mux_dimension, ""};
+        char *theme_location = config.BOOT.FACTORY_RESET ? INTERNAL_THEME : STORAGE_THEME;
 
         if (theme_compat()) {
             for (int i = 0; i < 2; i++) {
                 if ((snprintf(theme_font_text, sizeof(theme_font_text),
-                              "%s/%sfont/%s/%s.bin", STORAGE_THEME, mux_dimensions[i],
+                              "%s/%sfont/%s/%s.bin", theme_location, mux_dimensions[i],
                               config.SETTINGS.GENERAL.LANGUAGE, mux_module) >= 0 &&
                      file_exist(theme_font_text)) ||
 
                     (snprintf(theme_font_text, sizeof(theme_font_text_default),
-                              "%s/%sfont/%s/default.bin", STORAGE_THEME, mux_dimensions[i],
-                              config.SETTINGS.GENERAL.LANGUAGE) >=
-                     0 && file_exist(theme_font_text)) ||
+                              "%s/%sfont/%s/default.bin", theme_location, mux_dimensions[i],
+                              config.SETTINGS.GENERAL.LANGUAGE) >= 0 &&
+                     file_exist(theme_font_text)) ||
 
                     (snprintf(theme_font_text, sizeof(theme_font_text),
-                              "%s/%sfont/%s.bin", STORAGE_THEME, mux_dimensions[i], mux_module) >= 0 &&
+                              "%s/%sfont/%s.bin", theme_location, mux_dimensions[i], mux_module) >= 0 &&
                      file_exist(theme_font_text)) ||
 
                     (snprintf(theme_font_text, sizeof(theme_font_text_default),
-                              "%s/%sfont/default.bin", STORAGE_THEME, mux_dimensions[i]) >= 0 &&
+                              "%s/%sfont/default.bin", theme_location, mux_dimensions[i]) >= 0 &&
                      file_exist(theme_font_text))) {
 
                     LOG_INFO(mux_module, "Loading Main Theme Font: %s", theme_font_text)
@@ -1399,25 +1492,26 @@ void load_font_section(const char *section, lv_obj_t *element) {
         char mux_dimension[15];
         get_mux_dimension(mux_dimension, sizeof(mux_dimension));
         char *mux_dimensions[15] = {mux_dimension, ""};
+        char *theme_location = config.BOOT.FACTORY_RESET ? INTERNAL_THEME : STORAGE_THEME;
 
         if (theme_compat()) {
             for (int i = 0; i < 2; i++) {
                 if ((snprintf(theme_font_section, sizeof(theme_font_section),
-                              "%s/%sfont/%s/%s/%s.bin", STORAGE_THEME, mux_dimensions[i],
-                              config.SETTINGS.GENERAL.LANGUAGE, section,
-                              mux_module) >= 0 && file_exist(theme_font_section)) ||
-
-                    (snprintf(theme_font_section, sizeof(theme_font_section),
-                              "%s/%sfont/%s/%s/default.bin", STORAGE_THEME, mux_dimensions[i],
-                              config.SETTINGS.GENERAL.LANGUAGE,
-                              section) >= 0 && file_exist(theme_font_section)) ||
-
-                    (snprintf(theme_font_section, sizeof(theme_font_section),
-                              "%s/%sfont/%s/%s.bin", STORAGE_THEME, mux_dimensions[i], section, mux_module) >= 0 &&
+                              "%s/%sfont/%s/%s/%s.bin", theme_location, mux_dimensions[i],
+                              config.SETTINGS.GENERAL.LANGUAGE, section, mux_module) >= 0 &&
                      file_exist(theme_font_section)) ||
 
                     (snprintf(theme_font_section, sizeof(theme_font_section),
-                              "%s/%sfont/%s/default.bin", STORAGE_THEME, mux_dimensions[i], section) >= 0 &&
+                              "%s/%sfont/%s/%s/default.bin", theme_location, mux_dimensions[i],
+                              config.SETTINGS.GENERAL.LANGUAGE, section) >= 0 &&
+                     file_exist(theme_font_section)) ||
+
+                    (snprintf(theme_font_section, sizeof(theme_font_section),
+                              "%s/%sfont/%s/%s.bin", theme_location, mux_dimensions[i], section, mux_module) >= 0 &&
+                     file_exist(theme_font_section)) ||
+
+                    (snprintf(theme_font_section, sizeof(theme_font_section),
+                              "%s/%sfont/%s/default.bin", theme_location, mux_dimensions[i], section) >= 0 &&
                      file_exist(theme_font_section))) {
 
                     LOG_INFO(mux_module, "Loading Section '%s' Font: %s", section, theme_font_section)
@@ -2032,18 +2126,193 @@ int map_drop_down_to_value(int selected_index, const int *options, int num_optio
     return def_value;
 }
 
-void init_navigation_sound(int *nav_sound, const char *mux_module) {
-    *nav_sound = 0;
-
-    if (config.SETTINGS.GENERAL.SOUND) {
-        if (SDL_Init(SDL_INIT_AUDIO) >= 0) {
-            Mix_Init(0);
-            Mix_OpenAudio(48000, MIX_DEFAULT_FORMAT, 2, 2048);
-            LOG_SUCCESS(mux_module, "SDL Init Success")
-            *nav_sound = 1;
-        } else {
-            LOG_ERROR(mux_module, "SDL Failed To Init")
+void free_sound_cache(void) {
+    for (int i = 0; i < SOUND_TOTAL; ++i) {
+        if (sound_cache[i].chunk) {
+            Mix_FreeChunk(sound_cache[i].chunk);
+            sound_cache[i].chunk = NULL;
         }
+    }
+}
+
+void free_bgm_list(void) {
+    for (size_t i = 0; i < bgm_file_count; ++i) free(bgm_files[i]);
+    free(bgm_files);
+
+    bgm_files = NULL;
+    bgm_file_count = 0;
+}
+
+void free_bgm(void) {
+    if (current_bgm) {
+        Mix_HaltMusic();
+        Mix_FreeMusic(current_bgm);
+        current_bgm = NULL;
+    }
+}
+
+void play_random_bgm(void) {
+    if (bgm_file_count == 0) return;
+
+    static size_t last_index = SIZE_MAX;
+    size_t index;
+
+    if (bgm_file_count == 1) {
+        index = 0;
+    } else {
+        index = rand() % bgm_file_count;
+        while (index == last_index) index = rand() % bgm_file_count;
+    }
+
+    const char *path = bgm_files[index];
+    last_index = index;
+
+    free_bgm();
+
+    current_bgm = Mix_LoadMUS(path);
+    if (current_bgm) {
+        is_silence_playing = 0;
+        Mix_PlayMusic(current_bgm, 1);
+    }
+}
+
+void play_silence_bgm(void) {
+    free_bgm();
+    is_silence_playing = 0;
+
+    char silence_path[MAX_BUFFER_SIZE];
+    snprintf(silence_path, sizeof(silence_path), "%s", BGM_SILENCE);
+
+    if (!file_exist(silence_path)) {
+        LOG_INFO("audio", "No 'silence.ogg' file found")
+        return;
+    }
+
+    current_bgm = Mix_LoadMUS(silence_path);
+    if (current_bgm) {
+        Mix_PlayMusic(current_bgm, -1);
+        is_silence_playing = 1;
+        LOG_SUCCESS("audio", "Silence BGM playback started")
+    } else {
+        LOG_ERROR("audio", "Failed to load 'silence.ogg': %s", Mix_GetError())
+    }
+}
+
+int init_audio_backend(void) {
+    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+        LOG_ERROR("audio", "SDL Init Failed")
+        return 0;
+    }
+
+    int flags = MIX_INIT_OGG;
+    int inited = Mix_Init(flags);
+    if ((inited & flags) != flags) {
+        LOG_ERROR("audio", "Missing SDL_mixer support for OGG")
+    }
+
+    if (Mix_OpenAudio(48000, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        LOG_ERROR("audio", "SDL_mixer open failed: %s", Mix_GetError())
+        return 0;
+    }
+
+    LOG_SUCCESS("audio", "SDL Init Success")
+
+/*
+    printf("Audio Decode Support: ");
+    for (int i = 0; i < Mix_GetNumMusicDecoders(); i++) {
+        printf("%s ", Mix_GetMusicDecoder(i));
+    }
+    printf("\n");
+*/
+
+    return 1;
+}
+
+void init_fe_snd(int *fe_snd, int snd_type, int re_init) {
+    *fe_snd = 0;
+    free_sound_cache();
+
+    if (!snd_type && !re_init) return;
+
+    char base_path[MAX_BUFFER_SIZE];
+    snprintf(base_path, sizeof(base_path), "%s", STORAGE_SOUND);
+    if (snd_type == 2) {
+        const char *theme_location = config.BOOT.FACTORY_RESET ? INTERNAL_THEME : STORAGE_THEME;
+        snprintf(base_path, sizeof(base_path), "%s/sound", theme_location);
+    }
+
+    DIR *dir = opendir(base_path);
+    if (!dir) {
+        LOG_INFO("audio", "Sound directory not found: %s", base_path)
+        return;
+    }
+
+    for (int i = 0; i < SOUND_TOTAL; ++i) {
+        char path[MAX_BUFFER_SIZE];
+        snprintf(path, sizeof(path), "%s/%s.wav", base_path, snd_names[i]);
+
+        if (file_exist(path)) {
+            sound_cache[i].chunk = Mix_LoadWAV(path);
+        } else {
+            sound_cache[i].chunk = NULL;
+        }
+    }
+
+    *fe_snd = 1;
+    LOG_SUCCESS("audio", "FE Sound Started")
+}
+
+void init_fe_bgm(int *fe_bgm, int bgm_type, int re_init) {
+    if (!bgm_type && !re_init) {
+        play_silence_bgm();
+        return;
+    }
+
+    free_bgm();
+    *fe_bgm = 0;
+
+    char base_path[MAX_BUFFER_SIZE];
+    snprintf(base_path, sizeof(base_path), "%s", STORAGE_MUSIC);
+    if (bgm_type == 2) {
+        const char *theme_location = config.BOOT.FACTORY_RESET ? INTERNAL_THEME : STORAGE_THEME;
+        snprintf(base_path, sizeof(base_path), "%s/music", theme_location);
+    }
+
+    DIR *dir = opendir(base_path);
+    if (!dir) {
+        LOG_INFO("audio", "Music directory not found: %s", base_path)
+        return;
+    }
+
+    size_t capacity = 8;
+    bgm_files = malloc(capacity * sizeof(char *));
+    bgm_file_count = 0;
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        size_t len = strlen(entry->d_name);
+        if (len > 4 && strcmp(entry->d_name + len - 4, ".ogg") == 0) {
+            if (bgm_file_count >= capacity) {
+                capacity *= 2;
+                bgm_files = realloc(bgm_files, capacity * sizeof(char *));
+            }
+
+            char full_path[MAX_BUFFER_SIZE];
+            snprintf(full_path, sizeof(full_path), "%s/%s", base_path, entry->d_name);
+            bgm_files[bgm_file_count++] = strdup(full_path);
+        }
+    }
+    closedir(dir);
+
+    if (bgm_file_count > 0) {
+        srand(time(NULL));
+        Mix_HookMusicFinished(play_random_bgm);
+        play_random_bgm();
+        *fe_bgm = 1;
+        LOG_SUCCESS("audio", "FE Music playback started")
+    } else {
+        LOG_INFO("audio", "No OGG music files found")
+        play_silence_bgm();
     }
 }
 
@@ -2095,15 +2364,36 @@ int get_grid_row_item_count(int current_item_index) {
 }
 
 char *kiosk_nope() {
+    play_sound(SND_ERROR, 0);
     return lang.GENERIC.KIOSK_DISABLE;
 }
 
-void run_exec(const char *args[]) {
+void run_exec(const char *args[], size_t size, int background) {
+    const char *san[size];
+
+    size_t j = 0;
+    for (size_t i = 0; i < size; ++i) {
+        if (args[i]) {
+            san[j++] = args[i];
+        }
+    }
+    san[j] = NULL;
+
+/*
+ * Debugging message to print arguments to check if nulls
+ * are being sanitised or not.  They should but you never
+ * know with C these days...
+ *
+ *  for (size_t k = 0; k < j; ++k) {
+ *      printf("arg[%zu]: %s\n", k, san[k]);
+ *  }
+*/
+
     pid_t pid = fork();
     if (pid == 0) {
-        execvp(args[0], (char *const *) args);
+        execvp(san[0], (char *const *) san);
         _exit(EXIT_FAILURE);
-    } else if (pid > 0) {
+    } else if (pid > 0 && !background) {
         waitpid(pid, NULL, 0);
     }
 }
@@ -2158,7 +2448,7 @@ struct screen_dimension get_device_dimensions() {
         dims.HEIGHT = device.SCREEN.INTERNAL.HEIGHT;
     }
 
-    LOG_INFO(mux_module, "Screen Output Dimensions: %dx%d", dims.WIDTH, dims.HEIGHT);
+    LOG_INFO(mux_module, "Screen Output Dimensions: %dx%d", dims.WIDTH, dims.HEIGHT)
     return dims;
 }
 
@@ -2293,8 +2583,8 @@ uint32_t fnv1a_hash(const char *str) {
     return hash;
 }
 
-bool
-get_glyph_path(const char *mux_module, char *glyph_name, char *glyph_image_embed, size_t glyph_image_embed_size) {
+bool get_glyph_path(const char *mux_module, const char *glyph_name,
+                    char *glyph_image_embed, size_t glyph_image_embed_size) {
     char glyph_image_path[MAX_BUFFER_SIZE];
     char mux_dimension[15];
     get_mux_dimension(mux_dimension, sizeof(mux_dimension));
@@ -2349,8 +2639,9 @@ int direct_to_previous(lv_obj_t **ui_objects, size_t ui_count, int *nav_moved) {
 }
 
 int theme_compat() {
+    char *theme_location = config.BOOT.FACTORY_RESET ? INTERNAL_THEME : STORAGE_THEME;
     char theme_version_file[MAX_BUFFER_SIZE];
-    snprintf(theme_version_file, sizeof(theme_version_file), "%s/version.txt", STORAGE_THEME);
+    snprintf(theme_version_file, sizeof(theme_version_file), "%s/version.txt", theme_location);
 
     if (file_exist(theme_version_file)) {
         char *theme_version = read_line_from_file(theme_version_file, 1);
@@ -2365,4 +2656,28 @@ int theme_compat() {
     }
 
     return 0;
+}
+
+void update_bootlogo() {
+    char mux_dimension[15];
+    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
+    char bootlogo_image[MAX_BUFFER_SIZE];
+
+    snprintf(bootlogo_image, sizeof(bootlogo_image), "%s/%simage/bootlogo.bmp", STORAGE_THEME, mux_dimension);
+    if (!file_exist(bootlogo_image)) {
+        snprintf(bootlogo_image, sizeof(bootlogo_image), "%s/image/bootlogo.bmp", STORAGE_THEME);
+    }
+
+    if (file_exist(bootlogo_image)) {
+        char bootlogo_dest[MAX_BUFFER_SIZE];
+        snprintf(bootlogo_dest, sizeof(bootlogo_dest), "%s/bootlogo.bmp", device.STORAGE.BOOT.MOUNT);
+
+        const char *args[] = {"cp", bootlogo_image, bootlogo_dest, NULL};
+        run_exec(args, A_SIZE(args), 0);
+
+        if (strcasecmp(device.DEVICE.NAME, "rg28xx-h") == 0) {
+            const char *args[] = {"convert", bootlogo_dest, "-rotate", "270", bootlogo_dest, NULL};
+            run_exec(args, A_SIZE(args), 0);
+        }
+    }
 }

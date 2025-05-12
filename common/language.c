@@ -53,10 +53,12 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.EXTRACT, "Extract");
     GENERIC_FIELD(lang->GENERIC.INDIVIDUAL, "Individual");
     GENERIC_FIELD(lang->GENERIC.INFO, "Info");
+    GENERIC_FIELD(lang->GENERIC.INSTALL, "Install");
     GENERIC_FIELD(lang->GENERIC.KIOSK_DISABLE, "This is disabled in kiosk mode!");
     GENERIC_FIELD(lang->GENERIC.LAUNCH, "Launch");
     GENERIC_FIELD(lang->GENERIC.LOAD, "Load");
     GENERIC_FIELD(lang->GENERIC.LOADING, "Loading…");
+    GENERIC_FIELD(lang->GENERIC.SAVING, "Saving…");
     GENERIC_FIELD(lang->GENERIC.MIGRATE, "Migrate to SD2");
     GENERIC_FIELD(lang->GENERIC.NEW, "New");
     GENERIC_FIELD(lang->GENERIC.NO_HELP, "No Help Information Found");
@@ -75,10 +77,14 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.SWITCH_INFO, "Switch to Information");
     GENERIC_FIELD(lang->GENERIC.SYNC, "Sync to SD1");
     GENERIC_FIELD(lang->GENERIC.UNKNOWN, "Unknown");
+    GENERIC_FIELD(lang->GENERIC.CHANNEL, "Channel");
     GENERIC_FIELD(lang->GENERIC.USE, "Use");
     GENERIC_FIELD(lang->GENERIC.USER_DEFINED, "User Defined");
     GENERIC_FIELD(lang->GENERIC.REBOOTING, "Rebooting");
     GENERIC_FIELD(lang->GENERIC.SHUTTING_DOWN, "Shutting Down");
+    GENERIC_FIELD(lang->GENERIC.NOT_CONNECTED, "Not Connected");
+    GENERIC_FIELD(lang->GENERIC.EDIT, "Edit");
+    GENERIC_FIELD(lang->GENERIC.CHANGE, "Change");
 
     // muxapp
     SPECIFIC_FIELD(lang->MUXAPP.TITLE, "APPLICATIONS");
@@ -146,6 +152,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.CATALOGUE, "Catalogue Sets");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CONFIG, "RetroArch Configurations");
     SPECIFIC_FIELD(lang->MUXCUSTOM.THEME, "Theme Picker");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_RESOLUTION, "Theme Resolution");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.SCREEN, "Screen");
     SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_ALTERNATE, "Alternative Theme");
     SPECIFIC_FIELD(lang->MUXCUSTOM.SPLASH, "Content Launch Splash");
     SPECIFIC_FIELD(lang->MUXCUSTOM.FADE, "Black Fade Animation");
@@ -168,22 +176,26 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.FONT.TITLE, "Interface Font Type");
     SPECIFIC_FIELD(lang->MUXCUSTOM.FONT.LANG, "Language");
     SPECIFIC_FIELD(lang->MUXCUSTOM.FONT.THEME, "Theme");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND, "Navigation Sound");
     SPECIFIC_FIELD(lang->MUXCUSTOM.MUSIC.TITLE, "Background Music");
     SPECIFIC_FIELD(lang->MUXCUSTOM.MUSIC.GLOBAL, "Global");
     SPECIFIC_FIELD(lang->MUXCUSTOM.MUSIC.THEME, "Theme");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND.TITLE, "Navigation Sound");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND.GLOBAL, "Global");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND.THEME, "Theme");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.CHIME, "Startup Chime");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CATALOGUE, "Load user created artwork catalogue for content");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CONFIG, "Load user created RetroArch configurations");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME, "Change the appearance of the muOS frontend launcher");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_RESOLUTION, "Allows for testing different theme resolutions");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.SPLASH, "Toggle the splash image on content launching");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.FADE, "Toggle the fade to black animation on content launching");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.ANIMATION, "Toggle the background animation of the current selected theme");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.BOX_ART, "Change the display priority of the content images");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.BOX_ALIGN, "Change the screen alignment of the content images");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.FONT, "Change how the font type works in the frontend - 'Theme' will ensure frontend will use fonts within themes with a fallback to language fonts - 'Language' will specifically use language based font");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.MUSIC, "Toggle the background music of the frontend - This will stop if content is launched");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.SOUND, "Toggle the navigation sound of the frontend if the current theme supports it");
-
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.MUSIC, "Toggle the background music of the frontend");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.SOUND, "Toggle the navigation sound of the frontend");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CHIME, "Toggle the startup chime of the frontend");
 
     // muxgov
     SPECIFIC_FIELD(lang->MUXGOV.TITLE, "GOVERNOR");
@@ -193,8 +205,6 @@ void load_lang(struct mux_lang *lang) {
     // muxhdmi
     SPECIFIC_FIELD(lang->MUXHDMI.TITLE, "HDMI SETTINGS");
     SPECIFIC_FIELD(lang->MUXHDMI.RESOLUTION, "Resolution");
-    SPECIFIC_FIELD(lang->MUXHDMI.THEME_RESOLUTION, "Theme Resolution");
-    SPECIFIC_FIELD(lang->MUXHDMI.SCREEN, "Screen");
     SPECIFIC_FIELD(lang->MUXHDMI.COLOUR.DEPTH, "Colour Depth");
     SPECIFIC_FIELD(lang->MUXHDMI.COLOUR.SPACE, "Colour Space");
     SPECIFIC_FIELD(lang->MUXHDMI.COLOUR.RANGE.TITLE, "Colour Range");
@@ -208,7 +218,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXHDMI.SCAN_SCALE.UNDER, "Under");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.AUDIO_OUTPUT, "Switch between device speaker or external monitor audio via HDMI connection");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.RESOLUTION, "Select the resolution for HDMI output, such as 720p or 1080p");
-    SPECIFIC_FIELD(lang->MUXHDMI.HELP.THEME_RESOLUTION, "Allows for testing different theme resolutions");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.SCAN_SCALE, "Switch between overscan or underscan to fit the display screen");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.COLOUR.DEPTH, "Set the color depth, such as 8-bit or 10-bit");
     SPECIFIC_FIELD(lang->MUXHDMI.HELP.COLOUR.RANGE, "Set the color range of RGB colour space");
@@ -223,13 +232,15 @@ void load_lang(struct mux_lang *lang) {
 
     // muxinfo
     SPECIFIC_FIELD(lang->MUXINFO.TITLE, "INFORMATION");
-    SPECIFIC_FIELD(lang->MUXINFO.SYSTEM, "System Details");
+    SPECIFIC_FIELD(lang->MUXINFO.SYSINFO, "System Details");
+    SPECIFIC_FIELD(lang->MUXINFO.NETINFO, "Network Details");
     SPECIFIC_FIELD(lang->MUXINFO.ACTIVITY, "Activity Tracker");
     SPECIFIC_FIELD(lang->MUXINFO.SCREENSHOT, "Screenshots");
     SPECIFIC_FIELD(lang->MUXINFO.SPACE, "Storage Space");
     SPECIFIC_FIELD(lang->MUXINFO.INPUT, "Input Tester");
     SPECIFIC_FIELD(lang->MUXINFO.CREDIT, "Supporters");
-    SPECIFIC_FIELD(lang->MUXINFO.HELP.SYSTEM, "Access version information and system details");
+    SPECIFIC_FIELD(lang->MUXINFO.HELP.SYSINFO, "Access version information and system details");
+    SPECIFIC_FIELD(lang->MUXINFO.HELP.NETINFO, "Access network information");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.ACTIVITY, "Access statistics of played content and other activity");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.SCREENSHOT, "View all of the screenshots taken on the device");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.SPACE, "View the current used space of the mounted storage devices");
@@ -278,6 +289,29 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXNETPROFILE.HELP, "Quickly switch between different Wi-Fi configurations based on your location or network preferences");
     SPECIFIC_FIELD(lang->MUXNETPROFILE.INVALID_SSID, "Invalid SSID");
     SPECIFIC_FIELD(lang->MUXNETPROFILE.INVALID_NETWORK, "Invalid Network Settings");
+
+    // muxnetinfo
+    SPECIFIC_FIELD(lang->MUXNETINFO.TITLE, "NETWORK DETAILS");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HOSTNAME, "Hostname");
+    SPECIFIC_FIELD(lang->MUXNETINFO.MAC, "MAC Address");
+    SPECIFIC_FIELD(lang->MUXNETINFO.IP, "IP Address");
+    SPECIFIC_FIELD(lang->MUXNETINFO.SSID, "Access Point");
+    SPECIFIC_FIELD(lang->MUXNETINFO.GATEWAY, "Gateway");
+    SPECIFIC_FIELD(lang->MUXNETINFO.DNS, "DNS");
+    SPECIFIC_FIELD(lang->MUXNETINFO.SIGNAL, "Signal");
+    SPECIFIC_FIELD(lang->MUXNETINFO.CHANNEL, "Channel");
+    SPECIFIC_FIELD(lang->MUXNETINFO.ACTRAFFIC, "Accumulated Traffic");
+    SPECIFIC_FIELD(lang->MUXNETINFO.TPTRAFFIC, "Throughput Traffic");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.HOSTNAME, "The current hostname of this device");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.MAC, "The unique hardware address of the network interface");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.IP, "The current IP address assigned to this device");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.SSID, "The name (SSID) of the connected Wi-Fi network");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.GATEWAY, "The network gateway used to reach external networks");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.DNS, "The DNS servers used to resolve domain names");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.SIGNAL, "The Wi-Fi signal strength expressed as a percentage");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.CHANNEL, "The Wi-Fi frequency and connected channel of the access point");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.ACTRAFFIC, "The total data sent and received over the network");
+    SPECIFIC_FIELD(lang->MUXNETINFO.HELP.TPTRAFFIC, "The current data sent and received over the network");
 
     // muxnetscan
     SPECIFIC_FIELD(lang->MUXNETSCAN.TITLE, "NETWORK SCAN");
@@ -519,6 +553,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.DPAD, "DPAD Swap Function");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.OVERDRIVE, "Audio Overdrive");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAPFILE, "System Swapfile");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.ZRAMFILE, "System ZRam");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.TITLE, "Button Swap");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.RETRO, "Retro");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.MODERN, "Modern");
@@ -551,6 +586,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.DPAD, "Toggle the functionality of the power button to switch DPAD mode");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.OVERDRIVE, "Toggle the audio overdrive moving it from 100% to 200%");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SWAPFILE, "Adjust the system swapfile if required by certain content");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.ZRAMFILE, "Adjust the system zram if required by certain content");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.TUNING, "Switch between different storage tuning options");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RUMBLE, "Toggle vibration for device startup, sleep, and shutdown");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.STATE, "Switch between system sleep suspend states");

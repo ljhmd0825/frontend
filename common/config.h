@@ -47,23 +47,25 @@ struct mux_config {
             int16_t DPADSWAP;
             int16_t OVERDRIVE;
             int16_t SWAPFILE;
+            int16_t ZRAMFILE;
             char CARDMODE[MAX_BUFFER_SIZE];
         } ADVANCED;
         struct {
             int16_t HIDDEN;
             int16_t SOUND;
+            int16_t CHIME;
             int16_t BGM;
             char STARTUP[MAX_BUFFER_SIZE];
             int16_t COLOUR;
             int16_t BRIGHTNESS;
             int16_t VOLUME;
             char LANGUAGE[MAX_BUFFER_SIZE];
-        } GENERAL;
-        struct {
-            int16_t RESOLUTION;
             int16_t THEME_RESOLUTION;
             int16_t THEME_RESOLUTION_WIDTH;
             int16_t THEME_RESOLUTION_HEIGHT;
+        } GENERAL;
+        struct {
+            int16_t RESOLUTION;
             int16_t SPACE;
             int16_t DEPTH;
             int16_t RANGE;

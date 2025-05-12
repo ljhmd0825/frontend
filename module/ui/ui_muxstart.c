@@ -15,7 +15,7 @@ lv_obj_t *ui_lblMessage;
 
 lv_obj_t *ui_barProgress;
 
-void init_mux(void) {
+void init_muxstart(void) {
     ui_scrStart = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_scrStart, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_PRESS_LOCK | LV_OBJ_FLAG_SCROLLABLE |
                                    LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
@@ -55,6 +55,7 @@ void init_mux(void) {
     lv_obj_set_style_border_side(ui_pnlMessage, LV_BORDER_SIDE_NONE, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_lblMessage = lv_label_create(ui_pnlMessage);
+    lv_label_set_text(ui_lblMessage, "");
     lv_obj_set_width(ui_lblMessage, device.MUX.WIDTH - 25);
     lv_obj_set_height(ui_lblMessage, device.MUX.HEIGHT / 4);
     lv_obj_set_align(ui_lblMessage, LV_ALIGN_CENTER);

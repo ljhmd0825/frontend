@@ -1,68 +1,27 @@
-#include "../lvgl/lvgl.h"
-#include <unistd.h>
+#include "muxshare.h"
+#include "muxpicker.h"
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
 #include <linux/limits.h>
 #include "../common/init.h"
 #include "../common/img/missing.h"
 #include "../common/common.h"
-#include "../common/options.h"
-#include "../common/language.h"
-#include "../common/theme.h"
 #include "../common/ui_common.h"
-#include "../common/collection.h"
-#include "../common/config.h"
-#include "../common/device.h"
-#include "../common/kiosk.h"
 #include "../common/input/list_nav.h"
 
-#define EXPLORE_DIR "/tmp/explore_dir"
-#define EXPLORE_NAME "/tmp/explore_name"
-
-char *mux_module;
-
-int msgbox_active = 0;
-int nav_sound = 0;
-int bar_header = 0;
-int bar_footer = 0;
-
-struct mux_lang lang;
-struct mux_config config;
-struct mux_device device;
-struct mux_kiosk kiosk;
-struct theme_config theme;
-
-int nav_moved = 1;
-int progress_onscreen = -1;
-int ui_count = 0;
-int current_item_index = 0;
-int first_open = 1;
-
-char base_dir[PATH_MAX];
-char sys_dir[PATH_MAX];
-char *picker_type;
-char *picker_extension;
-
-lv_obj_t *msgbox_element = NULL;
-lv_obj_t *overlay_image = NULL;
-lv_obj_t *kiosk_image = NULL;
-
-size_t item_count = 0;
-content_item *items = NULL;
-
-lv_group_t *ui_group;
-lv_group_t *ui_group_glyph;
-lv_group_t *ui_group_panel;
-
-lv_obj_t *ui_mux_panels[5];
+static char base_dir[PATH_MAX];
+static char sys_dir[PATH_MAX];
+static char picker_type[32];
+static char *picker_extension;
+#define UI_PANEL 5
+static lv_obj_t *ui_mux_panels[UI_PANEL];
 
 #define TEMP_PREVIEW "/tmp/preview.png"
 #define TEMP_VERSION "/tmp/version.txt"
 
-void show_help() {
+static void show_help() {
     if (items[current_item_index].content_type == FOLDER) return;
 
     char *picker_name = lv_label_get_text(lv_group_get_focused(ui_group));
@@ -81,7 +40,7 @@ void show_help() {
                      TS(lv_label_get_text(lv_group_get_focused(ui_group))), TS(credits));
 }
 
-int version_check() {
+static int version_check() {
     char picker_archive[MAX_BUFFER_SIZE];
     snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s",
              sys_dir, lv_label_get_text(lv_group_get_focused(ui_group)), picker_extension);
@@ -92,7 +51,7 @@ int version_check() {
     return str_startswith(muos_version, read_line_from_file(TEMP_VERSION, 1));
 }
 
-int extract_preview() {
+static int extract_preview() {
     char picker_archive[MAX_BUFFER_SIZE];
     snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s",
              sys_dir, lv_label_get_text(lv_group_get_focused(ui_group)), picker_extension);
@@ -105,7 +64,7 @@ int extract_preview() {
     return extract_file_from_zip(picker_archive, device_preview, TEMP_PREVIEW);
 }
 
-void image_refresh() {
+static void image_refresh() {
     if (items[current_item_index].content_type == FOLDER) return;
 
     // Invalidate the cache for this image path
@@ -118,7 +77,7 @@ void image_refresh() {
     }
 }
 
-void create_picker_items() {
+static void create_picker_items() {
     DIR *td;
     struct dirent *tf;
 
@@ -176,50 +135,45 @@ void create_picker_items() {
     if (ui_count > 0) lv_obj_update_layout(ui_pnlContent);
 }
 
-void list_nav_prev(int steps) {
+static void list_nav_move(int steps, int direction) {
     if (ui_count <= 0) return;
+    first_open ? (first_open = 0) : play_sound(SND_NAVIGATE, 0);
 
-    play_sound("navigate", nav_sound, 0, 0);
     for (int step = 0; step < steps; ++step) {
         apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
                             items[current_item_index].display_name);
-        current_item_index = !current_item_index ? ui_count - 1 : current_item_index - 1;
-        nav_prev(ui_group, 1);
-        nav_prev(ui_group_glyph, 1);
-        nav_prev(ui_group_panel, 1);
+
+        if (direction < 0) {
+            current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
+        } else {
+            current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
+        }
+
+        nav_move(ui_group, direction);
+        nav_move(ui_group_glyph, direction);
+        nav_move(ui_group_panel, direction);
     }
+
     update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
     image_refresh();
     set_label_long_mode(&theme, lv_group_get_focused(ui_group), items[current_item_index].display_name);
     nav_moved = 1;
 }
 
-void list_nav_next(int steps) {
-    if (ui_count <= 0) return;
-
-    if (first_open) {
-        first_open = 0;
-    } else {
-        play_sound("navigate", nav_sound, 0, 0);
-    }
-    for (int step = 0; step < steps; ++step) {
-        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
-                            items[current_item_index].display_name);
-        current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
-        nav_next(ui_group, 1);
-        nav_next(ui_group_glyph, 1);
-        nav_next(ui_group_panel, 1);
-    }
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
-    image_refresh();
-    set_label_long_mode(&theme, lv_group_get_focused(ui_group), items[current_item_index].display_name);
-    nav_moved = 1;
+static void list_nav_prev(int steps) {
+    list_nav_move(steps, -1);
 }
 
-void handle_confirm() {
+static void list_nav_next(int steps) {
+    list_nav_move(steps, +1);
+}
+
+static void handle_confirm() {
     if (msgbox_active || ui_count <= 0) return;
 
-    play_sound("confirm", nav_sound, 0, 1);
+    play_sound(SND_CONFIRM, 0);
+
+    write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
 
     if (items[current_item_index].content_type == FOLDER) {
         char n_dir[MAX_BUFFER_SIZE];
@@ -229,7 +183,7 @@ void handle_confirm() {
         write_text_to_file(EXPLORE_DIR, "w", CHAR, n_dir);
     } else {
         if (!strcasecmp(picker_type, "theme") && !version_check()) {
-            play_sound("error", nav_sound, 0, 1);
+            play_sound(SND_ERROR, 0);
             toast_message(lang.MUXPICKER.INVALID_VER, 1000, 1000);
             return;
         }
@@ -238,7 +192,7 @@ void handle_confirm() {
         snprintf(picker_archive, sizeof(picker_archive), "%s/%s.%s",
                  sys_dir, lv_label_get_text(lv_group_get_focused(ui_group)), picker_extension);
         if (!strcasecmp(picker_type, "theme") && !resolution_check(picker_archive)) {
-            play_sound("error", nav_sound, 0, 1);
+            play_sound(SND_ERROR, 0);
             toast_message(lang.MUXPICKER.INVALID_RES, 1000, 1000);
             return;
         }
@@ -260,41 +214,39 @@ void handle_confirm() {
                      relative_path, selected_item);
         }
 
-        const char *args[] = {
-                (INTERNAL_PATH "bin/fbpad"),
-                "-bg", (char *) theme.TERMINAL.BACKGROUND,
-                "-fg", (char *) theme.TERMINAL.FOREGROUND,
-                picker_script, "install", relative_zip_path,
-                NULL
-        };
+        if (!strcasecmp(picker_type, "theme")) delete_files_of_type(INTERNAL_THEME, "/muterm.ttf", NULL, 1);
 
-        setenv("TERM", "xterm-256color", 1);
+        size_t exec_count;
+        const char *args[] = {picker_script, "install", relative_zip_path, NULL};
+        const char **exec = build_term_exec(args, &exec_count);
 
-        if (config.VISUAL.BLACKFADE) {
-            fade_to_black(ui_screen);
-        } else {
-            unload_image_animation();
+        if (exec) {
+            if (config.VISUAL.BLACKFADE) {
+                fade_to_black(ui_screen);
+            } else {
+                unload_image_animation();
+            }
+            run_exec(exec, exec_count, 0);
         }
-
-        run_exec(args);
-
-        write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
+        free(exec);
     }
 
     load_mux("picker");
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_confirm_force() {
+static void handle_confirm_force() {
     if (msgbox_active || ui_count <= 0 ||
         strcasecmp(picker_type, "theme") != 0 ||
         items[current_item_index].content_type == FOLDER) {
         return;
     }
 
-    play_sound("confirm", nav_sound, 0, 1);
+    play_sound(SND_CONFIRM, 0);
+
+    write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
 
     static char picker_script[MAX_BUFFER_SIZE];
     snprintf(picker_script, sizeof(picker_script),
@@ -313,42 +265,36 @@ void handle_confirm_force() {
                  relative_path, selected_item);
     }
 
-    const char *args[] = {
-            (INTERNAL_PATH "bin/fbpad"),
-            "-bg", (char *) theme.TERMINAL.BACKGROUND,
-            "-fg", (char *) theme.TERMINAL.FOREGROUND,
-            picker_script, "install", relative_zip_path,
-            NULL
-    };
+    size_t exec_count;
+    const char *args[] = {picker_script, "install", relative_zip_path, NULL};
+    const char **exec = build_term_exec(args, &exec_count);
 
-    setenv("TERM", "xterm-256color", 1);
-
-    if (config.VISUAL.BLACKFADE) {
-        fade_to_black(ui_screen);
-    } else {
-        unload_image_animation();
+    if (exec) {
+        if (config.VISUAL.BLACKFADE) {
+            fade_to_black(ui_screen);
+        } else {
+            unload_image_animation();
+        }
+        run_exec(exec, exec_count, 0);
     }
-
-    run_exec(args);
-
-    write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
+    free(exec);
 
     load_mux("picker");
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_back() {
+static void handle_back() {
     if (msgbox_active) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         msgbox_active = 0;
         progress_onscreen = 0;
         lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
-    play_sound("back", nav_sound, 0, 1);
+    play_sound(SND_BACK, 0);
     if (strcasecmp(base_dir, sys_dir) == 0) {
         remove(EXPLORE_DIR);
         load_mux("custom");
@@ -359,55 +305,51 @@ void handle_back() {
         load_mux("picker");
     }
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_save() {
+static void handle_save() {
     if (msgbox_active) return;
 
-    play_sound("confirm", nav_sound, 0, 1);
+    play_sound(SND_CONFIRM, 0);
+
+    write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
 
     static char picker_script[MAX_BUFFER_SIZE];
     snprintf(picker_script, sizeof(picker_script),
              "%s/script/package/%s.sh", INTERNAL_PATH, get_last_subdir(picker_type, '/', 1));
 
-    const char *args[] = {
-            (INTERNAL_PATH "bin/fbpad"),
-            "-bg", theme.TERMINAL.BACKGROUND,
-            "-fg", theme.TERMINAL.FOREGROUND,
-            picker_script, "save", "-",
-            NULL
-    };
+    size_t exec_count;
+    const char *args[] = {picker_script, "save", "-", NULL};
+    const char **exec = build_term_exec(args, &exec_count);
 
-    setenv("TERM", "xterm-256color", 1);
-
-    if (config.VISUAL.BLACKFADE) {
-        fade_to_black(ui_screen);
-    } else {
-        unload_image_animation();
+    if (exec) {
+        if (config.VISUAL.BLACKFADE) {
+            fade_to_black(ui_screen);
+        } else {
+            unload_image_animation();
+        }
+        run_exec(exec, exec_count, 0);
     }
-
-    run_exec(args);
-
-    write_text_to_file(MUOS_PIN_LOAD, "w", INT, current_item_index);
+    free(exec);
 
     load_mux("picker");
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_help() {
+static void handle_help() {
     if (msgbox_active) return;
 
     if (progress_onscreen == -1 && ui_count > 0) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         show_help();
     }
 }
 
-void init_elements() {
+static void init_elements() {
     lv_obj_set_align(ui_imgBox, LV_ALIGN_BOTTOM_RIGHT);
 
     ui_mux_panels[0] = ui_pnlFooter;
@@ -436,19 +378,17 @@ void init_elements() {
     lv_label_set_text(ui_lblNavY, lang.GENERIC.SAVE);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB,
+            ui_lblNavYGlyph,
+            ui_lblNavY
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
 #if TEST_IMAGE
@@ -462,7 +402,7 @@ void init_elements() {
     load_overlay_image(ui_screen, overlay_image);
 }
 
-void ui_refresh_task() {
+static void ui_refresh_task() {
     update_bars(ui_barProgressBrightness, ui_barProgressVolume, ui_icoProgressVolume);
 
     if (ui_count > 0 && nav_moved) {
@@ -475,42 +415,23 @@ void ui_refresh_task() {
     }
 }
 
-int main(int argc, char *argv[]) {
-    char *cmd_help = "\nmuOS Extras - Custom Picker\nUsage: %s <-m>\n\nOptions:\n"
-                     "\t-m Picker module from:\n"
-                     "\t\ttheme\n" // This might need to be changed later?
-                     "\t\tpackage/catalogue\n"
-                     "\t\tpackage/config\n\n";
+int muxpicker_main(char *type, char *ex_dir) {
+    snprintf(picker_type, sizeof(picker_type), "%s", type);
+    snprintf(sys_dir, sizeof(sys_dir), "%s", ex_dir);
 
-    int opt;
-    while ((opt = getopt(argc, argv, "m:d:")) != -1) {
-        if (opt == 'd') {
-            snprintf(sys_dir, sizeof(sys_dir), "%s", optarg);
-        } else if (opt == 'm') {
-            picker_type = optarg;
-        } else {
-            fprintf(stderr, cmd_help, argv[0]);
-            return 1;
-        }
-    }
     snprintf(base_dir, sizeof(base_dir), (RUN_STORAGE_PATH "%s"), picker_type);
-    if (!strlen(sys_dir))
+    if (strcmp(sys_dir, "") == 0)
         snprintf(sys_dir, sizeof(sys_dir), (RUN_STORAGE_PATH "%s"), picker_type);
 
-    if (!picker_type) {
-        fprintf(stderr, cmd_help, argv[0]);
-        return 1;
-    }
-
-    mux_module = basename(argv[0]);
-    setup_background_process();
-
-    load_device(&device);
-    load_config(&config);
-    load_lang(&lang);
+    init_module("muxpicker");
 
     init_theme(1, 1);
-    init_display();
+
+    printf("type: %s\n", type);
+    printf("picker_type: %s\n", picker_type);
+    printf("ex_dir: %s\n", ex_dir);
+    printf("base_dir: %s\n", base_dir);
+    printf("sys_dir: %s\n", sys_dir);
 
     config.VISUAL.BOX_ART = 1;  //Force correct panel size for displaying preview in bottom right
 
@@ -529,7 +450,6 @@ int main(int argc, char *argv[]) {
         picker_title = lang.MUXPICKER.CUSTOM;
     }
     init_ui_common_screen(&theme, &device, &lang, picker_title);
-    init_timer(ui_refresh_task, NULL);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -539,7 +459,6 @@ int main(int argc, char *argv[]) {
 
     init_fonts();
     create_picker_items();
-    init_navigation_sound(&nav_sound, mux_module);
 
     int sys_index = 0;
     if (file_exist(MUOS_PIN_LOAD)) {
@@ -558,12 +477,10 @@ int main(int argc, char *argv[]) {
     }
 
     if (ui_count > 0) {
-        if (sys_index > -1 && sys_index <= ui_count && current_item_index < ui_count) list_nav_next(sys_index);
+        if (sys_index > -1 && sys_index <= ui_count && current_item_index < ui_count) list_nav_move(sys_index, +1);
     } else {
-        lv_obj_add_flag(ui_lblNavA, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lblNavA, LV_OBJ_FLAG_FLOATING);
-        lv_obj_add_flag(ui_lblNavAGlyph, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_lblNavAGlyph, LV_OBJ_FLAG_FLOATING);
+        lv_obj_add_flag(ui_lblNavA, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
+        lv_obj_add_flag(ui_lblNavAGlyph, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING);
 
         const char *message_text = NULL;
         if (!strcasecmp(picker_type, "theme")) {
@@ -579,6 +496,8 @@ int main(int argc, char *argv[]) {
     }
 
     load_kiosk(&kiosk);
+
+    init_timer(ui_refresh_task, NULL);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -600,10 +519,11 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };
+    list_nav_set_callbacks(list_nav_prev, list_nav_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 
-    free_items(items, item_count);
+    free_items(&items, &item_count);
 
     return 0;
 }

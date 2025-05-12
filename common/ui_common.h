@@ -5,6 +5,8 @@ struct mux_device;
 struct mux_lang;
 struct footer_glyph;
 
+void apply_gradient_to_ui_screen(lv_obj_t *ui_screen, struct theme_config *theme, struct mux_device *device);
+
 void init_ui_common_screen(struct theme_config *theme, struct mux_device *device,
                            struct mux_lang *lang, const char *title);
 
@@ -31,7 +33,7 @@ void update_battery_capacity(lv_obj_t *ui_staCapacity, struct theme_config *them
 
 void update_bluetooth_status(lv_obj_t *ui_staBluetooth, struct theme_config *theme);
 
-void update_network_status(lv_obj_t *ui_staNetwork, struct theme_config *theme);
+void update_network_status(lv_obj_t *ui_staNetwork, struct theme_config *theme, int force_glyph);
 
 void toast_message(const char *msg, uint32_t delay, uint32_t fade_duration);
 
@@ -55,6 +57,7 @@ void scroll_help_content(int direction, bool page_down);
 void update_glyph(lv_obj_t *ui_img, const char *glyph_folder, const char *glyph_name);
 
 extern lv_obj_t *ui_screen_container;
+extern lv_obj_t *ui_screen_temp;
 extern lv_obj_t *ui_screen;
 extern lv_obj_t *ui_pnlWall;
 extern lv_obj_t *ui_imgWall;

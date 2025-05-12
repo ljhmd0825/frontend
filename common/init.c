@@ -21,12 +21,23 @@
 __thread uint64_t start_ms = 0;
 static struct dt_task_param dt_par;
 static struct bat_task_param bat_par;
+static lv_indev_t *indev = NULL;
+static lv_indev_drv_t indev_drv; // must be declared here to prevent LVGL deadlocks
 int current_capacity = -1;
 
 static int joy_general;
 static int joy_power;
 static int joy_volume;
 static int joy_extra;
+
+lv_timer_t *timer_ui_refresh;
+lv_timer_t *timer_datetime;
+lv_timer_t *timer_capacity;
+lv_timer_t *timer_status;
+lv_timer_t *timer_bluetooth;
+lv_timer_t *timer_network;
+lv_timer_t *timer_battery;
+lv_timer_t *timer_update_system_info;
 
 uint32_t mux_tick(void) {
     struct timespec tv_now;
@@ -58,12 +69,19 @@ void refresh_screen(lv_obj_t *screen) {
 }
 
 void safe_quit(int exit_status) {
-    write_text_to_file("/tmp/safe_quit", "w", INT, exit_status);
+    write_text_to_file(SAFE_QUIT, "w", INT, exit_status);
+}
 
+void close_input() {
     close(joy_general);
     close(joy_power);
     close(joy_volume);
     close(joy_extra);
+}
+
+void init_module(char *module) {
+    snprintf(mux_module, sizeof(mux_module), "%s", module);
+    load_lang(&lang);
 }
 
 void init_display() {
@@ -119,14 +137,16 @@ void init_input(mux_input_options *opts, int def_combo) {
     opts->volume_fd = joy_volume;
     opts->extra_fd = joy_extra;
 
-    lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
+    if (!indev) {
+        lv_indev_drv_init(&indev_drv);
 
-    indev_drv.type = LV_INDEV_TYPE_KEYPAD;
-    indev_drv.read_cb = evdev_read;
-    indev_drv.user_data = (void *) (intptr_t) opts->general_fd;
+        indev_drv.type = LV_INDEV_TYPE_KEYPAD;
+        indev_drv.read_cb = evdev_read;
+        indev_drv.user_data = (void *) (intptr_t) opts->general_fd;
+        indev_drv.feedback_cb = NULL;
 
-    lv_indev_drv_register(&indev_drv);
+        indev = lv_indev_drv_register(&indev_drv);
+    }
 
     opts->max_idle_ms = IDLE_MS;
     opts->swap_btn = config.SETTINGS.ADVANCED.SWAP;
@@ -144,11 +164,21 @@ void init_input(mux_input_options *opts, int def_combo) {
                 .hold_handler = ui_common_handle_bright
         };
         opts->combo[2] = (mux_input_combo) {
+                .type_mask = BIT(MUX_INPUT_SWITCH) | BIT(MUX_INPUT_VOL_UP),
+                .press_handler = ui_common_handle_bright,
+                .hold_handler = ui_common_handle_bright
+        };
+        opts->combo[3] = (mux_input_combo) {
+                .type_mask = BIT(MUX_INPUT_SWITCH) | BIT(MUX_INPUT_VOL_DOWN),
+                .press_handler = ui_common_handle_bright,
+                .hold_handler = ui_common_handle_bright
+        };
+        opts->combo[4] = (mux_input_combo) {
                 .type_mask = BIT(MUX_INPUT_VOL_UP),
                 .press_handler = ui_common_handle_vol,
                 .hold_handler = ui_common_handle_vol
         };
-        opts->combo[3] = (mux_input_combo) {
+        opts->combo[5] = (mux_input_combo) {
                 .type_mask = BIT(MUX_INPUT_VOL_DOWN),
                 .press_handler = ui_common_handle_vol,
                 .hold_handler = ui_common_handle_vol
@@ -161,20 +191,56 @@ void init_input(mux_input_options *opts, int def_combo) {
 void init_timer(void (*ui_refresh_task)(lv_timer_t *), void (*update_system_info)(lv_timer_t *)) {
     dt_par.lblDatetime = ui_lblDatetime;
     bat_par.staCapacity = ui_staCapacity;
+    timer_ui_refresh = lv_timer_create(ui_refresh_task, TIMER_REFRESH, NULL);
+    timer_datetime = lv_timer_create(datetime_task, TIMER_DATETIME, &dt_par);
+    timer_capacity = lv_timer_create(capacity_task, TIMER_CAPACITY, &bat_par);
+    timer_status = lv_timer_create(status_task, TIMER_STATUS, NULL);
 
-    if (ui_refresh_task) lv_timer_create(ui_refresh_task, TIMER_REFRESH, NULL);
-
-    lv_timer_create(datetime_task, TIMER_DATETIME, &dt_par);
-    lv_timer_create(capacity_task, TIMER_CAPACITY, &bat_par);
-    lv_timer_create(status_task, TIMER_STATUS, NULL);
-
-    if (device.DEVICE.HAS_BLUETOOTH && config.VISUAL.BLUETOOTH) lv_timer_create(bluetooth_task, TIMER_BLUETOOTH, NULL);
-    if (device.DEVICE.HAS_NETWORK && config.VISUAL.NETWORK) lv_timer_create(network_task, TIMER_NETWORK, NULL);
-    if (config.VISUAL.BATTERY) lv_timer_create(battery_task, TIMER_BATTERY, NULL);
-
-    if (update_system_info) lv_timer_create(update_system_info, TIMER_SYSINFO, NULL);
-
+    if (device.DEVICE.HAS_BLUETOOTH && config.VISUAL.BLUETOOTH) timer_bluetooth = lv_timer_create(bluetooth_task, TIMER_BLUETOOTH, NULL);
+    if (device.DEVICE.HAS_NETWORK && config.VISUAL.NETWORK) timer_network = lv_timer_create(network_task, TIMER_NETWORK, NULL);
+    if (config.VISUAL.BATTERY) timer_battery = lv_timer_create(battery_task, TIMER_BATTERY, NULL);
+    if (update_system_info) timer_update_system_info = lv_timer_create(update_system_info, TIMER_SYSINFO, NULL);
     lv_refr_now(NULL);
+}
+
+void init_dispose() {
+    if (timer_ui_refresh) {
+        lv_timer_del(timer_ui_refresh);
+        timer_ui_refresh = NULL;
+    }
+    if (timer_datetime) {
+        lv_timer_del(timer_datetime);
+        timer_datetime = NULL;
+    }
+    if (timer_capacity) {
+        lv_timer_del(timer_capacity);
+        timer_capacity = NULL;
+    }
+    if (timer_status) {
+        lv_timer_del(timer_status);
+        timer_status = NULL;
+    }
+
+    if (timer_bluetooth) {
+        lv_timer_del(timer_bluetooth);
+        timer_bluetooth = NULL;
+    }
+    if (timer_network) {
+        lv_timer_del(timer_network);
+        timer_network = NULL;
+    }
+    if (timer_battery) {
+        lv_timer_del(timer_battery);
+        timer_battery = NULL;
+    }
+    if (timer_update_system_info) {
+        lv_timer_del(timer_update_system_info);
+        timer_update_system_info = NULL;
+    }
+    if (indev) {
+        lv_indev_delete(indev);
+        indev = NULL;
+    }
 }
 
 void init_fonts() {
@@ -219,7 +285,8 @@ void bluetooth_task() {
 }
 
 void network_task() {
-    update_network_status(ui_staNetwork, &theme);
+    if (!strcasecmp(mux_module, "muxnetwork")) return;
+    update_network_status(ui_staNetwork, &theme, 0);
 }
 
 void battery_task() {

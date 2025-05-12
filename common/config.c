@@ -6,19 +6,6 @@
 void load_config(struct mux_config *config) {
     char buffer[MAX_BUFFER_SIZE];
 
-#define CFG_INT_FIELD(field, path, def)                             \
-    snprintf(buffer, sizeof(buffer), (RUN_GLOBAL_PATH "%s"), path); \
-    field = (int)({                                                 \
-        char *ep;                                                   \
-        long val = strtol(read_text_from_file(buffer), &ep, 10);    \
-        *ep ? def : val;                                            \
-    });
-
-#define CFG_STR_FIELD(field, path, def)                                      \
-    snprintf(buffer, sizeof(buffer), (RUN_GLOBAL_PATH "%s"), path);          \
-    strncpy(field, read_text_from_file(buffer) ?: def, MAX_BUFFER_SIZE - 1); \
-    field[MAX_BUFFER_SIZE - 1] = '\0';
-
     CFG_INT_FIELD(config->BOOT.FACTORY_RESET, "boot/factory_reset", 0)
 
     CFG_INT_FIELD(config->CLOCK.NOTATION, "clock/notation", 0)
@@ -53,50 +40,52 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.DPADSWAP, "settings/advanced/dpad_swap", 1)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.OVERDRIVE, "settings/advanced/overdrive", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.SWAPFILE, "settings/advanced/swapfile", 0)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.ZRAMFILE, "settings/advanced/zramfile", 0)
     CFG_STR_FIELD(config->SETTINGS.ADVANCED.CARDMODE, "settings/advanced/cardmode", "deadline")
 
     CFG_INT_FIELD(config->SETTINGS.GENERAL.HIDDEN, "settings/general/hidden", 0)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.SOUND, "settings/general/sound", 0)
+    CFG_INT_FIELD(config->SETTINGS.GENERAL.CHIME, "settings/general/chime", 0)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.BGM, "settings/general/bgm", 0)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.COLOUR, "settings/general/colour", 32)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.BRIGHTNESS, "settings/general/brightness", 96)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.VOLUME, "settings/general/volume", 50)
     CFG_STR_FIELD(config->SETTINGS.GENERAL.STARTUP, "settings/general/startup", "launcher")
     CFG_STR_FIELD(config->SETTINGS.GENERAL.LANGUAGE, "settings/general/language", "English")
+    CFG_INT_FIELD(config->SETTINGS.GENERAL.THEME_RESOLUTION, "settings/general/theme_resolution", 0)
+    switch (config->SETTINGS.GENERAL.THEME_RESOLUTION) {
+        case 1:
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 640;
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_HEIGHT = 480;
+            break;
+        case 2:
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 720;
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_HEIGHT = 480;
+            break;
+        case 3:
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 720;
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_HEIGHT = 576;
+            break;
+        case 4:
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 720;
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_HEIGHT = 720;
+            break;
+        case 5:
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 1024;
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_HEIGHT = 768;
+            break;
+        case 6:
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 1280;
+            config->SETTINGS.GENERAL.THEME_RESOLUTION_HEIGHT = 720;
+            break;
+    }
 
     CFG_INT_FIELD(config->SETTINGS.HDMI.RESOLUTION, "settings/hdmi/resolution", 0)
-    CFG_INT_FIELD(config->SETTINGS.HDMI.THEME_RESOLUTION, "settings/hdmi/theme_resolution", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.SPACE, "settings/hdmi/space", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.DEPTH, "settings/hdmi/depth", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.RANGE, "settings/hdmi/range", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.SCAN, "settings/hdmi/scan", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.AUDIO, "settings/hdmi/audio", 0)
-    switch (config->SETTINGS.HDMI.THEME_RESOLUTION) {
-        case 1:
-            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 640;
-            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 480;
-            break;
-        case 2:
-            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 720;
-            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 480;
-            break;
-        case 3:
-            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 720;
-            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 576;
-            break;
-        case 4:
-            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 720;
-            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 720;
-            break;
-        case 5:
-            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 1024;
-            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 768;
-            break;
-        case 6:
-            config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH = 1280;
-            config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT = 720;
-            break;
-    }
 
     CFG_INT_FIELD(config->SETTINGS.POWER.LOW_BATTERY, "settings/power/low_battery", 0)
     CFG_INT_FIELD(config->SETTINGS.POWER.SHUTDOWN, "settings/power/shutdown", 0)
@@ -131,7 +120,4 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->WEB.RSLSYNC, "web/rslsync", 0)
     CFG_INT_FIELD(config->WEB.NTP, "web/ntp", 1)
     CFG_INT_FIELD(config->WEB.TAILSCALED, "web/tailscaled", 0)
-
-#undef CFG_INT_FIELD
-#undef CFG_STR_FIELD
 }

@@ -30,7 +30,11 @@ void reformat_display_name(char *display_name) {
 
 content_item *add_item(content_item **content_items, size_t *count, const char *name, const char *sort_name,
                        const char *extra_data, content_type content_type) {
-    *content_items = realloc(*content_items, (*count + 1) * sizeof(content_item));
+    if (*content_items == NULL) {
+        *content_items = malloc(sizeof(content_item));
+    } else {
+        *content_items = realloc(*content_items, (*count + 1) * sizeof(content_item));
+    }
 
     (*content_items)[*count].name = strdup(name);
     (*content_items)[*count].display_name = strdup(sort_name);
@@ -111,6 +115,13 @@ int time_compare_for_history(const void *a, const void *b) {
     }
 }
 
+int item_exists(content_item *content_items, size_t count, const char *name) {
+    for (size_t i = 0; i < count; i++) {
+        if (strcasecmp(content_items[i].name, name) == 0) return 1;
+    }
+    return 0;
+}
+
 void sort_items(content_item *content_items, size_t count) {
     qsort(content_items, count, sizeof(content_item), content_item_compare);
 }
@@ -123,13 +134,18 @@ content_item get_item_by_index(content_item *content_items, size_t index) {
     return content_items[index];
 }
 
-void free_items(content_item *content_items, size_t count) {
-    for (size_t i = 0; i < count; i++) {
-        free(content_items[i].name);
-        free(content_items[i].display_name);
+void free_items(content_item **content_items, size_t *count) {
+    for (size_t i = 0; i < *count; i++) {
+        free((*content_items)[i].name);
+        free((*content_items)[i].display_name);
+        free((*content_items)[i].sort_name);  // Freeing all dynamically allocated strings
+        free((*content_items)[i].extra_data);
     }
-    free(content_items);
+    free(*content_items); // Free the array itself
+    *content_items = NULL; // Set the pointer to NULL
+    *count = 0; // Set the count to 0
 }
+
 
 void print_items(content_item *content_items, size_t count) {
     for (size_t i = 0; i < count; i++) {

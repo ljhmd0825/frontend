@@ -1,76 +1,44 @@
-#include "../lvgl/lvgl.h"
+#include "muxshare.h"
+#include "muxsysinfo.h"
 #include "ui/ui_muxsysinfo.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libgen.h>
 #include <errno.h>
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
+#include <time.h>
 #include "../common/init.h"
 #include "../common/common.h"
-#include "../common/options.h"
-#include "../common/language.h"
-#include "../common/theme.h"
 #include "../common/ui_common.h"
-#include "../common/config.h"
-#include "../common/device.h"
-#include "../common/kiosk.h"
 #include "../common/input/list_nav.h"
 
-char *mux_module;
-
-int msgbox_active = 0;
-int nav_sound = 0;
-int bar_header = 0;
-int bar_footer = 0;
-
-struct mux_lang lang;
-struct mux_config config;
-struct mux_device device;
-struct mux_kiosk kiosk;
-struct theme_config theme;
-
-int nav_moved = 1;
-int current_item_index = 0;
-int ui_count = 0;
-
-lv_obj_t *msgbox_element = NULL;
-lv_obj_t *overlay_image = NULL;
-lv_obj_t *kiosk_image = NULL;
-
-int progress_onscreen = -1;
-
-lv_group_t *ui_group;
-lv_group_t *ui_group_value;
-lv_group_t *ui_group_glyph;
-lv_group_t *ui_group_panel;
-
 #define UI_COUNT 11
-lv_obj_t *ui_objects[UI_COUNT];
-lv_obj_t *ui_mux_panels[5];
+static lv_obj_t *ui_objects[UI_COUNT];
+#define UI_PANEL 5
+static lv_obj_t *ui_mux_panels[UI_PANEL];
 
 static char hostname[32];
-int tap_count = 0;
+static int tap_count = 0;
 
 struct help_msg {
     lv_obj_t *element;
     char *message;
 };
 
-void show_help(lv_obj_t *element_focused) {
+static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
-            {ui_lblVersion,  lang.MUXSYSINFO.HELP.VERSION},
-            {ui_lblDevice,   lang.MUXSYSINFO.HELP.DEVICE},
-            {ui_lblKernel,   lang.MUXSYSINFO.HELP.KERNEL},
-            {ui_lblUptime,   lang.MUXSYSINFO.HELP.UPTIME},
-            {ui_lblCPU,      lang.MUXSYSINFO.HELP.CPU.INFO},
-            {ui_lblSpeed,    lang.MUXSYSINFO.HELP.CPU.SPEED},
-            {ui_lblGovernor, lang.MUXSYSINFO.HELP.CPU.GOV},
-            {ui_lblMemory,   lang.MUXSYSINFO.HELP.MEMORY},
-            {ui_lblTemp,     lang.MUXSYSINFO.HELP.TEMP},
-            {ui_lblCapacity, lang.MUXSYSINFO.HELP.CAPACITY},
-            {ui_lblVoltage,  lang.MUXSYSINFO.HELP.VOLTAGE},
+            {ui_lblVersion_sysinfo,  lang.MUXSYSINFO.HELP.VERSION},
+            {ui_lblDevice_sysinfo,   lang.MUXSYSINFO.HELP.DEVICE},
+            {ui_lblKernel_sysinfo,   lang.MUXSYSINFO.HELP.KERNEL},
+            {ui_lblUptime_sysinfo,   lang.MUXSYSINFO.HELP.UPTIME},
+            {ui_lblCPU_sysinfo,      lang.MUXSYSINFO.HELP.CPU.INFO},
+            {ui_lblSpeed_sysinfo,    lang.MUXSYSINFO.HELP.CPU.SPEED},
+            {ui_lblGovernor_sysinfo, lang.MUXSYSINFO.HELP.CPU.GOV},
+            {ui_lblMemory_sysinfo,   lang.MUXSYSINFO.HELP.MEMORY},
+            {ui_lblTemp_sysinfo,     lang.MUXSYSINFO.HELP.TEMP},
+            {ui_lblCapacity_sysinfo, lang.MUXSYSINFO.HELP.CAPACITY},
+            {ui_lblVoltage_sysinfo,  lang.MUXSYSINFO.HELP.VOLTAGE},
     };
 
     char *message = lang.GENERIC.NO_HELP;
@@ -90,10 +58,25 @@ void show_help(lv_obj_t *element_focused) {
 }
 
 const char *get_cpu_model() {
-    char *result = get_execute_result("lscpu | grep 'Model name:' | awk -F: '{print $2}'");
+    static char cpu_model[48];
+    snprintf(cpu_model, sizeof(cpu_model), "%s",
+             get_execute_result("lscpu | grep 'Model name:' | awk -F: '{print $2}'"));
 
-    if (!result || strlen(result) == 0) return lang.GENERIC.UNKNOWN;
-    while (*result == ' ') result++;
+    static char cpu_cores[6];
+    snprintf(cpu_cores, sizeof(cpu_cores), "%s",
+             get_execute_result("lscpu | grep '^CPU(s):' | awk '{print $2}'"));
+
+    str_remchar(cpu_model, ' ');
+    str_remchar(cpu_cores, ' ');
+
+    if (strlen(cpu_model) == 0) return lang.GENERIC.UNKNOWN;
+
+    static char result[MAX_BUFFER_SIZE];
+    if (strlen(cpu_cores) > 0) {
+        snprintf(result, sizeof(result), "%s (%s)", cpu_model, cpu_cores);
+    } else {
+        snprintf(result, sizeof(result), "%s", cpu_model);
+    }
 
     return result;
 }
@@ -235,122 +218,122 @@ const char *get_kernel_version() {
     return buffer;
 }
 
-void update_system_info() {
-    lv_label_set_text(ui_lblVersionValue, get_build_version());
-    lv_label_set_text(ui_lblDeviceValue, get_device_info());
-    lv_label_set_text(ui_lblKernelValue, get_kernel_version());
-    lv_label_set_text(ui_lblUptimeValue, get_uptime());
-    lv_label_set_text(ui_lblCPUValue, get_cpu_model());
-    lv_label_set_text(ui_lblSpeedValue, get_current_frequency());
-    lv_label_set_text(ui_lblGovernorValue, get_scaling_governor());
-    lv_label_set_text(ui_lblMemoryValue, get_memory_usage());
-    lv_label_set_text(ui_lblTempValue, get_temperature());
-    lv_label_set_text(ui_lblCapacityValue, get_battery_cap());
-    lv_label_set_text(ui_lblVoltageValue, read_battery_voltage());
+static void update_system_info() {
+    lv_label_set_text(ui_lblVersionValue_sysinfo, get_build_version());
+    lv_label_set_text(ui_lblDeviceValue_sysinfo, get_device_info());
+    lv_label_set_text(ui_lblKernelValue_sysinfo, get_kernel_version());
+    lv_label_set_text(ui_lblUptimeValue_sysinfo, get_uptime());
+    lv_label_set_text(ui_lblCPUValue_sysinfo, get_cpu_model());
+    lv_label_set_text(ui_lblSpeedValue_sysinfo, get_current_frequency());
+    lv_label_set_text(ui_lblGovernorValue_sysinfo, get_scaling_governor());
+    lv_label_set_text(ui_lblMemoryValue_sysinfo, get_memory_usage());
+    lv_label_set_text(ui_lblTempValue_sysinfo, get_temperature());
+    lv_label_set_text(ui_lblCapacityValue_sysinfo, get_battery_cap());
+    lv_label_set_text(ui_lblVoltageValue_sysinfo, read_battery_voltage());
 }
 
-void init_navigation_group() {
+static void init_navigation_group() {
     lv_obj_t *ui_objects_panel[] = {
-            ui_pnlVersion,
-            ui_pnlDevice,
-            ui_pnlKernel,
-            ui_pnlUptime,
-            ui_pnlCPU,
-            ui_pnlSpeed,
-            ui_pnlGovernor,
-            ui_pnlMemory,
-            ui_pnlTemp,
-            ui_pnlCapacity,
-            ui_pnlVoltage,
+            ui_pnlVersion_sysinfo,
+            ui_pnlDevice_sysinfo,
+            ui_pnlKernel_sysinfo,
+            ui_pnlUptime_sysinfo,
+            ui_pnlCPU_sysinfo,
+            ui_pnlSpeed_sysinfo,
+            ui_pnlGovernor_sysinfo,
+            ui_pnlMemory_sysinfo,
+            ui_pnlTemp_sysinfo,
+            ui_pnlCapacity_sysinfo,
+            ui_pnlVoltage_sysinfo,
     };
 
-    ui_objects[0] = ui_lblVersion;
-    ui_objects[1] = ui_lblDevice;
-    ui_objects[2] = ui_lblKernel;
-    ui_objects[3] = ui_lblUptime;
-    ui_objects[4] = ui_lblCPU;
-    ui_objects[5] = ui_lblSpeed;
-    ui_objects[6] = ui_lblGovernor;
-    ui_objects[7] = ui_lblMemory;
-    ui_objects[8] = ui_lblTemp;
-    ui_objects[9] = ui_lblCapacity;
-    ui_objects[10] = ui_lblVoltage;
+    ui_objects[0] = ui_lblVersion_sysinfo;
+    ui_objects[1] = ui_lblDevice_sysinfo;
+    ui_objects[2] = ui_lblKernel_sysinfo;
+    ui_objects[3] = ui_lblUptime_sysinfo;
+    ui_objects[4] = ui_lblCPU_sysinfo;
+    ui_objects[5] = ui_lblSpeed_sysinfo;
+    ui_objects[6] = ui_lblGovernor_sysinfo;
+    ui_objects[7] = ui_lblMemory_sysinfo;
+    ui_objects[8] = ui_lblTemp_sysinfo;
+    ui_objects[9] = ui_lblCapacity_sysinfo;
+    ui_objects[10] = ui_lblVoltage_sysinfo;
 
     lv_obj_t *ui_objects_value[] = {
-            ui_lblVersionValue,
-            ui_lblDeviceValue,
-            ui_lblKernelValue,
-            ui_lblUptimeValue,
-            ui_lblCPUValue,
-            ui_lblSpeedValue,
-            ui_lblGovernorValue,
-            ui_lblMemoryValue,
-            ui_lblTempValue,
-            ui_lblCapacityValue,
-            ui_lblVoltageValue
+            ui_lblVersionValue_sysinfo,
+            ui_lblDeviceValue_sysinfo,
+            ui_lblKernelValue_sysinfo,
+            ui_lblUptimeValue_sysinfo,
+            ui_lblCPUValue_sysinfo,
+            ui_lblSpeedValue_sysinfo,
+            ui_lblGovernorValue_sysinfo,
+            ui_lblMemoryValue_sysinfo,
+            ui_lblTempValue_sysinfo,
+            ui_lblCapacityValue_sysinfo,
+            ui_lblVoltageValue_sysinfo
     };
 
     lv_obj_t *ui_objects_glyph[] = {
-            ui_icoVersion,
-            ui_icoDevice,
-            ui_icoKernel,
-            ui_icoUptime,
-            ui_icoCPU,
-            ui_icoSpeed,
-            ui_icoGovernor,
-            ui_icoMemory,
-            ui_icoTemp,
-            ui_icoCapacity,
-            ui_icoVoltage
+            ui_icoVersion_sysinfo,
+            ui_icoDevice_sysinfo,
+            ui_icoKernel_sysinfo,
+            ui_icoUptime_sysinfo,
+            ui_icoCPU_sysinfo,
+            ui_icoSpeed_sysinfo,
+            ui_icoGovernor_sysinfo,
+            ui_icoMemory_sysinfo,
+            ui_icoTemp_sysinfo,
+            ui_icoCapacity_sysinfo,
+            ui_icoVoltage_sysinfo
     };
 
-    apply_theme_list_panel(ui_pnlVersion);
-    apply_theme_list_panel(ui_pnlDevice);
-    apply_theme_list_panel(ui_pnlKernel);
-    apply_theme_list_panel(ui_pnlUptime);
-    apply_theme_list_panel(ui_pnlCPU);
-    apply_theme_list_panel(ui_pnlSpeed);
-    apply_theme_list_panel(ui_pnlGovernor);
-    apply_theme_list_panel(ui_pnlMemory);
-    apply_theme_list_panel(ui_pnlTemp);
-    apply_theme_list_panel(ui_pnlCapacity);
-    apply_theme_list_panel(ui_pnlVoltage);
+    apply_theme_list_panel(ui_pnlVersion_sysinfo);
+    apply_theme_list_panel(ui_pnlDevice_sysinfo);
+    apply_theme_list_panel(ui_pnlKernel_sysinfo);
+    apply_theme_list_panel(ui_pnlUptime_sysinfo);
+    apply_theme_list_panel(ui_pnlCPU_sysinfo);
+    apply_theme_list_panel(ui_pnlSpeed_sysinfo);
+    apply_theme_list_panel(ui_pnlGovernor_sysinfo);
+    apply_theme_list_panel(ui_pnlMemory_sysinfo);
+    apply_theme_list_panel(ui_pnlTemp_sysinfo);
+    apply_theme_list_panel(ui_pnlCapacity_sysinfo);
+    apply_theme_list_panel(ui_pnlVoltage_sysinfo);
 
-    apply_theme_list_item(&theme, ui_lblVersion, lang.MUXSYSINFO.VERSION);
-    apply_theme_list_item(&theme, ui_lblDevice, lang.MUXSYSINFO.DEVICE);
-    apply_theme_list_item(&theme, ui_lblKernel, lang.MUXSYSINFO.KERNEL);
-    apply_theme_list_item(&theme, ui_lblUptime, lang.MUXSYSINFO.UPTIME);
-    apply_theme_list_item(&theme, ui_lblCPU, lang.MUXSYSINFO.CPU.INFO);
-    apply_theme_list_item(&theme, ui_lblSpeed, lang.MUXSYSINFO.CPU.SPEED);
-    apply_theme_list_item(&theme, ui_lblGovernor, lang.MUXSYSINFO.CPU.GOV);
-    apply_theme_list_item(&theme, ui_lblMemory, lang.MUXSYSINFO.MEMORY.INFO);
-    apply_theme_list_item(&theme, ui_lblTemp, lang.MUXSYSINFO.TEMP);
-    apply_theme_list_item(&theme, ui_lblCapacity, lang.MUXSYSINFO.CAPACITY);
-    apply_theme_list_item(&theme, ui_lblVoltage, lang.MUXSYSINFO.VOLTAGE);
+    apply_theme_list_item(&theme, ui_lblVersion_sysinfo, lang.MUXSYSINFO.VERSION);
+    apply_theme_list_item(&theme, ui_lblDevice_sysinfo, lang.MUXSYSINFO.DEVICE);
+    apply_theme_list_item(&theme, ui_lblKernel_sysinfo, lang.MUXSYSINFO.KERNEL);
+    apply_theme_list_item(&theme, ui_lblUptime_sysinfo, lang.MUXSYSINFO.UPTIME);
+    apply_theme_list_item(&theme, ui_lblCPU_sysinfo, lang.MUXSYSINFO.CPU.INFO);
+    apply_theme_list_item(&theme, ui_lblSpeed_sysinfo, lang.MUXSYSINFO.CPU.SPEED);
+    apply_theme_list_item(&theme, ui_lblGovernor_sysinfo, lang.MUXSYSINFO.CPU.GOV);
+    apply_theme_list_item(&theme, ui_lblMemory_sysinfo, lang.MUXSYSINFO.MEMORY.INFO);
+    apply_theme_list_item(&theme, ui_lblTemp_sysinfo, lang.MUXSYSINFO.TEMP);
+    apply_theme_list_item(&theme, ui_lblCapacity_sysinfo, lang.MUXSYSINFO.CAPACITY);
+    apply_theme_list_item(&theme, ui_lblVoltage_sysinfo, lang.MUXSYSINFO.VOLTAGE);
 
-    apply_theme_list_glyph(&theme, ui_icoVersion, mux_module, "version");
-    apply_theme_list_glyph(&theme, ui_icoDevice, mux_module, "device");
-    apply_theme_list_glyph(&theme, ui_icoKernel, mux_module, "kernel");
-    apply_theme_list_glyph(&theme, ui_icoUptime, mux_module, "uptime");
-    apply_theme_list_glyph(&theme, ui_icoCPU, mux_module, "cpu");
-    apply_theme_list_glyph(&theme, ui_icoSpeed, mux_module, "speed");
-    apply_theme_list_glyph(&theme, ui_icoGovernor, mux_module, "governor");
-    apply_theme_list_glyph(&theme, ui_icoMemory, mux_module, "memory");
-    apply_theme_list_glyph(&theme, ui_icoTemp, mux_module, "temp");
-    apply_theme_list_glyph(&theme, ui_icoCapacity, mux_module, "capacity");
-    apply_theme_list_glyph(&theme, ui_icoVoltage, mux_module, "voltage");
+    apply_theme_list_glyph(&theme, ui_icoVersion_sysinfo, mux_module, "version");
+    apply_theme_list_glyph(&theme, ui_icoDevice_sysinfo, mux_module, "device");
+    apply_theme_list_glyph(&theme, ui_icoKernel_sysinfo, mux_module, "kernel");
+    apply_theme_list_glyph(&theme, ui_icoUptime_sysinfo, mux_module, "uptime");
+    apply_theme_list_glyph(&theme, ui_icoCPU_sysinfo, mux_module, "cpu");
+    apply_theme_list_glyph(&theme, ui_icoSpeed_sysinfo, mux_module, "speed");
+    apply_theme_list_glyph(&theme, ui_icoGovernor_sysinfo, mux_module, "governor");
+    apply_theme_list_glyph(&theme, ui_icoMemory_sysinfo, mux_module, "memory");
+    apply_theme_list_glyph(&theme, ui_icoTemp_sysinfo, mux_module, "temp");
+    apply_theme_list_glyph(&theme, ui_icoCapacity_sysinfo, mux_module, "capacity");
+    apply_theme_list_glyph(&theme, ui_icoVoltage_sysinfo, mux_module, "voltage");
 
-    apply_theme_list_value(&theme, ui_lblVersionValue, "");
-    apply_theme_list_value(&theme, ui_lblDeviceValue, "");
-    apply_theme_list_value(&theme, ui_lblKernelValue, "");
-    apply_theme_list_value(&theme, ui_lblUptimeValue, "");
-    apply_theme_list_value(&theme, ui_lblCPUValue, "");
-    apply_theme_list_value(&theme, ui_lblSpeedValue, "");
-    apply_theme_list_value(&theme, ui_lblGovernorValue, "");
-    apply_theme_list_value(&theme, ui_lblMemoryValue, "");
-    apply_theme_list_value(&theme, ui_lblTempValue, "");
-    apply_theme_list_value(&theme, ui_lblCapacityValue, "");
-    apply_theme_list_value(&theme, ui_lblVoltageValue, "");
+    apply_theme_list_value(&theme, ui_lblVersionValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblDeviceValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblKernelValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblUptimeValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblCPUValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblSpeedValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblGovernorValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblMemoryValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblTempValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblCapacityValue_sysinfo, "");
+    apply_theme_list_value(&theme, ui_lblVoltageValue_sysinfo, "");
 
     ui_group = lv_group_create();
     ui_group_value = lv_group_create();
@@ -366,37 +349,39 @@ void init_navigation_group() {
     }
 }
 
-void list_nav_prev(int steps) {
-    play_sound("navigate", nav_sound, 0, 0);
+static void list_nav_move(int steps, int direction) {
+    first_open ? (first_open = 0) : play_sound(SND_NAVIGATE, 0);
+
     for (int step = 0; step < steps; ++step) {
-        current_item_index = (!current_item_index) ? ui_count - 1 : current_item_index - 1;
-        nav_prev(ui_group, 1);
-        nav_prev(ui_group_value, 1);
-        nav_prev(ui_group_glyph, 1);
-        nav_prev(ui_group_panel, 1);
+        if (direction < 0) {
+            current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
+        } else {
+            current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
+        }
+
+        nav_move(ui_group, direction);
+        nav_move(ui_group_value, direction);
+        nav_move(ui_group_glyph, direction);
+        nav_move(ui_group_panel, direction);
     }
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, UI_COUNT, current_item_index, ui_pnlContent);
+
+    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
     nav_moved = 1;
 }
 
-void list_nav_next(int steps) {
-    play_sound("navigate", nav_sound, 0, 0);
-    for (int step = 0; step < steps; ++step) {
-        current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
-        nav_next(ui_group, 1);
-        nav_next(ui_group_value, 1);
-        nav_next(ui_group_glyph, 1);
-        nav_next(ui_group_panel, 1);
-    }
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, UI_COUNT, current_item_index, ui_pnlContent);
-    nav_moved = 1;
+static void list_nav_prev(int steps) {
+    list_nav_move(steps, -1);
 }
 
-void handle_a() {
+static void list_nav_next(int steps) {
+    list_nav_move(steps, +1);
+}
+
+static void handle_a() {
     if (msgbox_active) return;
 
-    if (lv_group_get_focused(ui_group) == ui_lblVersion) {
-        play_sound("muos", nav_sound, 0, 0);
+    if (lv_group_get_focused(ui_group) == ui_lblVersion_sysinfo) {
+        play_sound(SND_MUOS, 0);
 
         switch (tap_count) {
             case 5:
@@ -487,49 +472,51 @@ void handle_a() {
             load_mux("launcher");
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "");
 
-            safe_quit(0);
+            close_input();
             mux_input_stop();
         }
 
         tap_count++;
     }
 
-    if (lv_group_get_focused(ui_group) == ui_lblMemory) {
+    if (lv_group_get_focused(ui_group) == ui_lblMemory_sysinfo) {
         write_text_to_file("/proc/sys/vm/drop_caches", "w", INT, 3);
         toast_message(lang.MUXSYSINFO.MEMORY.DROP, 1000, 1000);
     }
 
-    if (lv_group_get_focused(ui_group) == ui_lblKernel) {
+    if (lv_group_get_focused(ui_group) == ui_lblKernel_sysinfo) {
         toast_message(hostname, 1000, 1000);
     }
+
+    refresh_screen(ui_screen);
 }
 
-void handle_b() {
+static void handle_b() {
     if (msgbox_active) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         msgbox_active = 0;
         progress_onscreen = 0;
         lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
-    play_sound("back", nav_sound, 0, 1);
-    write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "system");
+    play_sound(SND_BACK, 0);
+    write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "sysinfo");
 
-    safe_quit(0);
+    close_input();
     mux_input_stop();
 }
 
-void handle_menu() {
+static void handle_menu() {
     if (msgbox_active) return;
 
     if (progress_onscreen == -1) {
-        play_sound("confirm", nav_sound, 0, 0);
+        play_sound(SND_CONFIRM, 0);
         show_help(lv_group_get_focused(ui_group));
     }
 }
 
-void init_elements() {
+static void init_elements() {
     ui_mux_panels[0] = ui_pnlFooter;
     ui_mux_panels[1] = ui_pnlHeader;
     ui_mux_panels[2] = ui_pnlHelp;
@@ -554,36 +541,26 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.BACK);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavAGlyph,
-            ui_lblNavA,
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu,
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
-    lv_obj_set_user_data(ui_lblVersion, "version");
-    lv_obj_set_user_data(ui_lblDevice, "device");
-    lv_obj_set_user_data(ui_lblKernel, "kernel");
-    lv_obj_set_user_data(ui_lblUptime, "uptime");
-    lv_obj_set_user_data(ui_lblCPU, "cpu");
-    lv_obj_set_user_data(ui_lblSpeed, "speed");
-    lv_obj_set_user_data(ui_lblGovernor, "governor");
-    lv_obj_set_user_data(ui_lblMemory, "memory");
-    lv_obj_set_user_data(ui_lblTemp, "temp");
-    lv_obj_set_user_data(ui_lblCapacity, "capacity");
-    lv_obj_set_user_data(ui_lblVoltage, "voltage");
+    lv_obj_set_user_data(ui_lblVersion_sysinfo, "version");
+    lv_obj_set_user_data(ui_lblDevice_sysinfo, "device");
+    lv_obj_set_user_data(ui_lblKernel_sysinfo, "kernel");
+    lv_obj_set_user_data(ui_lblUptime_sysinfo, "uptime");
+    lv_obj_set_user_data(ui_lblCPU_sysinfo, "cpu");
+    lv_obj_set_user_data(ui_lblSpeed_sysinfo, "speed");
+    lv_obj_set_user_data(ui_lblGovernor_sysinfo, "governor");
+    lv_obj_set_user_data(ui_lblMemory_sysinfo, "memory");
+    lv_obj_set_user_data(ui_lblTemp_sysinfo, "temp");
+    lv_obj_set_user_data(ui_lblCapacity_sysinfo, "capacity");
+    lv_obj_set_user_data(ui_lblVoltage_sysinfo, "voltage");
 
 #if TEST_IMAGE
     display_testing_message(ui_screen);
@@ -596,7 +573,7 @@ void init_elements() {
     load_overlay_image(ui_screen, overlay_image);
 }
 
-void ui_refresh_task() {
+static void ui_refresh_task() {
     update_bars(ui_barProgressBrightness, ui_barProgressVolume, ui_icoProgressVolume);
 
     if (nav_moved) {
@@ -610,22 +587,13 @@ void ui_refresh_task() {
     }
 }
 
-int main(int argc, char *argv[]) {
-    (void) argc;
-
-    mux_module = basename(argv[0]);
-    setup_background_process();
-
-    load_device(&device);
-    load_config(&config);
-    load_lang(&lang);
+int muxsysinfo_main() {
+    init_module("muxsysinfo");
 
     init_theme(1, 0);
-    init_display();
 
     init_ui_common_screen(&theme, &device, &lang, lang.MUXSYSINFO.TITLE);
-    init_mux(ui_pnlContent);
-    init_timer(ui_refresh_task, update_system_info);
+    init_muxsysinfo(ui_pnlContent);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -635,11 +603,12 @@ int main(int argc, char *argv[]) {
 
     init_fonts();
     init_navigation_group();
-    init_navigation_sound(&nav_sound, mux_module);
 
     update_system_info();
 
     load_kiosk(&kiosk);
+
+    init_timer(ui_refresh_task, update_system_info);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -659,6 +628,7 @@ int main(int argc, char *argv[]) {
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };
+    list_nav_set_callbacks(list_nav_prev, list_nav_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 
