@@ -103,6 +103,9 @@ static void process_content_action(char *action, char *module) {
 }
 
 static void last_index_check() {
+    process_content_action(MUOS_ASS_LOAD, "assign");
+    process_content_action(MUOS_GOV_LOAD, "governor");
+
     last_index = 0;
     if (file_exist(MUOS_IDX_LOAD) && !file_exist(ADD_MODE_WORK)) {
         last_index = safe_atoi(read_line_from_file(MUOS_IDX_LOAD, 1));
@@ -399,9 +402,6 @@ int main() {
             safe_quit(0);
             break;
         }
-        // Process content association and governor actions
-        process_content_action(MUOS_ASS_LOAD, "assign");
-        process_content_action(MUOS_GOV_LOAD, "governor");
 
         if (file_exist(MUOS_ACT_LOAD)) {
             if (refresh_config) {
