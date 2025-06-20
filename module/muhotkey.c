@@ -77,6 +77,7 @@ static const char *input_name[MUX_INPUT_COUNT] = {
         [MUX_INPUT_R3] = "R3",
         [MUX_INPUT_SELECT] = "SELECT",
         [MUX_INPUT_START] = "START",
+        [MUX_INPUT_SWITCH] = "SWITCH",
 
         // D-pad:
         [MUX_INPUT_DPAD_UP] = "DPAD_UP",
@@ -266,7 +267,8 @@ static void parse_combos(const char *filename) {
             exit(1);
         }
 
-        c->handle_hold = json_bool(json_object_get(json, "handle_hold"));
+        struct json hold_json = json_object_get(json, "handle_hold");
+        c->handle_hold = json_exists(hold_json) && json_bool(hold_json);
 
         // Parse hotkey inputs (e.g., ["INPUT1", "INPUT2"]).
         for (struct json input = json_first(json_object_get(json, "inputs"));

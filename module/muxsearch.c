@@ -219,8 +219,8 @@ void image_refresh(char *image_type) {
     char image_path[MAX_BUFFER_SIZE];
     char core_artwork[MAX_BUFFER_SIZE];
 
-    char *file_name = get_last_subdir(strip_ext(all_items[current_item_index].name), '/', 4);
-    char *last_dir = get_last_dir(strip_ext(all_items[current_item_index].name));
+    char *file_name = get_last_subdir(strip_ext(all_items[current_item_index].extra_data), '/', 4);
+    char *last_dir = get_last_dir(strip_ext(all_items[current_item_index].extra_data));
 
     char core_file[MAX_BUFFER_SIZE];
     snprintf(core_file, sizeof(core_file), "%s/%s.cfg",
@@ -469,13 +469,13 @@ void process_results(const char *json_results) {
 
         for (size_t i = 0; i < t_all_item_count; i++) {
             if (t_all_items[i].content_type == ROM) {
-                add_item(&all_items, &all_item_count, t_all_items[i].name,
+                content_item *new_item = add_item(&all_items, &all_item_count, t_all_items[i].name,
                          t_all_items[i].display_name, t_all_items[i].extra_data, ROM);
                 char display_name[MAX_BUFFER_SIZE];
                 snprintf(display_name, sizeof(display_name), "%s",
-                         strip_ext(get_last_dir(t_all_items[i].display_name)));
+                         strip_ext(t_all_items[i].display_name));
                 adjust_visual_label(display_name, config.VISUAL.NAME, config.VISUAL.DASH);
-                all_items[i].display_name = strdup(display_name);
+                new_item->display_name = strdup(display_name);
             }
         }
 
@@ -843,19 +843,17 @@ void init_elements() {
     lv_label_set_text(ui_lblNavX, lang.GENERIC.CLEAR);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB,
+            ui_lblNavXGlyph,
+            ui_lblNavX
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
     lv_obj_set_user_data(ui_lblLookup, "lookup");

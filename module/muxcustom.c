@@ -109,11 +109,12 @@ void populate_theme_alternates() {
             char *filename = entry->d_name;
             size_t len = strlen(filename);
 
-            if (len > 4 && strcmp(str_tolower(filename + len - 4), ".ini") == 0) {
-                char name_without_ext[MAX_BUFFER_SIZE];
-                strncpy(name_without_ext, filename, len - 4);
-                name_without_ext[len - 4] = '\0';
-                add_item(&items, &item_count, "", name_without_ext, "", ROM);
+            if ((len > 4 && strcmp(str_tolower(filename + len - 4), ".ini") == 0) ||
+                    (len > 7 && strcmp(str_tolower(filename + len - 7), ".muxzip") == 0)) {
+                char *name_without_ext = strip_ext(filename);
+                if (!item_exists(items, item_count, name_without_ext)) {
+                    add_item(&items, &item_count, name_without_ext, name_without_ext, "", ROM);
+                }
             }
         }
 
@@ -293,7 +294,6 @@ void init_navigation_group() {
         lv_group_add_obj(ui_group_glyph, ui_icons[i]);
         lv_group_add_obj(ui_group_panel, ui_objects_panel[i]);
 
-        apply_size_to_content(&theme, ui_pnlContent, ui_objects[i], ui_icons[i], lv_label_get_text(ui_objects[i]));
         apply_text_long_dot(&theme, ui_pnlContent, ui_objects[i], lv_label_get_text(ui_objects[i]));
     }
 
@@ -416,6 +416,13 @@ void save_options() {
         if (strcasecmp(theme_alt, theme_alt_original) != 0) {
             write_text_to_file((STORAGE_THEME "/active.txt"), "w", CHAR, theme_alt);
 
+            char theme_alt_archive[MAX_BUFFER_SIZE];
+            snprintf(theme_alt_archive, sizeof(theme_alt_archive), "%s/alternate/%s.muxzip", STORAGE_THEME, theme_alt);
+            if (file_exist(theme_alt_archive)) {
+                extract_file(theme_alt_archive);
+                update_bootlogo();
+            }
+
             static char rgb_script[MAX_BUFFER_SIZE];
             snprintf(rgb_script, sizeof(rgb_script),
                      "%s/alternate/rgb/%s/rgbconf.sh", STORAGE_THEME, theme_alt);
@@ -533,21 +540,15 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.BACK);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
     lv_obj_set_user_data(ui_lblBackgroundAnimation, "backgroundanimation");

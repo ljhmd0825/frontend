@@ -829,7 +829,7 @@ void load_theme(struct theme_config *theme, struct mux_config *config, struct mu
     if (!config->BOOT.FACTORY_RESET) {
         char theme_device_folder[MAX_BUFFER_SIZE];
 
-        if (read_int_from_file(device->SCREEN.HDMI, 1) &&
+        if (read_int_from_file(RUN_GLOBAL_PATH "boot/device_mode", 1) &&
             config->SETTINGS.HDMI.THEME_RESOLUTION > 0) {
             snprintf(theme_device_folder, sizeof(theme_device_folder), "%s/%dx%d", STORAGE_THEME, 
                     config->SETTINGS.HDMI.THEME_RESOLUTION_WIDTH, config->SETTINGS.HDMI.THEME_RESOLUTION_HEIGHT);
@@ -897,6 +897,7 @@ void load_theme(struct theme_config *theme, struct mux_config *config, struct mu
     }
 
     theme->GRID.ENABLED = (theme->GRID.COLUMN_COUNT > 0 && theme->GRID.ROW_COUNT > 0);
+    if (theme->MISC.CONTENT.WIDTH == 0) theme->MISC.CONTENT.WIDTH = device->MUX.WIDTH;
     if (theme->MISC.CONTENT.HEIGHT > device->MUX.HEIGHT) theme->MISC.CONTENT.HEIGHT = device->MUX.HEIGHT;
     if (theme->MUX.ITEM.COUNT < 1) theme->MUX.ITEM.COUNT = 1;
     if (theme->MUX.ITEM.HEIGHT > 0) {

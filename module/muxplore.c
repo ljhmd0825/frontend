@@ -283,7 +283,6 @@ void image_refresh(char *image_type) {
     } else {
         char *file_name = strip_ext(items[current_item_index].name);
 
-        char core_artwork[MAX_BUFFER_SIZE];
         get_catalogue_name(sys_dir, content_label, core_artwork, sizeof(core_artwork));
 
         if (strlen(core_artwork) <= 1 && items[current_item_index].content_type == ROM) {
@@ -1164,15 +1163,21 @@ void init_elements() {
     lv_label_set_text(ui_lblNavMenu, lang.GENERIC.INFO);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavZGlyph,
-            ui_lblNavZ
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB,
+            ui_lblNavXGlyph,
+            ui_lblNavX,
+            ui_lblNavYGlyph,
+            ui_lblNavY,
+            ui_lblNavMenuGlyph,
+            ui_lblNavMenu,
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
 #if TEST_IMAGE

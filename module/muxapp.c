@@ -212,8 +212,8 @@ void create_app_items() {
                 lv_group_add_obj(ui_group_glyph, ui_lblAppItemGlyph);
                 lv_group_add_obj(ui_group_panel, ui_pnlApp);
 
-                apply_size_to_content(&theme, ui_pnlContent, ui_lblAppItem, ui_lblAppItemGlyph, items[i].name);
-                apply_text_long_dot(&theme, ui_pnlContent, ui_lblAppItem, items[i].name);
+                apply_size_to_content(&theme, ui_pnlContent, ui_lblAppItem, ui_lblAppItemGlyph, TS(items[i].name));
+                apply_text_long_dot(&theme, ui_pnlContent, ui_lblAppItem, TS(items[i].name));
                 ui_count++;
             }
         }
@@ -353,21 +353,15 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.BACK);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
 #if TEST_IMAGE

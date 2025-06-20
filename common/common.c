@@ -18,6 +18,7 @@
 #include "../lvgl/lvgl.h"
 #include "../font/notosans.h"
 #include "../font/notosans_jp.h"
+#include "../font/notosans_ar.h"
 #include "../font/notosans_kr.h"
 #include "../font/notosans_sc.h"
 #include "../font/notosans_tc.h"
@@ -53,6 +54,31 @@ struct grid_info grid_info;
 
 int file_exist(char *filename) {
     return access(filename, F_OK) == 0;
+}
+
+void extract_file(char *filename) {
+    static char extract_script[MAX_BUFFER_SIZE];
+    snprintf(extract_script, sizeof(extract_script),
+             "%s/script/mux/extract.sh", INTERNAL_PATH);
+
+    const char *args[] = {
+            (INTERNAL_PATH "bin/fbpad"),
+            "-bg", (char *) theme.TERMINAL.BACKGROUND,
+            "-fg", (char *) theme.TERMINAL.FOREGROUND,
+            extract_script,
+            filename,
+            NULL
+    };
+
+    setenv("TERM", "xterm-256color", 1);
+
+    if (config.VISUAL.BLACKFADE) {
+        fade_to_black(ui_screen);
+    } else {
+        unload_image_animation();
+    }
+
+    run_exec(args);
 }
 
 int directory_exist(char *dirname) {
@@ -1330,6 +1356,8 @@ const lv_font_t *get_language_font() {
         return &ui_font_NotoSans_TC;
     } else if (strcasecmp(config.SETTINGS.GENERAL.LANGUAGE, "Japanese") == 0) {
         return &ui_font_NotoSans_JP;
+    } else if (strcasecmp(config.SETTINGS.GENERAL.LANGUAGE, "Arabic") == 0) {
+        return &ui_font_NotoSans_AR;
     } else if (strcasecmp(config.SETTINGS.GENERAL.LANGUAGE, "Korean") == 0) {
         return &ui_font_NotoSans_KR;
     } else {
@@ -2365,4 +2393,22 @@ int theme_compat() {
     }
 
     return 0;
+}
+
+void update_bootlogo() {
+    char mux_dimension[15];
+    get_mux_dimension(mux_dimension, sizeof(mux_dimension));
+    char bootlogo_image[MAX_BUFFER_SIZE];
+    snprintf(bootlogo_image, sizeof(bootlogo_image), "%s/%simage/bootlogo.bmp", STORAGE_THEME, mux_dimension);
+    if (!file_exist(bootlogo_image)) snprintf(bootlogo_image, sizeof(bootlogo_image), "%s/image/bootlogo.bmp", STORAGE_THEME);
+    if (file_exist(bootlogo_image)) {
+        char bootlogo_dest[MAX_BUFFER_SIZE];
+        snprintf(bootlogo_dest, sizeof(bootlogo_dest), "%s/bootlogo.bmp", device.STORAGE.BOOT.MOUNT, mux_dimension);
+        char *args[] = {"cp", bootlogo_image, bootlogo_dest, NULL};
+        run_exec(args);
+        if (strcmp(device.DEVICE.NAME, "rg28xx-h") == 0) {
+            char *rotate_args[] = {"convert", bootlogo_dest, "-rotate", "270", bootlogo_dest, NULL};
+            run_exec(rotate_args);
+        }
+    }
 }

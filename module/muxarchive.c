@@ -185,7 +185,7 @@ void create_archive_items() {
 
         ui_count++;
 
-        add_item(&items, &item_count, base_filename, archive_store, item_glyph, ROM);
+        add_item(&items, &item_count, base_filename, strip_ext(archive_store), item_glyph, ROM);
 
         lv_obj_t *ui_pnlArchive = lv_obj_create(ui_pnlContent);
         apply_theme_list_panel(ui_pnlArchive);
@@ -250,28 +250,7 @@ void handle_a() {
     if (ui_count > 0) {
         play_sound("confirm", nav_sound, 0, 1);
 
-        static char extract_script[MAX_BUFFER_SIZE];
-        snprintf(extract_script, sizeof(extract_script),
-                 "%s/script/mux/extract.sh", INTERNAL_PATH);
-
-        const char *args[] = {
-                (INTERNAL_PATH "bin/fbpad"),
-                "-bg", (char *) theme.TERMINAL.BACKGROUND,
-                "-fg", (char *) theme.TERMINAL.FOREGROUND,
-                extract_script,
-                items[current_item_index].name,
-                NULL
-        };
-
-        setenv("TERM", "xterm-256color", 1);
-
-        if (config.VISUAL.BLACKFADE) {
-            fade_to_black(ui_screen);
-        } else {
-            unload_image_animation();
-        }
-
-        run_exec(args);
+        extract_file(items[current_item_index].name);
 
         write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
 
@@ -332,20 +311,14 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.BACK);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
     }
 
 #if TEST_IMAGE

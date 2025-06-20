@@ -138,6 +138,7 @@ static void process_volume(const mux_input_options *opts, const struct input_eve
 
 // Processes gamepad axes (D-pad and the sticks).
 static void process_abs(const mux_input_options *opts, const struct input_event *event) {
+    mux_input_type mux_type;
     int axis;
     bool analog;
     if (event->type == device.INPUT_TYPE.DPAD.UP &&
@@ -170,6 +171,18 @@ static void process_abs(const mux_input_options *opts, const struct input_event 
         // Axis: right stick horizontal
         axis = !opts->swap_axis || key_show ? MUX_INPUT_RS_LEFT : MUX_INPUT_RS_UP;
         analog = true;
+    } else if (event->type == device.INPUT_TYPE.BUTTON.L2 &&
+               event->code == device.INPUT_CODE.BUTTON.L2) {
+        // TRIM-UI DEVICE: left shoulder
+        mux_type = MUX_INPUT_L2;
+        pressed = (event->value == 255) ? (pressed | BIT(mux_type)) : (pressed & ~BIT(mux_type));
+        return;
+    } else if (event->type == device.INPUT_TYPE.BUTTON.R2 &&
+               event->code == device.INPUT_CODE.BUTTON.R2) {
+        // TRIM-UI DEVICE: right shoulder
+        mux_type = MUX_INPUT_R2;
+        pressed = (event->value == 255) ? (pressed | BIT(mux_type)) : (pressed & ~BIT(mux_type));
+        return;
     } else {
         return;
     }
@@ -211,6 +224,17 @@ static void process_sys(const mux_input_options *opts, const struct input_event 
                 break;
         }
     }
+}
+
+// Process switch that is currently on the trim-ui devices
+static void process_sw(const mux_input_options *opts, const struct input_event *event) {
+    mux_input_type mux_type;
+    if (event->type == device.INPUT_TYPE.BUTTON.SWITCH && event->code == device.INPUT_CODE.BUTTON.SWITCH) {
+        mux_type = MUX_INPUT_SWITCH;
+    } else {
+        return;
+    }
+    pressed = (event->value == 1) ? (pressed | BIT(mux_type)) : (pressed & ~BIT(mux_type));
 }
 
 // Processes 8bitdo USB Pro 2 in D-Input mode gamepad buttons.
@@ -814,6 +838,8 @@ void mux_input_task(const mux_input_options *opts) {
                     process_key(opts, &event);
                 } else if (event.type == EV_ABS) {
                     process_abs(opts, &event);
+                } else if (event.type == EV_SW) {
+                    process_sw(opts, &event);
                 }
             } else if (epoll_event[i].data.fd == opts->power_fd) {
                 process_sys(opts, &event);

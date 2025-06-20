@@ -90,10 +90,25 @@ void show_help(lv_obj_t *element_focused) {
 }
 
 const char *get_cpu_model() {
-    char *result = get_execute_result("lscpu | grep 'Model name:' | awk -F: '{print $2}'");
+    static char cpu_model[48];
+    snprintf(cpu_model, sizeof(cpu_model), "%s",
+             get_execute_result("lscpu | grep 'Model name:' | awk -F: '{print $2}'"));
 
-    if (!result || strlen(result) == 0) return lang.GENERIC.UNKNOWN;
-    while (*result == ' ') result++;
+    static char cpu_cores[6];
+    snprintf(cpu_cores, sizeof(cpu_cores), "%s",
+             get_execute_result("lscpu | grep '^CPU(s):' | awk '{print $2}'"));
+
+    str_remchar(cpu_model, ' ');
+    str_remchar(cpu_cores, ' ');
+
+    if (strlen(cpu_model) == 0) return lang.GENERIC.UNKNOWN;
+
+    static char result[MAX_BUFFER_SIZE];
+    if (strlen(cpu_cores) > 0) {
+        snprintf(result, sizeof(result), "%s (%s)", cpu_model, cpu_cores);
+    } else {
+        snprintf(result, sizeof(result), "%s", cpu_model);
+    }
 
     return result;
 }
@@ -554,23 +569,13 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.BACK);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavAGlyph,
-            ui_lblNavA,
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu,
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
     lv_obj_set_user_data(ui_lblVersion, "version");

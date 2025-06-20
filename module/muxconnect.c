@@ -135,7 +135,6 @@ void add_item(lv_obj_t *ui_pnl, lv_obj_t *ui_lbl, lv_obj_t *ui_ico, lv_obj_t *ui
     lv_group_add_obj(ui_group_glyph, ui_ico);
     lv_group_add_obj(ui_group_panel, ui_pnl);
 
-    apply_size_to_content(&theme, ui_pnlContent, ui_lbl, ui_ico, item_text);
     apply_text_long_dot(&theme, ui_pnlContent, ui_lbl, item_text);
 }
 
@@ -159,6 +158,18 @@ void init_navigation_group() {
     add_drop_down_options(ui_droBluetooth, disabled_enabled, 2);
     add_item(ui_pnlUSBFunction, ui_lblUSBFunction, ui_icoUSBFunction, ui_droUSBFunction, lang.MUXCONNECT.USB, "usbfunction");
     add_drop_down_options(ui_droUSBFunction, (char *[]) {lang.GENERIC.DISABLED, "ADB", "MTP"}, 3);
+
+    if (!device.DEVICE.HAS_NETWORK) {
+        lv_obj_add_flag(ui_pnlNetwork, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_lblNetwork, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_icoNetwork, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_droNetwork, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_pnlServices, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_lblServices, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_icoServices, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui_droServices, LV_OBJ_FLAG_HIDDEN);
+        ui_count -= 2;
+    }
 
     if (!device.DEVICE.HAS_BLUETOOTH || true) { //TODO: remove true when bluetooth is implemented
         lv_obj_add_flag(ui_pnlBluetooth, LV_OBJ_FLAG_HIDDEN);
@@ -307,21 +318,15 @@ void init_elements() {
     lv_label_set_text(ui_lblNavB, lang.GENERIC.BACK);
 
     lv_obj_t *nav_hide[] = {
-            ui_lblNavCGlyph,
-            ui_lblNavC,
-            ui_lblNavXGlyph,
-            ui_lblNavX,
-            ui_lblNavYGlyph,
-            ui_lblNavY,
-            ui_lblNavZGlyph,
-            ui_lblNavZ,
-            ui_lblNavMenuGlyph,
-            ui_lblNavMenu
+            ui_lblNavAGlyph,
+            ui_lblNavA,
+            ui_lblNavBGlyph,
+            ui_lblNavB
     };
 
     for (int i = 0; i < sizeof(nav_hide) / sizeof(nav_hide[0]); i++) {
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(nav_hide[i], LV_OBJ_FLAG_FLOATING);
     }
 
     lv_obj_set_user_data(ui_lblNetwork, "network");
