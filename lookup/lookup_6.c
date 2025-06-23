@@ -8,11 +8,11 @@ typedef struct {
 } LookupName;
 
 static const LookupName lookup_table[] = {
-        {"600",        "600"},
-        {"64streej",   "64th. Street - A Detective Story (Japan)"},
-        {"64street",   "64th. Street - A Detective Story (World)"},
-        {"64streetj",  "64th. Street - A Detective Story (Japan, set 1)"},
-        {"64streetja", "64th. Street - A Detective Story (Japan, set 2)"},
+        {"600", "600"},
+        {"64streej", "64번가 - 탐정 이야기 (일본판)"},
+        {"64street", "64번가 - 탐정 이야기 (세계판)"},
+        {"64streetj", "64번가 - 탐정 이야기 (일본판,세트1)"},
+        {"64streetja", "64번가 - 탐정 이야기 (일본판,대체)"},
 };
 
 const char *lookup_6(const char *name) {
