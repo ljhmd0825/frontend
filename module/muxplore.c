@@ -106,6 +106,12 @@ static char *load_content_description() {
     if (items[current_item_index].content_type == FOLDER) {
         snprintf(content_desc, sizeof(content_desc), "%s/Folder/text/%s.txt",
                  INFO_CAT_PATH, content_label);
+        if (!file_exist(content_desc)){
+            char *catalogue_name = get_catalogue_name_from_rom_path(sys_dir, items[current_item_index].name);
+            snprintf(content_desc, sizeof(content_desc), "%s/Folder/text/%s.txt",
+                    INFO_CAT_PATH, catalogue_name);
+            LOG_INFO(mux_module, "Falling back to catalogue name for content description '%s'", catalogue_name)
+        }
     } else {
         snprintf(content_desc, sizeof(content_desc), "%s/%s/text/%s.txt",
                  INFO_CAT_PATH, core_desc, desc_name);
@@ -252,7 +258,7 @@ static void add_directory_and_file_names(const char *base_dir, char ***dir_names
                         (dir_count)++;
                     }
                 }
-            } else if (entry->d_type == DT_REG && !at_base(sys_dir, "ROMS")) {
+            } else if (entry->d_type == DT_REG) {
                 char *file_path = (char *) malloc(strlen(entry->d_name) + 2);
                 snprintf(file_path, strlen(entry->d_name) + 2, "%s", entry->d_name);
 
@@ -268,7 +274,7 @@ static void add_directory_and_file_names(const char *base_dir, char ***dir_names
 
 static void gen_item(char **file_names, int file_count) {
     char init_meta_dir[MAX_BUFFER_SIZE];
-    const char *sub_path = sys_dir;
+    char *sub_path = sys_dir;
 
     if (!strncasecmp(sys_dir, STORAGE_PATH, strlen(STORAGE_PATH))) {
         sub_path = sys_dir + strlen(STORAGE_PATH);
@@ -278,9 +284,18 @@ static void gen_item(char **file_names, int file_count) {
     snprintf(init_meta_dir, sizeof(init_meta_dir), "%s/%s/", INFO_COR_PATH, sub_path);
     create_directories(init_meta_dir);
 
+    const char *last_dir = str_tolower(get_last_dir(sub_path));
+    if (strlen(last_dir) < 1) last_dir = str_tolower(sub_path);
+
     char custom_lookup[MAX_BUFFER_SIZE];
-    snprintf(custom_lookup, sizeof(custom_lookup), "%s/content.json",
-             INFO_NAM_PATH);
+    snprintf(custom_lookup, sizeof(custom_lookup), INFO_NAM_PATH "/%s.json", last_dir);
+
+    if (!file_exist(custom_lookup)) {
+        snprintf(custom_lookup, sizeof(custom_lookup), INFO_NAM_PATH "/global.json");
+        LOG_INFO(mux_module, "Using Global Friendly Name file: %s", custom_lookup);
+    } else {
+        LOG_SUCCESS(mux_module, "Using Local Friendly Name file %s", custom_lookup);
+    }
 
     int fn_valid = 0;
     struct json fn_json = {0};
@@ -293,10 +308,10 @@ static void gen_item(char **file_names, int file_count) {
     for (int i = 0; i < file_count; i++) {
         int has_custom_name = 0;
         char fn_name[MAX_BUFFER_SIZE];
-        char *stripped_name = strip_ext(str_tolower(file_names[i]));
+        char *stripped_name = strip_ext(file_names[i]);
 
         if (fn_valid) {
-            struct json custom_lookup_json = json_object_get(fn_json, stripped_name);
+            struct json custom_lookup_json = json_object_get(fn_json, str_tolower(stripped_name));
             if (json_exists(custom_lookup_json)) {
                 json_string_copy(custom_lookup_json, fn_name, sizeof(fn_name));
                 has_custom_name = 1;
@@ -314,8 +329,7 @@ static void gen_item(char **file_names, int file_count) {
 
         if (!has_custom_name) {
             const char *lookup_result = read_line_int_from(name_lookup, lookup_line) ? lookup(stripped_name) : NULL;
-            snprintf(fn_name, sizeof(fn_name), "%s",
-                     lookup_result ? lookup_result : stripped_name);
+            snprintf(fn_name, sizeof(fn_name), "%s", lookup_result ? lookup_result : stripped_name);
         }
 
         content_item *new_item = add_item(&items, &item_count, file_names[i], fn_name, "", ITEM);
@@ -810,27 +824,23 @@ static void handle_select() {
 
     write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
 
-    if (strcasecmp(get_last_dir(sys_dir), "ROMS") != 0) {
-        if (kiosk.CONTENT.OPTION) {
-            if (!kiosk.CONTENT.SEARCH) {
-                load_mux("search");
+    if (kiosk.CONTENT.OPTION) {
+        if (!kiosk.CONTENT.SEARCH) {
+            load_mux("search");
 
-                close_input();
-                mux_input_stop();
-            }
-            return;
+            close_input();
+            mux_input_stop();
         }
-
-        write_text_to_file(MUOS_SAA_LOAD, "w", INT, 1);
-        write_text_to_file(MUOS_SAG_LOAD, "w", INT, 1);
-
-        load_content_core(1, 0);
-        load_content_governor(sys_dir, NULL, 1, 0);
-
-        load_mux("option");
-    } else {
-        if (!kiosk.CONTENT.SEARCH) load_mux("search");
+        return;
     }
+
+    write_text_to_file(MUOS_SAA_LOAD, "w", INT, 1);
+    write_text_to_file(MUOS_SAG_LOAD, "w", INT, 1);
+
+    load_content_core(1, 0);
+    load_content_governor(sys_dir, NULL, 1, 0);
+
+    load_mux("option");
 
     close_input();
     mux_input_stop();

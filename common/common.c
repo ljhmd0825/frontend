@@ -205,25 +205,27 @@ char *str_nonew(char *text) {
 }
 
 char *str_tolower(char *text) {
-    char *ptr = text;
+    char *result = strdup(text);
+    char *ptr = result;
 
     while (*ptr) {
         *ptr = tolower((unsigned char) *ptr);
         ptr++;
     }
 
-    return text;
+    return result;
 }
 
 char *str_toupper(char *text) {
-    char *ptr = text;
+    char *result = strdup(text);
+    char *ptr = result;
 
     while (*ptr) {
         *ptr = toupper((unsigned char) *ptr);
         ptr++;
     }
 
-    return text;
+    return result;
 }
 
 char *str_remchar(char *text, char c) {
@@ -415,7 +417,7 @@ char *str_rem_last_char(char *text, int count) {
     static char buffer[PATH_MAX];
     size_t len = strlen(text);
 
-    if (count >= (int)len) return "";
+    if (count >= (int) len) return "";
 
     strncpy(buffer, text, sizeof(buffer) - 1);
     buffer[sizeof(buffer) - 1] = '\0';
@@ -437,7 +439,31 @@ char *get_last_subdir(char *text, char separator, int n) {
         ptr++;
     }
 
-    return (*ptr) ? ptr : text;
+    if (count < n) {
+        return "";
+    }
+
+    return ptr;
+}
+
+void remove_double_slashes(char *str) {
+    char *src = str;
+    char *dst = str;
+
+    while (*src) {
+        *dst = *src;
+
+        if (*src == '/' && *(src + 1) == '/') {
+            while (*(src + 1) == '/') {
+                src++;
+            }
+        }
+
+        src++;
+        dst++;
+    }
+
+    *dst = '\0';
 }
 
 char *get_last_dir(char *text) {
@@ -2532,7 +2558,7 @@ int theme_compat() {
     if (file_exist(theme_version_file)) {
         char *theme_version = read_line_char_from(theme_version_file, 1);
         for (int i = 0; theme_back_compat[i] != NULL; i++) {
-            if (str_startswith(theme_version, theme_back_compat[i])) return 1;
+            if (str_startswith(theme_back_compat[i], theme_version)) return 1;
         }
         LOG_WARN(mux_module, "Incompatible Theme Detected: %s", theme_version)
     } else {
