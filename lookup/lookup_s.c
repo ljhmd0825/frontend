@@ -1957,7 +1957,7 @@ static const LookupName lookup_table[] = {
         {"sxyreact", "파칭코 섹시 리액션 (일본판)"},
         {"syscheck", "네오 시스템체크"},
         {"syutnori", "슈퍼 윷놀이 (메이저 포커의 해적판)"},
-        {"syvalion", " "},
+        {"syvalion", "사이버리온 (일본판)"},
         {"syvalionp", "사이버리온 (세계판,시험판)"},
         {"syvalionu", "사이버리온 (미국판,PS2 타이토 레전드 2)"},
         {"syvalionw", "사이버리온 (세계판,PS2 타이토 레전드 2)"},
