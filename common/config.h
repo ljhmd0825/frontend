@@ -30,6 +30,8 @@ struct mux_config {
         char GATEWAY[MAX_BUFFER_SIZE];
         char SUBNET[MAX_BUFFER_SIZE];
         char DNS[MAX_BUFFER_SIZE];
+        int16_t MONITOR;
+        int16_t BOOT;
     } NETWORK;
 
     struct {
@@ -46,7 +48,6 @@ struct mux_config {
             int16_t THEME;
             int16_t RETROWAIT;
             char USBFUNCTION[MAX_BUFFER_SIZE];
-            char STATE[MAX_BUFFER_SIZE];
             int16_t VERBOSE;
             int16_t RUMBLE;
             int16_t USERINIT;
@@ -54,7 +55,8 @@ struct mux_config {
             int16_t OVERDRIVE;
             int16_t SWAPFILE;
             int16_t ZRAMFILE;
-            char CARDMODE[MAX_BUFFER_SIZE];
+            int16_t LIDSWITCH;
+            int16_t DISPSUSPEND;
         } ADVANCED;
         struct {
             int16_t HIDDEN;
@@ -82,8 +84,11 @@ struct mux_config {
         struct {
             int16_t LOW_BATTERY;
             int16_t SHUTDOWN;
-            int16_t IDLE_DISPLAY;
-            int16_t IDLE_SLEEP;
+            struct {
+                int16_t DISPLAY;
+                int16_t SLEEP;
+                int16_t MUTE;
+            } IDLE;
         } POWER;
     } SETTINGS;
 
@@ -133,6 +138,8 @@ struct mux_config {
         int16_t CHILDFIRST;
         int16_t TIMESLICE;
         int16_t TUNESCALE;
+        char CARDMODE[MAX_BUFFER_SIZE];
+        char STATE[MAX_BUFFER_SIZE];
     } DANGER;
 };
 

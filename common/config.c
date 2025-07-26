@@ -24,10 +24,12 @@ void load_config(struct mux_config *config) {
     CFG_STR_FIELD(config->NETWORK.GATEWAY, CONF_CONFIG_PATH "network/gateway", "192.168.0.1")
     CFG_STR_FIELD(config->NETWORK.SUBNET, CONF_CONFIG_PATH "network/subnet", "24")
     CFG_STR_FIELD(config->NETWORK.DNS, CONF_CONFIG_PATH "network/dns", "1.1.1.1")
+    CFG_INT_FIELD(config->NETWORK.MONITOR, CONF_CONFIG_PATH "network/monitor", 1)
+    CFG_INT_FIELD(config->NETWORK.BOOT, CONF_CONFIG_PATH "network/boot", 1)
 
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.ACCELERATE, CONF_CONFIG_PATH "settings/advanced/accelerate", 96)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.SWAP, CONF_CONFIG_PATH "settings/advanced/swap", 0)
-    CFG_INT_FIELD(config->SETTINGS.ADVANCED.THERMAL, CONF_CONFIG_PATH "settings/advanced/thermal", 0)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.THERMAL, CONF_CONFIG_PATH "settings/advanced/thermal", 1)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.FONT, CONF_CONFIG_PATH "settings/advanced/font", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.OFFSET, CONF_CONFIG_PATH "settings/advanced/offset", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.LOCK, CONF_CONFIG_PATH "settings/advanced/lock", 0)
@@ -39,13 +41,13 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.RUMBLE, CONF_CONFIG_PATH "settings/advanced/rumble", 0)
     CFG_STR_FIELD(config->SETTINGS.ADVANCED.VOLUME, CONF_CONFIG_PATH "settings/advanced/volume", "previous")
     CFG_STR_FIELD(config->SETTINGS.ADVANCED.BRIGHTNESS, CONF_CONFIG_PATH "settings/advanced/brightness", "previous")
-    CFG_STR_FIELD(config->SETTINGS.ADVANCED.STATE, CONF_CONFIG_PATH "settings/advanced/state", "mem")
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.USERINIT, CONF_CONFIG_PATH "settings/advanced/user_init", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.DPADSWAP, CONF_CONFIG_PATH "settings/advanced/dpad_swap", 1)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.OVERDRIVE, CONF_CONFIG_PATH "settings/advanced/overdrive", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.SWAPFILE, CONF_CONFIG_PATH "settings/advanced/swapfile", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.ZRAMFILE, CONF_CONFIG_PATH "settings/advanced/zramfile", 0)
-    CFG_STR_FIELD(config->SETTINGS.ADVANCED.CARDMODE, CONF_CONFIG_PATH "settings/advanced/cardmode", "deadline")
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.LIDSWITCH, CONF_CONFIG_PATH "settings/advanced/lidswitch", 1)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.DISPSUSPEND, CONF_CONFIG_PATH "settings/advanced/disp_suspend", 0)
 
     CFG_INT_FIELD(config->SETTINGS.GENERAL.HIDDEN, CONF_CONFIG_PATH "settings/general/hidden", 0)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.SOUND, CONF_CONFIG_PATH "settings/general/sound", 0)
@@ -94,8 +96,9 @@ void load_config(struct mux_config *config) {
 
     CFG_INT_FIELD(config->SETTINGS.POWER.LOW_BATTERY, CONF_CONFIG_PATH "settings/power/low_battery", 0)
     CFG_INT_FIELD(config->SETTINGS.POWER.SHUTDOWN, CONF_CONFIG_PATH "settings/power/shutdown", 0)
-    CFG_INT_FIELD(config->SETTINGS.POWER.IDLE_DISPLAY, CONF_CONFIG_PATH "settings/power/idle_display", 0)
-    CFG_INT_FIELD(config->SETTINGS.POWER.IDLE_SLEEP, CONF_CONFIG_PATH "settings/power/idle_sleep", 0)
+    CFG_INT_FIELD(config->SETTINGS.POWER.IDLE.DISPLAY, CONF_CONFIG_PATH "settings/power/idle_display", 0)
+    CFG_INT_FIELD(config->SETTINGS.POWER.IDLE.SLEEP, CONF_CONFIG_PATH "settings/power/idle_sleep", 0)
+    CFG_INT_FIELD(config->SETTINGS.POWER.IDLE.MUTE, CONF_CONFIG_PATH "settings/power/idle_mute", 1)
 
     CFG_INT_FIELD(config->VISUAL.BATTERY, CONF_CONFIG_PATH "visual/battery", 1)
     CFG_INT_FIELD(config->VISUAL.NETWORK, CONF_CONFIG_PATH "visual/network", 0)
@@ -138,4 +141,6 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->DANGER.IDLEFLUSH, CONF_CONFIG_PATH "danger/idle_flush", 0)
     CFG_INT_FIELD(config->DANGER.CHILDFIRST, CONF_CONFIG_PATH "danger/child_first", 0)
     CFG_INT_FIELD(config->DANGER.TUNESCALE, CONF_CONFIG_PATH "danger/tune_scale", 1)
+    CFG_STR_FIELD(config->DANGER.CARDMODE, CONF_CONFIG_PATH "danger/cardmode", "noop")
+    CFG_STR_FIELD(config->DANGER.STATE, CONF_CONFIG_PATH "danger/state", "mem")
 }

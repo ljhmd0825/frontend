@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxtweakadv.h"
 
-#define UI_COUNT 19
+#define UI_COUNT 21
 
 #define TWEAKADV(NAME, UDATA) static int NAME##_original;
     TWEAKADV_ELEMENTS
@@ -9,25 +9,27 @@
 
 static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
-            {ui_lblAccelerate_tweakadv, lang.MUXTWEAKADV.HELP.SPEED},
-            {ui_lblSwap_tweakadv,       lang.MUXTWEAKADV.HELP.SWAP},
-            {ui_lblThermal_tweakadv,    lang.MUXTWEAKADV.HELP.THERMAL},
-            {ui_lblVolume_tweakadv,     lang.MUXTWEAKADV.HELP.VOLUME},
-            {ui_lblBrightness_tweakadv, lang.MUXTWEAKADV.HELP.BRIGHT},
-            {ui_lblOffset_tweakadv,     lang.MUXTWEAKADV.HELP.OFFSET},
-            {ui_lblPasscode_tweakadv,   lang.MUXTWEAKADV.HELP.LOCK},
-            {ui_lblLed_tweakadv,        lang.MUXTWEAKADV.HELP.LED},
-            {ui_lblTheme_tweakadv,      lang.MUXTWEAKADV.HELP.RANDOM},
-            {ui_lblRetroWait_tweakadv,  lang.MUXTWEAKADV.HELP.NET_WAIT},
-            {ui_lblState_tweakadv,      lang.MUXTWEAKADV.HELP.STATE},
-            {ui_lblVerbose_tweakadv,    lang.MUXTWEAKADV.HELP.VERBOSE},
-            {ui_lblRumble_tweakadv,     lang.MUXTWEAKADV.HELP.RUMBLE},
-            {ui_lblUserInit_tweakadv,   lang.MUXTWEAKADV.HELP.USER_INIT},
-            {ui_lblDpadSwap_tweakadv,   lang.MUXTWEAKADV.HELP.DPAD},
-            {ui_lblOverdrive_tweakadv,  lang.MUXTWEAKADV.HELP.OVERDRIVE},
-            {ui_lblSwapfile_tweakadv,   lang.MUXTWEAKADV.HELP.SWAPFILE},
-            {ui_lblZramfile_tweakadv,   lang.MUXTWEAKADV.HELP.ZRAMFILE},
-            {ui_lblCardMode_tweakadv,   lang.MUXTWEAKADV.HELP.TUNING},
+            {ui_lblAccelerate_tweakadv,  lang.MUXTWEAKADV.HELP.SPEED},
+            {ui_lblOffset_tweakadv,      lang.MUXTWEAKADV.HELP.OFFSET},
+            {ui_lblSwap_tweakadv,        lang.MUXTWEAKADV.HELP.SWAP},
+            {ui_lblVolume_tweakadv,      lang.MUXTWEAKADV.HELP.VOLUME},
+            {ui_lblBrightness_tweakadv,  lang.MUXTWEAKADV.HELP.BRIGHT},
+            {ui_lblThermal_tweakadv,     lang.MUXTWEAKADV.HELP.THERMAL},
+            {ui_lblPasscode_tweakadv,    lang.MUXTWEAKADV.HELP.LOCK},
+            {ui_lblLed_tweakadv,         lang.MUXTWEAKADV.HELP.LED},
+            {ui_lblTheme_tweakadv,       lang.MUXTWEAKADV.HELP.RANDOM},
+            {ui_lblRetroWait_tweakadv,   lang.MUXTWEAKADV.HELP.NET_WAIT},
+            {ui_lblVerbose_tweakadv,     lang.MUXTWEAKADV.HELP.VERBOSE},
+            {ui_lblRumble_tweakadv,      lang.MUXTWEAKADV.HELP.RUMBLE},
+            {ui_lblUserInit_tweakadv,    lang.MUXTWEAKADV.HELP.USER_INIT},
+            {ui_lblDpadSwap_tweakadv,    lang.MUXTWEAKADV.HELP.DPAD},
+            {ui_lblOverdrive_tweakadv,   lang.MUXTWEAKADV.HELP.OVERDRIVE},
+            {ui_lblLidSwitch_tweakadv,   lang.MUXTWEAKADV.HELP.LIDSWITCH},
+            {ui_lblDispSuspend_tweakadv, lang.MUXTWEAKADV.HELP.DISPSUSPEND},
+            {ui_lblSwapfile_tweakadv,    lang.MUXTWEAKADV.HELP.SWAPFILE},
+            {ui_lblZramfile_tweakadv,    lang.MUXTWEAKADV.HELP.ZRAMFILE},
+            {ui_lblSecondPart_tweakadv,  lang.MUXTWEAKADV.HELP.SECONDPART},
+            {ui_lblUsbPart_tweakadv,     lang.MUXTWEAKADV.HELP.USBPART},
     };
 
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
@@ -51,8 +53,8 @@ static void restore_tweak_options() {
                              !strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "high") ? 3 : 0);
 
     lv_dropdown_set_selected(ui_droSwap_tweakadv, config.SETTINGS.ADVANCED.SWAP);
-    lv_dropdown_set_selected(ui_droThermal_tweakadv, config.SETTINGS.ADVANCED.THERMAL);
     lv_dropdown_set_selected(ui_droOffset_tweakadv, config.SETTINGS.ADVANCED.OFFSET);
+    lv_dropdown_set_selected(ui_droThermal_tweakadv, config.SETTINGS.ADVANCED.THERMAL);
     lv_dropdown_set_selected(ui_droPasscode_tweakadv, config.SETTINGS.ADVANCED.LOCK);
     lv_dropdown_set_selected(ui_droLed_tweakadv, config.SETTINGS.ADVANCED.LED);
     lv_dropdown_set_selected(ui_droTheme_tweakadv, config.SETTINGS.ADVANCED.THEME);
@@ -62,9 +64,10 @@ static void restore_tweak_options() {
     lv_dropdown_set_selected(ui_droUserInit_tweakadv, config.SETTINGS.ADVANCED.USERINIT);
     lv_dropdown_set_selected(ui_droDpadSwap_tweakadv, config.SETTINGS.ADVANCED.DPADSWAP);
     lv_dropdown_set_selected(ui_droOverdrive_tweakadv, config.SETTINGS.ADVANCED.OVERDRIVE);
-
-    lv_dropdown_set_selected(ui_droState_tweakadv, !strcasecmp(config.SETTINGS.ADVANCED.STATE, "freeze"));
-    lv_dropdown_set_selected(ui_droCardMode_tweakadv, !strcasecmp(config.SETTINGS.ADVANCED.CARDMODE, "noop"));
+    lv_dropdown_set_selected(ui_droLidSwitch_tweakadv, config.SETTINGS.ADVANCED.LIDSWITCH);
+    lv_dropdown_set_selected(ui_droDispSuspend_tweakadv, config.SETTINGS.ADVANCED.DISPSUSPEND);
+    lv_dropdown_set_selected(ui_droSecondPart_tweakadv, device.STORAGE.SDCARD.PARTITION - 1);
+    lv_dropdown_set_selected(ui_droUsbPart_tweakadv, device.STORAGE.USB.PARTITION - 1);
 
     map_drop_down_to_index(ui_droAccelerate_tweakadv, config.SETTINGS.ADVANCED.ACCELERATE, accelerate_values, 17, 6);
     map_drop_down_to_index(ui_droSwapfile_tweakadv, config.SETTINGS.ADVANCED.SWAPFILE, zram_swap_values, 11, 0);
@@ -75,8 +78,8 @@ static void save_tweak_options() {
     int is_modified = 0;
 
     CHECK_AND_SAVE_STD(tweakadv, Swap, "settings/advanced/swap", INT, 0);
-    CHECK_AND_SAVE_STD(tweakadv, Thermal, "settings/advanced/thermal", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Offset, "settings/advanced/offset", INT, 0);
+    CHECK_AND_SAVE_STD(tweakadv, Thermal, "settings/advanced/thermal", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Passcode, "settings/advanced/lock", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Led, "settings/advanced/led", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Theme, "settings/advanced/random_theme", INT, 0);
@@ -86,11 +89,27 @@ static void save_tweak_options() {
     CHECK_AND_SAVE_STD(tweakadv, UserInit, "settings/advanced/user_init", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, DpadSwap, "settings/advanced/dpad_swap", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Overdrive, "settings/advanced/overdrive", INT, 0);
+    CHECK_AND_SAVE_STD(tweakadv, LidSwitch, "settings/advanced/lidswitch", INT, 0);
+    CHECK_AND_SAVE_STD(tweakadv, DispSuspend, "settings/advanced/disp_suspend", INT, 0);
+
+    do {
+        int sd2_current = lv_dropdown_get_selected(ui_droSecondPart_tweakadv);
+        if (sd2_current != SecondPart_original) {
+            is_modified++;
+            write_text_to_file((CONF_DEVICE_PATH "storage/sdcard/num"), "w", INT, sd2_current + 1);
+        }
+    } while (0);
+
+    do {
+        int usb_current = lv_dropdown_get_selected(ui_droUsbPart_tweakadv);
+        if (usb_current != UsbPart_original) {
+            is_modified++;
+            write_text_to_file((CONF_DEVICE_PATH "storage/usb/num"), "w", INT, usb_current + 1);
+        }
+    } while (0);
 
     CHECK_AND_SAVE_VAL(tweakadv, Volume, "settings/advanced/volume", CHAR, volume_values);
     CHECK_AND_SAVE_VAL(tweakadv, Brightness, "settings/advanced/brightness", CHAR, brightness_values);
-    CHECK_AND_SAVE_VAL(tweakadv, State, "settings/advanced/state", CHAR, state_values);
-    CHECK_AND_SAVE_VAL(tweakadv, CardMode, "settings/advanced/cardmode", CHAR, cardmode_values);
 
     CHECK_AND_SAVE_MAP(tweakadv, Accelerate, "settings/advanced/accelerate", accelerate_values, 17, 6);
     CHECK_AND_SAVE_MAP(tweakadv, Swapfile, "settings/advanced/swapfile", zram_swap_values, 11, 0);
@@ -142,28 +161,25 @@ static void init_navigation_group() {
             lang.MUXTWEAKADV.RUMBLE.SHSL
     };
 
-    char *state_options[] = {"mem", "freeze"};
-    char *cardmode_options[] = {"deadline", "noop"};
-
     INIT_OPTION_ITEM(-1, tweakadv, Accelerate, lang.MUXTWEAKADV.SPEED, "accelerate", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakadv, Offset, lang.MUXTWEAKADV.OFFSET, "offset", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakadv, Swap, lang.MUXTWEAKADV.SWAP.TITLE, "swap", swap_options, 2);
-    INIT_OPTION_ITEM(-1, tweakadv, Thermal, lang.MUXTWEAKADV.THERMAL, "thermal", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Volume, lang.MUXTWEAKADV.VOLUME.TITLE, "volume", volume_options, 4);
     INIT_OPTION_ITEM(-1, tweakadv, Brightness, lang.MUXTWEAKADV.BRIGHT.TITLE, "brightness", brightness_options, 4);
-    INIT_OPTION_ITEM(-1, tweakadv, Offset, lang.MUXTWEAKADV.OFFSET, "offset", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakadv, Thermal, lang.MUXTWEAKADV.THERMAL, "thermal", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Passcode, lang.MUXTWEAKADV.LOCK, "lock", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Led, lang.MUXTWEAKADV.LED, "led", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Theme, lang.MUXTWEAKADV.RANDOM, "theme", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, RetroWait, lang.MUXTWEAKADV.NET_WAIT, "retrowait", disabled_enabled, 2);
-    INIT_OPTION_ITEM(-1, tweakadv, State, lang.MUXTWEAKADV.STATE, "state", state_options, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Verbose, lang.MUXTWEAKADV.VERBOSE, "verbose", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Rumble, lang.MUXTWEAKADV.RUMBLE.TITLE, "rumble", rumble_options, 7);
     INIT_OPTION_ITEM(-1, tweakadv, UserInit, lang.MUXTWEAKADV.USER_INIT, "userinit", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, DpadSwap, lang.MUXTWEAKADV.DPAD, "dpadswap", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Overdrive, lang.MUXTWEAKADV.OVERDRIVE, "overdrive", disabled_enabled, 2);
+    INIT_OPTION_ITEM(-1, tweakadv, LidSwitch, lang.MUXTWEAKADV.LIDSWITCH, "lidswitch", disabled_enabled, 2);
+    INIT_OPTION_ITEM(-1, tweakadv, DispSuspend, lang.MUXTWEAKADV.DISPSUSPEND, "dispsuspend", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Swapfile, lang.MUXTWEAKADV.SWAPFILE, "swapfile", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakadv, Zramfile, lang.MUXTWEAKADV.ZRAMFILE, "zramfile", NULL, 0);
-    INIT_OPTION_ITEM(-1, tweakadv, CardMode, lang.MUXTWEAKADV.TUNING, "cardmode", cardmode_options, 2);
 
     char *accelerate_values = generate_number_string(16, 256, 16, lang.GENERIC.DISABLED, NULL, NULL, 0);
     apply_theme_list_drop_down(&theme, ui_droAccelerate_tweakadv, accelerate_values);
@@ -181,6 +197,11 @@ static void init_navigation_group() {
     apply_theme_list_drop_down(&theme, ui_droZramfile_tweakadv, zramfile_values);
     free(zramfile_values);
 
+    char *partition_values = generate_number_string(1, 128, 1, NULL, NULL, NULL, 0);
+    apply_theme_list_drop_down(&theme, ui_droSecondPart_tweakadv, partition_values);
+    apply_theme_list_drop_down(&theme, ui_droUsbPart_tweakadv, partition_values);
+    free(partition_values);
+
     ui_group = lv_group_create();
     ui_group_value = lv_group_create();
     ui_group_glyph = lv_group_create();
@@ -195,6 +216,11 @@ static void init_navigation_group() {
 
     if (!device.DEVICE.HAS_NETWORK) {
         lv_obj_add_flag(ui_pnlRetroWait_tweakadv, MU_OBJ_FLAG_HIDE_FLOAT);
+        ui_count -= 1;
+    }
+
+    if (!device.DEVICE.HAS_LID) {
+        lv_obj_add_flag(ui_pnlLidSwitch_tweakadv, MU_OBJ_FLAG_HIDE_FLOAT);
         ui_count -= 1;
     }
 

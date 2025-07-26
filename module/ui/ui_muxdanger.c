@@ -35,3 +35,11 @@ const int read_ahead_values[] = {
 const int time_slice_values[] = {
         10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000
 };
+
+const char *cardmode_values[] = {
+        "deadline", "noop"
+};
+
+const char *state_values[] = {
+        "mem", "freeze"
+};

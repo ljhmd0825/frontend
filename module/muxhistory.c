@@ -11,9 +11,6 @@ static int splash_valid = 0;
 
 static char current_meta_text[MAX_BUFFER_SIZE];
 static char current_content_label[MAX_BUFFER_SIZE];
-static char box_image_previous_path[MAX_BUFFER_SIZE];
-static char preview_image_previous_path[MAX_BUFFER_SIZE];
-static char splash_image_previous_path[MAX_BUFFER_SIZE];
 
 static char *load_content_description() {
     char core_file[MAX_BUFFER_SIZE];
@@ -193,8 +190,8 @@ static void gen_item(int file_count, char **file_names, char **last_dirs) {
         snprintf(history_file, sizeof(history_file), "%s/%s",
                  INFO_HIS_PATH, file_names[i]);
 
-        const char *cache_file = read_line_char_from(history_file, CACHE_CORE_PATH);
-        const char *stripped_name = read_line_char_from(history_file, CACHE_CORE_NAME);
+        char *cache_file = read_line_char_from(history_file, CACHE_CORE_PATH);
+        char *stripped_name = read_line_char_from(history_file, CACHE_CORE_NAME);
 
         if (stripped_name && stripped_name[0] == '\0') {
             stripped_name = strip_ext(read_line_char_from(cache_file, CONTENT_FULL));

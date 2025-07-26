@@ -231,6 +231,8 @@ struct mux_lang {
         char IDLEFLUSH[MAX_BUFFER_SIZE];
         char CHILDFIRST[MAX_BUFFER_SIZE];
         char TUNESCALE[MAX_BUFFER_SIZE];
+        char CARDMODE[MAX_BUFFER_SIZE];
+        char STATE[MAX_BUFFER_SIZE];
         struct {
             char VMSWAP[MAX_BUFFER_SIZE];
             char DIRTYRATIO[MAX_BUFFER_SIZE];
@@ -245,6 +247,8 @@ struct mux_lang {
             char IDLEFLUSH[MAX_BUFFER_SIZE];
             char CHILDFIRST[MAX_BUFFER_SIZE];
             char TUNESCALE[MAX_BUFFER_SIZE];
+            char CARDMODE[MAX_BUFFER_SIZE];
+            char STATE[MAX_BUFFER_SIZE];
         } HELP;
     } MUXDANGER;
 
@@ -475,6 +479,8 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
+        char MONITOR[MAX_BUFFER_SIZE];
+        char BOOT[MAX_BUFFER_SIZE];
         char CONNECT[MAX_BUFFER_SIZE];
         char DISCONNECT[MAX_BUFFER_SIZE];
         char CONNECTED[MAX_BUFFER_SIZE];
@@ -506,6 +512,8 @@ struct mux_lang {
             char GATEWAY[MAX_BUFFER_SIZE];
             char CIDR[MAX_BUFFER_SIZE];
             char IP[MAX_BUFFER_SIZE];
+            char MONITOR[MAX_BUFFER_SIZE];
+            char BOOT[MAX_BUFFER_SIZE];
             char CONNECT[MAX_BUFFER_SIZE];
         } HELP;
     } MUXNETWORK;
@@ -567,10 +575,11 @@ struct mux_lang {
     struct {
         char TITLE[MAX_BUFFER_SIZE];
         char LOW_BATTERY[MAX_BUFFER_SIZE];
-        char IDLE_ERROR[MAX_BUFFER_SIZE];
         struct {
+            char ERROR[MAX_BUFFER_SIZE];
             char DISPLAY[MAX_BUFFER_SIZE];
             char SLEEP[MAX_BUFFER_SIZE];
+            char MUTE[MAX_BUFFER_SIZE];
             char t10s[MAX_BUFFER_SIZE];
             char t30s[MAX_BUFFER_SIZE];
             char t60s[MAX_BUFFER_SIZE];
@@ -595,8 +604,11 @@ struct mux_lang {
             char t60m[MAX_BUFFER_SIZE];
         } SLEEP;
         struct {
-            char IDLE_DISPLAY[MAX_BUFFER_SIZE];
-            char IDLE_SLEEP[MAX_BUFFER_SIZE];
+            struct {
+                char DISPLAY[MAX_BUFFER_SIZE];
+                char SLEEP[MAX_BUFFER_SIZE];
+                char MUTE[MAX_BUFFER_SIZE];
+            } IDLE;
             char LOW_BATTERY[MAX_BUFFER_SIZE];
             char SLEEP_FUNCTION[MAX_BUFFER_SIZE];
         } HELP;
@@ -700,7 +712,6 @@ struct mux_lang {
         char FRIENDLY[MAX_BUFFER_SIZE];
         char RA_SYSTEM[MAX_BUFFER_SIZE];
         char RA_CONFIG[MAX_BUFFER_SIZE];
-        char EXTERNAL[MAX_BUFFER_SIZE];
         char ASSIGNED[MAX_BUFFER_SIZE];
         char COLLECTION[MAX_BUFFER_SIZE];
         char HISTORY[MAX_BUFFER_SIZE];
@@ -711,6 +722,8 @@ struct mux_lang {
         char NET_PROFILE[MAX_BUFFER_SIZE];
         char SYNCTHING[MAX_BUFFER_SIZE];
         char USER_INIT[MAX_BUFFER_SIZE];
+        char EXTERNAL[MAX_BUFFER_SIZE];
+        char MUOS_CONFIG[MAX_BUFFER_SIZE];
         char BACKUP_TARGET[MAX_BUFFER_SIZE];
         char START_BACKUP[MAX_BUFFER_SIZE];
         struct {
@@ -725,7 +738,6 @@ struct mux_lang {
             char FRIENDLY[MAX_BUFFER_SIZE];
             char RA_SYSTEM[MAX_BUFFER_SIZE];
             char RA_CONFIG[MAX_BUFFER_SIZE];
-            char EXTERNAL[MAX_BUFFER_SIZE];
             char ASSIGNED[MAX_BUFFER_SIZE];
             char COLLECTION[MAX_BUFFER_SIZE];
             char HISTORY[MAX_BUFFER_SIZE];
@@ -736,6 +748,8 @@ struct mux_lang {
             char NET_PROFILE[MAX_BUFFER_SIZE];
             char SYNCTHING[MAX_BUFFER_SIZE];
             char USER_INIT[MAX_BUFFER_SIZE];
+            char EXTERNAL[MAX_BUFFER_SIZE];
+            char MUOS_CONFIG[MAX_BUFFER_SIZE];
             char BACKUP_TARGET[MAX_BUFFER_SIZE];
             char START_BACKUP[MAX_BUFFER_SIZE];
             struct {
@@ -822,8 +836,10 @@ struct mux_lang {
         char OVERDRIVE[MAX_BUFFER_SIZE];
         char SWAPFILE[MAX_BUFFER_SIZE];
         char ZRAMFILE[MAX_BUFFER_SIZE];
-        char STATE[MAX_BUFFER_SIZE];
-        char TUNING[MAX_BUFFER_SIZE];
+        char LIDSWITCH[MAX_BUFFER_SIZE];
+        char DISPSUSPEND[MAX_BUFFER_SIZE];
+        char SECONDPART[MAX_BUFFER_SIZE];
+        char USBPART[MAX_BUFFER_SIZE];
         struct {
             char TITLE[MAX_BUFFER_SIZE];
             char RETRO[MAX_BUFFER_SIZE];
@@ -864,12 +880,14 @@ struct mux_lang {
             char OVERDRIVE[MAX_BUFFER_SIZE];
             char SWAPFILE[MAX_BUFFER_SIZE];
             char ZRAMFILE[MAX_BUFFER_SIZE];
-            char TUNING[MAX_BUFFER_SIZE];
+            char LIDSWITCH[MAX_BUFFER_SIZE];
             char RUMBLE[MAX_BUFFER_SIZE];
-            char STATE[MAX_BUFFER_SIZE];
             char BRIGHT[MAX_BUFFER_SIZE];
             char VOLUME[MAX_BUFFER_SIZE];
             char SWAP[MAX_BUFFER_SIZE];
+            char DISPSUSPEND[MAX_BUFFER_SIZE];
+            char SECONDPART[MAX_BUFFER_SIZE];
+            char USBPART[MAX_BUFFER_SIZE];
         } HELP;
     } MUXTWEAKADV;
 

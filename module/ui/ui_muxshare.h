@@ -66,6 +66,7 @@
     BACKUP(Syncthing,        "syncthing")      \
     BACKUP(UserInit,         "userinit")       \
     BACKUP(External,         "external")       \
+    BACKUP(MuosConfig,       "muosconfig")     \
     BACKUP(BackupTarget,     "backuptarget")   \
     BACKUP(StartBackup,      "startbackup")
 
@@ -115,7 +116,9 @@
     DANGER(IoStats,       "iostats")     \
     DANGER(IdleFlush,     "idleflush")   \
     DANGER(ChildFirst,    "child")       \
-    DANGER(TuneScale,     "tunescale")
+    DANGER(TuneScale,     "tunescale")   \
+    DANGER(CardMode,      "cardmode")    \
+    DANGER(State,         "state")
 
 #define INFO_ELEMENTS              \
     INFO(Screenshot, "screenshot") \
@@ -197,6 +200,8 @@
     NETWORK(Subnet,     "subnet")     \
     NETWORK(Gateway,    "gateway")    \
     NETWORK(Dns,        "dns")        \
+    NETWORK(Monitor,    "monitor")    \
+    NETWORK(Boot,       "boot")       \
     NETWORK(Connect,    "connect")
 
 #define OPTION_ELEMENTS          \
@@ -208,8 +213,9 @@
 #define POWER_ELEMENTS \
     POWER(Shutdown,    "shutdown")     \
     POWER(Battery,     "battery")      \
+    POWER(IdleSleep,   "idle_sleep")   \
     POWER(IdleDisplay, "idle_display") \
-    POWER(IdleSleep,   "idle_sleep")
+    POWER(IdleMute,    "idle_mute")
 
 #define RTC_ELEMENTS          \
     RTC(Year,     "year")     \
@@ -265,26 +271,28 @@
     SYSINFO(Capacity, "capacity") \
     SYSINFO(Voltage,  "voltage")
 
-#define TWEAKADV_ELEMENTS              \
-    TWEAKADV(Accelerate, "accelerate") \
-    TWEAKADV(Swap,       "swap")       \
-    TWEAKADV(Thermal,    "thermal")    \
-    TWEAKADV(Volume,     "volume")     \
-    TWEAKADV(Brightness, "brightness") \
-    TWEAKADV(Offset,     "offset")     \
-    TWEAKADV(Passcode,   "lock")       \
-    TWEAKADV(Led,        "led")        \
-    TWEAKADV(Theme,      "theme")      \
-    TWEAKADV(RetroWait,  "retrowait")  \
-    TWEAKADV(State,      "state")      \
-    TWEAKADV(Verbose,    "verbose")    \
-    TWEAKADV(Rumble,     "rumble")     \
-    TWEAKADV(UserInit,   "userinit")   \
-    TWEAKADV(DpadSwap,   "dpadswap")   \
-    TWEAKADV(Overdrive,  "overdrive")  \
-    TWEAKADV(Swapfile,   "swapfile")   \
-    TWEAKADV(Zramfile,   "zramfile")   \
-    TWEAKADV(CardMode,   "cardmode")
+#define TWEAKADV_ELEMENTS                \
+    TWEAKADV(Accelerate,  "accelerate")  \
+    TWEAKADV(Offset,      "offset")      \
+    TWEAKADV(Swap,        "swap")        \
+    TWEAKADV(Volume,      "volume")      \
+    TWEAKADV(Brightness,  "brightness")  \
+    TWEAKADV(Thermal,     "thermal")     \
+    TWEAKADV(Passcode,    "lock")        \
+    TWEAKADV(Led,         "led")         \
+    TWEAKADV(Theme,       "theme")       \
+    TWEAKADV(RetroWait,   "retrowait")   \
+    TWEAKADV(Verbose,     "verbose")     \
+    TWEAKADV(Rumble,      "rumble")      \
+    TWEAKADV(UserInit,    "userinit")    \
+    TWEAKADV(DpadSwap,    "dpadswap")    \
+    TWEAKADV(Overdrive,   "overdrive")   \
+    TWEAKADV(LidSwitch,   "lidswitch")   \
+    TWEAKADV(DispSuspend, "dispsuspend") \
+    TWEAKADV(Swapfile,    "swapfile")    \
+    TWEAKADV(Zramfile,    "zramfile")    \
+    TWEAKADV(SecondPart,  "secondpart")  \
+    TWEAKADV(UsbPart,     "usbpart")
 
 #define TWEAKGEN_ELEMENTS              \
     TWEAKGEN(Rtc,        "clock")      \

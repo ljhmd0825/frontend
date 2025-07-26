@@ -125,6 +125,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.SYNCTHING, "Syncthing Configs");
     SPECIFIC_FIELD(lang->MUXBACKUP.USER_INIT, "User Init Scripts");
     SPECIFIC_FIELD(lang->MUXBACKUP.EXTERNAL, "Standalone Emulator Files");
+    SPECIFIC_FIELD(lang->MUXBACKUP.MUOS_CONFIG, "muOS Settings");
     SPECIFIC_FIELD(lang->MUXBACKUP.PACKAGE.THEME, "Themes");
     SPECIFIC_FIELD(lang->MUXBACKUP.PACKAGE.CATALOGUE, "Catalogue Packages");
     SPECIFIC_FIELD(lang->MUXBACKUP.PACKAGE.RA_CONFIG, "RetroArch Config Packages");
@@ -147,6 +148,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.SYNCTHING, "Location of Syncthing configurations");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.USER_INIT, "Location of User Initialisation scripts");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.EXTERNAL, "Location of External Emulator files (e.g. PPSSPP, Pico-8, Dreamcast, Drastic)");
+    SPECIFIC_FIELD(lang->MUXBACKUP.HELP.MUOS_CONFIG, "Location of muOS Settings and Configuration");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.PACKAGE.THEME, "Location of themes");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.PACKAGE.CATALOGUE, "Location of catalogue packages");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.PACKAGE.RA_CONFIG, "Location of RetroArch configuration packages");
@@ -266,6 +268,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXDANGER.IDLEFLUSH, "Idle Flush Mode");
     SPECIFIC_FIELD(lang->MUXDANGER.CHILDFIRST, "Fork Optimisation");
     SPECIFIC_FIELD(lang->MUXDANGER.TUNESCALE, "Scheduler Scaling");
+    SPECIFIC_FIELD(lang->MUXDANGER.CARDMODE, "Disk Tuning");
+    SPECIFIC_FIELD(lang->MUXDANGER.STATE, "Suspend Power State");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.VMSWAP, "Controls how aggressively the system swaps memory to disk\n\nLower values keep processes in RAM longer");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.DIRTYRATIO, "Percentage of RAM allowed to hold unwritten (dirty) data before forcing a write to disk");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.DIRTYBACK, "Background write back starts when dirty data exceeds this percentage of RAM\n\nLower values help reduce latency");
@@ -279,6 +283,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.IDLEFLUSH, "Flushes dirty data on idle instead of using write back thresholds\n\nUseful for flash storage or reducing idle power");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.CHILDFIRST, "When enabled, a newly forked child process runs before the parent\n\nMay improve load times for some apps");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.TUNESCALE, "Automatically adjusts scheduler behaviour based on CPU count\n\nDisable for consistent tuning on devices");
+    SPECIFIC_FIELD(lang->MUXDANGER.HELP.CARDMODE, "Switch between different storage tuning options\n\nMay improve performance on certain mSD cards");
+    SPECIFIC_FIELD(lang->MUXDANGER.HELP.STATE, "Switch between system sleep suspend states\n\nChanges how the device reacts to sleep mode and wake locks");
 
     // muxgov
     SPECIFIC_FIELD(lang->MUXGOV.TITLE, "GOVERNOR");
@@ -469,6 +475,8 @@ void load_lang(struct mux_lang *lang) {
 
     // muxnetwork
     SPECIFIC_FIELD(lang->MUXNETWORK.TITLE, "WI-FI NETWORK");
+    SPECIFIC_FIELD(lang->MUXNETWORK.MONITOR, "Connection Monitor");
+    SPECIFIC_FIELD(lang->MUXNETWORK.BOOT, "Start Network on Boot");
     SPECIFIC_FIELD(lang->MUXNETWORK.CONNECT, "Connect");
     SPECIFIC_FIELD(lang->MUXNETWORK.DISCONNECT, "Disconnect");
     SPECIFIC_FIELD(lang->MUXNETWORK.CONNECTED, "Connected");
@@ -499,6 +507,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.GATEWAY, "Enter the network gateway address here (Static only)");
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.CIDR, "Enter the device Subnet (CIDR) number here (Static only)");
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.IP, "Enter the device IP address here (Static only)");
+    SPECIFIC_FIELD(lang->MUXNETWORK.HELP.MONITOR, "Enables periodic connectivity checks and triggers reconnection if network loss is detected");
+    SPECIFIC_FIELD(lang->MUXNETWORK.HELP.BOOT, "Enables network connection to be established automatically at boot");
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.CONNECT, "Connect to the network using options entered above");
 
     // muxoption
@@ -548,9 +558,10 @@ void load_lang(struct mux_lang *lang) {
     // muxpower
     SPECIFIC_FIELD(lang->MUXPOWER.TITLE, "POWER SETTINGS");
     SPECIFIC_FIELD(lang->MUXPOWER.LOW_BATTERY, "Low Battery Indicator");
-    SPECIFIC_FIELD(lang->MUXPOWER.IDLE_ERROR, "Idle Display must be less than Idle Sleep");
+    SPECIFIC_FIELD(lang->MUXPOWER.IDLE.ERROR, "Idle Display must be less than Idle Sleep");
     SPECIFIC_FIELD(lang->MUXPOWER.IDLE.DISPLAY, "Idle Input Display Timeout");
     SPECIFIC_FIELD(lang->MUXPOWER.IDLE.SLEEP, "Idle Input Sleep Timeout");
+    SPECIFIC_FIELD(lang->MUXPOWER.IDLE.MUTE, "Mute on Display Timeout");
     SPECIFIC_FIELD(lang->MUXPOWER.IDLE.t10s, "10s");
     SPECIFIC_FIELD(lang->MUXPOWER.IDLE.t30s, "30s");
     SPECIFIC_FIELD(lang->MUXPOWER.IDLE.t60s, "60s");
@@ -571,8 +582,9 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t15m, "Sleep 15m + Shutdown");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t30m, "Sleep 30m + Shutdown");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t60m, "Sleep 60m + Shutdown");
-    SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE_SLEEP, "Configure the time the device will sleep when no input is detected");
-    SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE_DISPLAY, "Configure the time the screen will dim when no input is detected");
+    SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE.SLEEP, "Configure the time the device will sleep when no input is detected");
+    SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE.DISPLAY, "Configure the time the screen will dim when no input is detected");
+    SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE.MUTE, "Toggle if the audio is muted when display is dimmed");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.LOW_BATTERY, "Configure when the red LED will display based on the current capacity percentage");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.SLEEP_FUNCTION, "Configure how the power button functions on long press (2 seconds)");
 
@@ -715,6 +727,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.OVERDRIVE, "Audio Overdrive");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAPFILE, "System Swapfile");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.ZRAMFILE, "System ZRam");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.LIDSWITCH, "Device Lid Switch");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.TITLE, "Button Swap");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.RETRO, "Retro");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.MODERN, "Modern");
@@ -726,7 +739,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.BRIGHT.LOW, "Low");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.BRIGHT.MEDIUM, "Medium");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.BRIGHT.HIGH, "High");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.STATE, "Suspend Power State");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RUMBLE.TITLE, "Device Rumble");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RUMBLE.ST, "Startup");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RUMBLE.SH, "Shutdown");
@@ -734,7 +746,9 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RUMBLE.STSH, "Startup + Shutdown");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RUMBLE.STSL, "Startup + Sleep");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RUMBLE.SHSL, "Shutdown + Sleep");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.TUNING, "Disk Tuning");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.DISPSUSPEND, "Display Suspend");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.SECONDPART, "Secondary Partition");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.USBPART, "External Partition");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SPEED, "Adjust the rate of speed when holding navigation keys down");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.THERMAL, "Toggle the system ability to automatically shut the device down due high temperature");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.OFFSET, "Change the displayed battery percentage to improve accuracy based on calibration or known deviations in the battery capacity reading");
@@ -748,12 +762,14 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.OVERDRIVE, "Toggle the audio overdrive moving it from 100% to 200%");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SWAPFILE, "Adjust the system swapfile if required by certain content");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.ZRAMFILE, "Adjust the system zram if required by certain content");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.TUNING, "Switch between different storage tuning options");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.LIDSWITCH, "Toggle the lid switch functionality for the device");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RUMBLE, "Toggle vibration for device startup, sleep, and shutdown");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.STATE, "Switch between system sleep suspend states");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.BRIGHT, "Change the default brightness level that the device will use each time it starts up");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.VOLUME, "Change the default audio level that the device will use each time it starts up");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SWAP, "Change how the device buttons work globally");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.DISPSUSPEND, "Toggle the device display suspend function, however some displays will not like this enabled");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SECONDPART, "Change the partition number requested upon secondary storage mount");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.USBPART, "Change the partition number requested upon external storage mount");
 
     // muxtweakgen
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.TITLE, "GENERAL SETTINGS");

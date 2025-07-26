@@ -19,9 +19,6 @@ static int nogrid_file_exists = 0;
 
 static char current_meta_text[MAX_BUFFER_SIZE];
 static char current_content_label[MAX_BUFFER_SIZE];
-static char box_image_previous_path[MAX_BUFFER_SIZE];
-static char preview_image_previous_path[MAX_BUFFER_SIZE];
-static char splash_image_previous_path[MAX_BUFFER_SIZE];
 
 static void check_for_disable_grid_file(char *item_curr_dir) {
     char no_grid_path[PATH_MAX];
@@ -219,8 +216,8 @@ static void gen_item(int file_count, char **file_names, char **last_dirs) {
         snprintf(collection_file, sizeof(collection_file), "%s/%s",
                  sys_dir, file_names[i]);
 
-        const char *cache_file = read_line_char_from(collection_file, CACHE_CORE_PATH);
-        const char *stripped_name = read_line_char_from(collection_file, CACHE_CORE_NAME);
+        char *cache_file = read_line_char_from(collection_file, CACHE_CORE_PATH);
+        char *stripped_name = read_line_char_from(collection_file, CACHE_CORE_NAME);
 
         if (stripped_name && stripped_name[0] == '\0') {
             stripped_name = strip_ext(read_line_char_from(cache_file, CONTENT_FULL));

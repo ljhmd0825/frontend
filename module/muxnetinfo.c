@@ -40,7 +40,12 @@ static const char *get_mac_address() {
     snprintf(cmd, sizeof(cmd), "cat %s", path);
 
     const char *result = get_execute_result(cmd);
-    if (!result || strlen(result) == 0) return lang.GENERIC.UNKNOWN;
+    if (!result || strlen(result) == 0) {
+        char *big_mac = (CONF_CONFIG_PATH "network/mac");
+        if (file_exist(big_mac)) return read_line_char_from(big_mac, 1);
+
+        return lang.GENERIC.UNKNOWN;
+    }
 
     static char mac[32];
     snprintf(mac, sizeof(mac), "%s", result);
@@ -444,7 +449,7 @@ static void handle_a() {
             return;
         }
 
-        const char *mac_change_args[] = {"macchanger", "-r", device.NETWORK.INTERFACE, NULL};
+        const char *mac_change_args[] = {INTERNAL_PATH "script/web/macchange.sh", NULL};
         run_exec(mac_change_args, A_SIZE(mac_change_args), 1);
     }
 }
