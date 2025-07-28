@@ -660,6 +660,7 @@ static const LookupName lookup_table[] = {
         {"dotronep", "디스크 오브 트론"},
         {"doubldsp", "더블 드래곤  (스페셜 2017, 핵)"},
         {"doubled", "더블 드래곤 원 (데모)"},
+        {"doubled1", "더블 드래곤 원 (데모)"},
         {"doubledp", "더블 드래곤  (플러스, 핵)"},
         {"doubledr", "더블 드래곤  (네오지오)"},
         {"doubledrbh", "더블 드래곤  (보스핵)"},

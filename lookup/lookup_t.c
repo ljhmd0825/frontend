@@ -554,6 +554,7 @@ static const LookupName lookup_table[] = {
         {"topgunr", "탑 거너 (미국판,8방향 조이스틱)"},
         {"tophuntr", "탑 헌터 - 로디 & 케시"},
         {"tophuntrh", "탑 헌터 - 로디 & 케시 (NGH-046)"},
+        {"tophuntrk", "탑 헌터 - 로디 & 케시 (한글)"},
         {"topland", "탑 랜딩"},
         {"toplandj", "탑 랜딩 (일본판)"},
         {"toppyrap", "토피 & 래피"},

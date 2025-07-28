@@ -600,6 +600,7 @@ static const LookupName lookup_table[] = {
         {"rotaryf", "로터리 파이터"},
         {"rotd", "레이지 오브 더 드래곤"},
         {"rotdbr", "레이지 오브 더 드래곤 (포르투갈어 에디션,핵)"},
+        {"rotddh", "레이지 오브 더 드래곤 (보스 핵)"},
         {"rotdh", "레이지 오브 더 드래곤 (NGH-2640?)"},
         {"rotr", "라이즈 오브 더 로봇"},
         {"rotra", "라이즈 오브 더 로봇"},

@@ -8,6 +8,7 @@ typedef struct {
 } LookupName;
 
 static const LookupName lookup_table[] = {
+        {"2020bb", "2020 슈퍼 베이스볼"},
         {"2020bba", "2020 슈퍼 베이스볼 (세트2)"},
         {"2020bbcd", "2020 슈퍼 베이스볼 (네오지오)"},
         {"2020bbh", "2020 슈퍼 베이스볼 (세트3)"},

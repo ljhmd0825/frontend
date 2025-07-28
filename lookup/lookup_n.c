@@ -124,6 +124,7 @@ static const LookupName lookup_table[] = {
         {"nemoj", "네모 (일본판)"},
         {"nemoja", "네모 (일본판)"},
         {"nemor1", "네모 (세계판)"},
+        {"neo2048", "네오 2048 (HB)"},
         {"neo2500", "네오 2500 데모"},
         {"neo3ddmo", "네오지오 3D (HB,데모)"},
         {"neobattl", "SD건담 네오 배틀링 (일본판)"},
