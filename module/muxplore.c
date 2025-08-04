@@ -103,10 +103,10 @@ static char *load_content_description() {
     if (items[current_item_index].content_type == FOLDER) {
         snprintf(content_desc, sizeof(content_desc), "%s/Folder/text/%s.txt",
                  INFO_CAT_PATH, content_label);
-        if (!file_exist(content_desc)){
+        if (!file_exist(content_desc)) {
             char *catalogue_name = get_catalogue_name_from_rom_path(sys_dir, items[current_item_index].name);
             snprintf(content_desc, sizeof(content_desc), "%s/Folder/text/%s.txt",
-                    INFO_CAT_PATH, catalogue_name);
+                     INFO_CAT_PATH, catalogue_name);
             LOG_INFO(mux_module, "Falling back to catalogue name for content description '%s'", catalogue_name)
         }
     } else {
@@ -595,7 +595,7 @@ static void update_list_item(lv_obj_t *ui_lblItem, lv_obj_t *ui_lblItemGlyph, in
     }
 
     apply_size_to_content(&theme, ui_pnlContent, ui_lblItem, ui_lblItemGlyph, items[index].display_name);
-    apply_text_long_dot(&theme, ui_pnlContent, ui_lblItem, items[index].display_name);
+    apply_text_long_dot(&theme, ui_pnlContent, ui_lblItem);
 }
 
 static void update_list_items(int start_index) {
@@ -610,8 +610,7 @@ static void list_nav_move(int steps, int direction) {
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
-        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group),
-                            items[current_item_index].display_name);
+        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group));
 
         if (direction < 0) {
             current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
@@ -661,7 +660,7 @@ static void list_nav_move(int steps, int direction) {
                                     current_item_index, ui_pnlGrid);
     }
 
-    set_label_long_mode(&theme, lv_group_get_focused(ui_group), items[current_item_index].display_name);
+    set_label_long_mode(&theme, lv_group_get_focused(ui_group));
     lv_label_set_text(ui_lblGridCurrentItem, items[current_item_index].display_name);
 
     image_refresh("box");
@@ -1007,6 +1006,8 @@ int muxplore_main(int index, char *dir) {
     }
 
     init_timer(ui_refresh_task, NULL);
+
+    if (ui_count > 0) set_label_long_mode(&theme, lv_group_get_focused(ui_group));
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1 ||

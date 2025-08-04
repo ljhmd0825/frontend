@@ -49,6 +49,7 @@ extern content_item *items;
 
 extern int refresh_kiosk;
 extern int refresh_config;
+extern int refresh_device;
 extern int refresh_resolution;
 
 extern int nav_moved;
@@ -109,6 +110,8 @@ int muxconnect_main();
 int muxcustom_main();
 
 int muxdanger_main();
+
+int muxdevice_main();
 
 int muxgov_main(int auto_assign, char *name, char *dir, char *sys);
 
@@ -203,24 +206,27 @@ int muxwebserv_main();
         ui_count++;                                                                 \
     } while (0)
 
-#define INIT_STATIC_ITEM(INDEX, MODULE, NAME, LABEL, GLYPH, NOGEN)                      \
-    do {                                                                                \
-        int _idx = ((INDEX) < 0) ? ui_count : (ui_count + (INDEX));                     \
-                                                                                        \
-        if (!(NOGEN)) {                                                                 \
-            apply_theme_list_panel(ui_pnl##NAME##_##MODULE);                            \
-            apply_theme_list_item(&theme, ui_lbl##NAME##_##MODULE, LABEL);              \
-            apply_theme_list_glyph(&theme, ui_ico##NAME##_##MODULE, mux_module, GLYPH); \
-        }                                                                               \
-                                                                                        \
-        ui_objects[_idx] = ui_lbl##NAME##_##MODULE;                                     \
-                                                                                        \
-        if (!(NOGEN)) {                                                                 \
-            ui_objects_glyph[_idx] = ui_ico##NAME##_##MODULE;                           \
-            ui_objects_panel[_idx] = ui_pnl##NAME##_##MODULE;                           \
-        }                                                                               \
-                                                                                        \
-        ui_count++;                                                                     \
+#define INIT_STATIC_ITEM(INDEX, MODULE, NAME, LABEL, GLYPH, NOGEN)                                                       \
+    do {                                                                                                                 \
+        int _idx = ((INDEX) < 0) ? ui_count : (ui_count + (INDEX));                                                      \
+                                                                                                                         \
+        if (!(NOGEN)) {                                                                                                  \
+            apply_theme_list_panel(ui_pnl##NAME##_##MODULE);                                                             \
+            apply_theme_list_item(&theme, ui_lbl##NAME##_##MODULE, LABEL);                                               \
+            apply_theme_list_glyph(&theme, ui_ico##NAME##_##MODULE, mux_module, GLYPH);                                  \
+        }                                                                                                                \
+                                                                                                                         \
+        ui_objects[_idx] = ui_lbl##NAME##_##MODULE;                                                                      \
+                                                                                                                         \
+        if (!(NOGEN)) {                                                                                                  \
+            ui_objects_glyph[_idx] = ui_ico##NAME##_##MODULE;                                                            \
+            ui_objects_panel[_idx] = ui_pnl##NAME##_##MODULE;                                                            \
+        }                                                                                                                \
+                                                                                                                         \
+        apply_size_to_content(&theme, ui_pnl##NAME##_##MODULE, ui_lbl##NAME##_##MODULE, ui_ico##NAME##_##MODULE, LABEL); \
+        apply_text_long_dot(&theme, ui_pnl##NAME##_##MODULE, ui_lbl##NAME##_##MODULE);                                   \
+                                                                                                                         \
+        ui_count++;                                                                                                      \
     } while (0)
 
 #define INIT_VALUE_ITEM(INDEX, MODULE, NAME, LABEL, GLYPH, VALUE)                   \
@@ -255,6 +261,15 @@ int muxwebserv_main();
         if (current != NAME##_original) {                                             \
             is_modified++;                                                            \
             write_text_to_file((CONF_CONFIG_PATH FILE), "w", TYPE, current + OFFSET); \
+        }                                                                             \
+    } while (0)
+
+#define CHECK_AND_SAVE_DEV(MODULE, NAME, FILE, TYPE, OFFSET)                          \
+    do {                                                                              \
+        int current = lv_dropdown_get_selected(ui_dro##NAME##_##MODULE);              \
+        if (current != NAME##_original) {                                             \
+            is_modified++;                                                            \
+            write_text_to_file((CONF_DEVICE_PATH FILE), "w", TYPE, current + OFFSET); \
         }                                                                             \
     } while (0)
 

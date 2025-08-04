@@ -1,16 +1,22 @@
-ifeq ($(DEVICE), RG35XX)
-    ARCH = -march=armv7-a -mtune=cortex-a9 -mfpu=neon-vfpv3 -mfloat-abi=softfp
-else ifeq ($(DEVICE), RG35XXPLUS)
-    ARCH = -march=armv8-a+simd -mtune=cortex-a53
-else ifeq ($(DEVICE), ARM64)
+SHELL = /bin/sh
+
+DEVICE := $(strip $(DEVICE))
+
+ifeq ($(DEVICE), ARM64)          # standard aarch64
     ARCH = -march=armv8-a
-else ifeq ($(DEVICE), NATIVE)
+else ifeq ($(DEVICE), ARM64_A53) # currently for h700 and a133p
+    ARCH = -mtune=cortex-a53 -mcpu=cortex-a53+crc+crypto
+else ifeq ($(DEVICE), ARM32)     # only if you still build armhf for og 35x
+    ARCH = -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard
+else ifeq ($(DEVICE), ARM32_A9)  # armhf w/thumb for cortex a9 with neon
+    ARCH = -mcpu=cortex-a9 -mthumb -mfpu=neon-vfpv3 -mfloat-abi=softfp
+else ifeq ($(DEVICE), NATIVE)    # everything else, like maybe x86?
     ARCH = -march=native
 else
     $(error Unsupported Device: $(DEVICE))
 endif
 
-CC = ccache $(CROSS_COMPILE)gcc -O3
+CC = ccache $(CROSS_COMPILE)gcc -O3 -pipe
 
 CFLAGS = $(ARCH) -flto=auto -ffunction-sections -fdata-sections \
 	-flto -finline-functions -Wall -Wno-format-zero-length -fPIC
@@ -29,10 +35,10 @@ EXTRA = $(LDFLAGS) -fno-exceptions -fno-stack-protector -fomit-frame-pointer \
 	-fmerge-all-constants -fno-ident -ffast-math -funroll-loops -falign-functions
 
 MODULES = muxapp muxarchive muxassign muxbackup muxcollect muxconfig \
-          muxconnect muxcustom muxdanger muxgov muxhdmi muxhistory \
-          muxinfo muxkiosk muxlanguage muxlaunch muxnetinfo muxnetprofile \
-          muxnetscan muxnetwork muxoption muxpass muxpicker muxpower \
-          muxplore muxrtc muxsearch muxshot muxspace muxsplash \
+          muxconnect muxcustom muxdanger muxdevice muxgov muxhdmi \
+          muxhistory muxinfo muxkiosk muxlanguage muxlaunch muxnetinfo \
+          muxnetprofile muxnetscan muxnetwork muxoption muxpass muxpicker \
+          muxpower muxplore muxrtc muxsearch muxshot muxspace muxsplash \
           muxstorage muxsysinfo muxtag muxtask muxtester muxtext muxtimezone \
           muxtweakadv muxtweakgen muxvisual muxwebserv muxshare
 MODULE_DIR = .

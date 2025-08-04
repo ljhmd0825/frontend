@@ -5,6 +5,7 @@ content_item *items = NULL;
 
 int refresh_kiosk = 0;
 int refresh_config = 0;
+int refresh_device = 0;
 int refresh_resolution = 0;
 
 struct mux_lang lang;
@@ -291,5 +292,5 @@ void gen_label(char *module, char *item_glyph, char *item_text) {
     apply_theme_list_glyph(&theme, ui_lblItemGlyph, module, item_glyph);
 
     apply_size_to_content(&theme, ui_pnlContent, ui_lblItem, ui_lblItemGlyph, item_text);
-    apply_text_long_dot(&theme, ui_pnlContent, ui_lblItem, item_text);
+    apply_text_long_dot(&theme, ui_pnlContent, ui_lblItem);
 }

@@ -331,6 +331,7 @@ static void handle_a() {
         }
 
         if (tap_count > 50) {
+            tap_count = 0;
             srandom(time(NULL));
 
             char s_rotate_str[8], s_zoom_str[8];
@@ -341,6 +342,8 @@ static void handle_a() {
 
             write_text_to_file(CONF_DEVICE_PATH "screen/s_rotate", "w", CHAR, s_rotate_str);
             write_text_to_file(CONF_DEVICE_PATH "screen/s_zoom", "w", CHAR, s_zoom_str);
+
+            refresh_device = 1;
 
             load_mux("launcher");
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "");
@@ -385,6 +388,17 @@ static void handle_menu() {
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
+}
+
+static void launch_device() {
+    if (msgbox_active) return;
+
+    if (lv_group_get_focused(ui_group) == ui_lblDevice_sysinfo) {
+        load_mux("device");
+
+        close_input();
+        mux_input_stop();
+    }
 }
 
 static void adjust_panels() {
@@ -462,10 +476,47 @@ int muxsysinfo_main() {
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
+            },
+            .combo = {
+                    {
+                            .type_mask = BIT(MUX_INPUT_L2) | BIT(MUX_INPUT_X),
+                            .press_handler = launch_device,
+                            .hold_handler = launch_device,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_UP),
+                            .press_handler = ui_common_handle_bright_up,
+                            .hold_handler = ui_common_handle_bright_up,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_MENU_LONG) | BIT(MUX_INPUT_VOL_DOWN),
+                            .press_handler = ui_common_handle_bright_down,
+                            .hold_handler = ui_common_handle_bright_down,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_SWITCH) | BIT(MUX_INPUT_VOL_UP),
+                            .press_handler = ui_common_handle_bright_up,
+                            .hold_handler = ui_common_handle_bright_up,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_SWITCH) | BIT(MUX_INPUT_VOL_DOWN),
+                            .press_handler = ui_common_handle_bright_down,
+                            .hold_handler = ui_common_handle_bright_down,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_VOL_UP),
+                            .press_handler = ui_common_handle_volume_up,
+                            .hold_handler = ui_common_handle_volume_up,
+                    },
+                    {
+                            .type_mask = BIT(MUX_INPUT_VOL_DOWN),
+                            .press_handler = ui_common_handle_volume_down,
+                            .hold_handler = ui_common_handle_volume_down,
+                    },
             }
     };
     list_nav_set_callbacks(list_nav_prev, list_nav_next);
-    init_input(&input_opts, true);
+    init_input(&input_opts, false);
     mux_input_task(&input_opts);
 
     return 0;
