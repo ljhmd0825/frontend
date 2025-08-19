@@ -52,6 +52,7 @@
     BACKUP(RetroArch,        "retroarch")      \
     BACKUP(Config,           "config")         \
     BACKUP(Core,             "core")           \
+    BACKUP(Scheme,           "scheme")         \
     BACKUP(Collection,       "collection")     \
     BACKUP(History,          "history")        \
     BACKUP(Music,            "music")          \
@@ -65,6 +66,7 @@
     BACKUP(Network,          "network")        \
     BACKUP(Syncthing,        "syncthing")      \
     BACKUP(UserInit,         "userinit")       \
+    BACKUP(ActivityTracker,  "activity")       \
     BACKUP(External,         "external")       \
     BACKUP(MuosConfig,       "muosconfig")     \
     BACKUP(BackupTarget,     "backuptarget")   \
@@ -86,23 +88,30 @@
     CONFIG(Storage,   "storage")   \
     CONFIG(Backup,    "backup")
 
-#define CUSTOM_ELEMENTS                   \
-    CUSTOM(Bootlogo,        "bootlogo")   \
-    CUSTOM(Catalogue,       "catalogue")  \
-    CUSTOM(Config,          "config")     \
-    CUSTOM(Theme,           "theme")      \
-    CUSTOM(ThemeResolution, "resolution") \
-    CUSTOM(ThemeAlternate,  "alternate")  \
-    CUSTOM(Animation,       "animation")  \
-    CUSTOM(Music,           "music")      \
-    CUSTOM(BlackFade,       "blackfade")  \
-    CUSTOM(Shuffle,         "shuffle")    \
-    CUSTOM(BoxArtImage,     "boxart")     \
-    CUSTOM(BoxArtAlign,     "align")      \
-    CUSTOM(LaunchSplash,    "splash")     \
-    CUSTOM(Font,            "font")       \
-    CUSTOM(Sound,           "sound")      \
+#define CUSTOM_ELEMENTS                    \
+    CUSTOM(Bootlogo,        "bootlogo")    \
+    CUSTOM(Catalogue,       "catalogue")   \
+    CUSTOM(Config,          "config")      \
+    CUSTOM(Theme,           "theme")       \
+    CUSTOM(ThemeResolution, "resolution")  \
+    CUSTOM(ThemeAlternate,  "alternate")   \
+    CUSTOM(Animation,       "animation")   \
+    CUSTOM(Music,           "music")       \
+    CUSTOM(BlackFade,       "blackfade")   \
+    CUSTOM(LaunchSwap,      "launch_swap") \
+    CUSTOM(Shuffle,         "shuffle")     \
+    CUSTOM(BoxArtImage,     "boxart")      \
+    CUSTOM(BoxArtAlign,     "align")       \
+    CUSTOM(LaunchSplash,    "splash")      \
+    CUSTOM(Font,            "font")        \
+    CUSTOM(Sound,           "sound")       \
     CUSTOM(Chime,           "chime")
+
+#define THEMEFILTER_ELEMENTS               \
+    THEMEFILTER(AllThemes,   "theme")      \
+    THEMEFILTER(Grid,        "grid")       \
+    THEMEFILTER(Hdmi,        "hdmi")       \
+    THEMEFILTER(Language,    "language")
 
 #define DANGER_ELEMENTS                  \
     DANGER(VmSwap,        "vmswap")      \
@@ -167,6 +176,7 @@
     KIOSK(Catalogue,  "catalogue")  \
     KIOSK(RAConfig,   "raconfig")   \
     KIOSK(Theme,      "theme")      \
+    KIOSK(ThemeDown,  "theme_down") \
     KIOSK(Clock,      "clock")      \
     KIOSK(Timezone,   "timezone")   \
     KIOSK(Apps,       "apps")       \
@@ -262,6 +272,7 @@
     STORAGE(RetroArch,        "retroarch")      \
     STORAGE(Config,           "config")         \
     STORAGE(Core,             "core")           \
+    STORAGE(Scheme,           "scheme")         \
     STORAGE(Collection,       "collection")     \
     STORAGE(History,          "history")        \
     STORAGE(Music,            "music")          \
@@ -300,6 +311,7 @@
     TWEAKADV(Led,         "led")         \
     TWEAKADV(Theme,       "theme")       \
     TWEAKADV(RetroWait,   "retrowait")   \
+    TWEAKADV(RetroFree,   "retrofree")   \
     TWEAKADV(Verbose,     "verbose")     \
     TWEAKADV(Rumble,      "rumble")      \
     TWEAKADV(UserInit,    "userinit")    \

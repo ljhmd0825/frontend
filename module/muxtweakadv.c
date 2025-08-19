@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxtweakadv.h"
 
-#define UI_COUNT 21
+#define UI_COUNT 22
 
 #define TWEAKADV(NAME, UDATA) static int NAME##_original;
     TWEAKADV_ELEMENTS
@@ -19,6 +19,7 @@ static void show_help(lv_obj_t *element_focused) {
             {ui_lblLed_tweakadv,         lang.MUXTWEAKADV.HELP.LED},
             {ui_lblTheme_tweakadv,       lang.MUXTWEAKADV.HELP.RANDOM},
             {ui_lblRetroWait_tweakadv,   lang.MUXTWEAKADV.HELP.NET_WAIT},
+            {ui_lblRetroFree_tweakadv,   lang.MUXTWEAKADV.HELP.RA_FREE},
             {ui_lblVerbose_tweakadv,     lang.MUXTWEAKADV.HELP.VERBOSE},
             {ui_lblRumble_tweakadv,      lang.MUXTWEAKADV.HELP.RUMBLE},
             {ui_lblUserInit_tweakadv,    lang.MUXTWEAKADV.HELP.USER_INIT},
@@ -35,13 +36,13 @@ static void show_help(lv_obj_t *element_focused) {
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
 }
 
-static void init_dropdown_settings() {
+static void init_dropdown_settings(void) {
 #define TWEAKADV(NAME, UDATA) NAME##_original = lv_dropdown_get_selected(ui_dro##NAME##_tweakadv);
     TWEAKADV_ELEMENTS
 #undef TWEAKADV
 }
 
-static void restore_tweak_options() {
+static void restore_tweak_options(void) {
     lv_dropdown_set_selected(ui_droVolume_tweakadv,
                              !strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "silent") ? 1 :
                              !strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "soft") ? 2 :
@@ -59,6 +60,7 @@ static void restore_tweak_options() {
     lv_dropdown_set_selected(ui_droLed_tweakadv, config.SETTINGS.ADVANCED.LED);
     lv_dropdown_set_selected(ui_droTheme_tweakadv, config.SETTINGS.ADVANCED.THEME);
     lv_dropdown_set_selected(ui_droRetroWait_tweakadv, config.SETTINGS.ADVANCED.RETROWAIT);
+    lv_dropdown_set_selected(ui_droRetroFree_tweakadv, config.SETTINGS.ADVANCED.RETROFREE);
     lv_dropdown_set_selected(ui_droVerbose_tweakadv, config.SETTINGS.ADVANCED.VERBOSE);
     lv_dropdown_set_selected(ui_droRumble_tweakadv, config.SETTINGS.ADVANCED.RUMBLE);
     lv_dropdown_set_selected(ui_droUserInit_tweakadv, config.SETTINGS.ADVANCED.USERINIT);
@@ -74,7 +76,7 @@ static void restore_tweak_options() {
     map_drop_down_to_index(ui_droZramfile_tweakadv, config.SETTINGS.ADVANCED.ZRAMFILE, zram_swap_values, 11, 0);
 }
 
-static void save_tweak_options() {
+static void save_tweak_options(void) {
     int is_modified = 0;
 
     CHECK_AND_SAVE_STD(tweakadv, Swap, "settings/advanced/swap", INT, 0);
@@ -84,6 +86,7 @@ static void save_tweak_options() {
     CHECK_AND_SAVE_STD(tweakadv, Led, "settings/advanced/led", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Theme, "settings/advanced/random_theme", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, RetroWait, "settings/advanced/retrowait", INT, 0);
+    CHECK_AND_SAVE_STD(tweakadv, RetroFree, "settings/advanced/retrofree", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Verbose, "settings/advanced/verbose", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, Rumble, "settings/advanced/rumble", INT, 0);
     CHECK_AND_SAVE_STD(tweakadv, UserInit, "settings/advanced/user_init", INT, 0);
@@ -126,7 +129,7 @@ static void save_tweak_options() {
     }
 }
 
-static void init_navigation_group() {
+static void init_navigation_group(void) {
     static lv_obj_t *ui_objects[UI_COUNT];
     static lv_obj_t *ui_objects_value[UI_COUNT];
     static lv_obj_t *ui_objects_glyph[UI_COUNT];
@@ -171,6 +174,7 @@ static void init_navigation_group() {
     INIT_OPTION_ITEM(-1, tweakadv, Led, lang.MUXTWEAKADV.LED, "led", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Theme, lang.MUXTWEAKADV.RANDOM, "theme", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, RetroWait, lang.MUXTWEAKADV.NET_WAIT, "retrowait", disabled_enabled, 2);
+    INIT_OPTION_ITEM(-1, tweakadv, RetroFree, lang.MUXTWEAKADV.RA_FREE, "retrofree", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Verbose, lang.MUXTWEAKADV.VERBOSE, "verbose", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Rumble, lang.MUXTWEAKADV.RUMBLE.TITLE, "rumble", rumble_options, 7);
     INIT_OPTION_ITEM(-1, tweakadv, UserInit, lang.MUXTWEAKADV.USER_INIT, "userinit", disabled_enabled, 2);
@@ -306,7 +310,7 @@ static void handle_help(void) {
     show_help(lv_group_get_focused(ui_group));
 }
 
-static void adjust_panels() {
+static void adjust_panels(void) {
     adjust_panel_priority((lv_obj_t *[]) {
             ui_pnlFooter,
             ui_pnlHeader,
@@ -317,7 +321,7 @@ static void adjust_panels() {
     });
 }
 
-static void init_elements() {
+static void init_elements(void) {
     adjust_panels();
     header_and_footer_setup();
 
@@ -348,7 +352,7 @@ static void ui_refresh_task() {
     }
 }
 
-int muxtweakadv_main() {
+int muxtweakadv_main(void) {
     init_module("muxtweakadv");
 
     init_theme(1, 0);

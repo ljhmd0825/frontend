@@ -58,6 +58,8 @@ extern int first_open;
 extern int ui_count;
 extern int holding_cell;
 
+extern int theme_down_index;
+
 extern lv_obj_t *overlay_image;
 extern lv_obj_t *kiosk_image;
 
@@ -69,6 +71,8 @@ extern lv_group_t *ui_group_value;
 extern char box_image_previous_path[MAX_BUFFER_SIZE];
 extern char preview_image_previous_path[MAX_BUFFER_SIZE];
 extern char splash_image_previous_path[MAX_BUFFER_SIZE];
+
+void shuffle_index(int current, int *dir, int *target);
 
 void adjust_box_art();
 
@@ -172,6 +176,10 @@ int muxtag_main(int nothing, char *name, char *dir, char *sys);
 
 int muxtask_main(char *ex_dir);
 
+int muxthemedown_main();
+
+int muxthemefilter_main();
+
 int muxtester_main();
 
 int muxtimezone_main();
@@ -211,6 +219,16 @@ int muxwebserv_main();
         ui_objects_panel[_idx] = ui_pnl##NAME##_##MODULE;                           \
                                                                                     \
         ui_count++;                                                                 \
+    } while (0)
+
+#define HIDE_OPTION_ITEM(MODULE, NAME)                                     \
+    do {                                                                   \
+        lv_obj_add_flag(ui_pnl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
+        lv_obj_add_flag(ui_lbl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
+        lv_obj_add_flag(ui_ico##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
+        lv_obj_add_flag(ui_dro##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
+                                                                           \
+        ui_count--;                                                        \
     } while (0)
 
 #define INIT_STATIC_ITEM(INDEX, MODULE, NAME, LABEL, GLYPH, NOGEN)                                                       \

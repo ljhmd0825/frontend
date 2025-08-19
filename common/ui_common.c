@@ -68,6 +68,9 @@ lv_obj_t *ui_barProgressBrightness;
 lv_obj_t *ui_pnlProgressVolume;
 lv_obj_t *ui_icoProgressVolume;
 lv_obj_t *ui_barProgressVolume;
+lv_obj_t *ui_pnlDownload;
+lv_obj_t *ui_barDownload;
+lv_obj_t *ui_lblDownload;
 
 lv_timer_t *toast_timer = NULL;
 lv_timer_t *counter_timer = NULL;
@@ -798,10 +801,42 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     lv_obj_set_style_bg_opa(ui_barProgressVolume, theme->BAR.PROGRESS_ACTIVE_BACKGROUND_ALPHA,
                             LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
+    ui_pnlDownload = lv_obj_create(ui_screen);
+    lv_obj_set_width(ui_pnlDownload, device->MUX.WIDTH);
+    lv_obj_set_height(ui_pnlDownload, device->MUX.HEIGHT);
+    lv_obj_set_flex_flow(ui_pnlDownload, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(ui_pnlDownload, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(ui_pnlDownload, 10, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui_pnlDownload, lv_color_hex(0x000000),
+                              LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_pnlDownload, 230, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_opa(ui_pnlDownload, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_barDownload = lv_bar_create(ui_pnlDownload);
+    lv_obj_set_size(ui_barDownload, 400, 40);
+    lv_obj_set_style_radius(ui_barDownload, theme->BAR.PROGRESS_RADIUS, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_barDownload, lv_color_hex(theme->BAR.PROGRESS_MAIN_BACKGROUND),
+                              LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_barDownload, theme->BAR.PROGRESS_MAIN_BACKGROUND_ALPHA,
+                            LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_barDownload, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_barDownload, lv_color_hex(theme->BAR.PROGRESS_ACTIVE_BACKGROUND),
+                              LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_barDownload, theme->BAR.PROGRESS_ACTIVE_BACKGROUND_ALPHA,
+                            LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_bar_set_value(ui_barDownload, 0, LV_ANIM_OFF);
+
+    ui_lblDownload = lv_label_create(ui_pnlDownload);
+    lv_label_set_text(ui_lblDownload, "");
+    lv_obj_set_width(ui_lblDownload, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_lblDownload, LV_SIZE_CONTENT);
+    lv_obj_set_style_text_color(ui_lblDownload, lv_color_hex(theme->MESSAGE.TEXT), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblDownload, theme->MESSAGE.TEXT_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     lv_disp_load_scr(ui_screen_container);
 }
 
-int ui_common_check() {
+int ui_common_check(void) {
     if (config.BOOT.DEVICE_MODE || config.BOOT.FACTORY_RESET) return 0;
 
     progress_onscreen = 1;
@@ -860,23 +895,23 @@ static void adjust_volume(int direction) {
     volume_changed = 1;
 }
 
-void ui_common_handle_bright_up() {
+void ui_common_handle_bright_up(void) {
     adjust_brightness(+1);
 }
 
-void ui_common_handle_bright_down() {
+void ui_common_handle_bright_down(void) {
     adjust_brightness(-1);
 }
 
-void ui_common_handle_volume_up() {
+void ui_common_handle_volume_up(void) {
     adjust_volume(+1);
 }
 
-void ui_common_handle_volume_down() {
+void ui_common_handle_volume_down(void) {
     adjust_volume(-1);
 }
 
-void ui_common_handle_idle() {
+void ui_common_handle_idle(void) {
     if (!strcmp(mux_module, "muxcredits") || !strcmp(mux_module, "muxcharge")) {
         lv_task_handler();
         return;
@@ -920,9 +955,23 @@ void ui_common_handle_idle() {
     }
 
     if (file_exist("/tmp/mux_blank")) {
-        lv_obj_set_style_bg_opa(ui_blank, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_move_foreground(ui_blank);
+        if (!is_blank) {
+            char buffer[MAX_BUFFER_SIZE];
+            CFG_INT_FIELD(config.SETTINGS.GENERAL.BRIGHTNESS, CONF_CONFIG_PATH "settings/general/brightness", 90)
+
+            if (config.SETTINGS.GENERAL.BRIGHTNESS <= 0) {
+                is_blank = 1;
+
+                lv_obj_set_style_bg_opa(ui_blank, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+                lv_obj_move_foreground(ui_blank);
+            }
+        } else {
+            is_blank = 0;
+            remove("/tmp/mux_blank");
+        }
     } else {
+        is_blank = 0;
+
         if (lv_obj_get_style_bg_opa(ui_blank, LV_PART_MAIN | LV_STATE_DEFAULT) > 0) {
             lv_obj_set_style_bg_opa(ui_blank, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_move_background(ui_blank);

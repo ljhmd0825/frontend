@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxkiosk.h"
 
-#define UI_COUNT 38
+#define UI_COUNT 39
 
 #define KIOSK(NAME, UDATA) static int NAME##_original;
     KIOSK_ELEMENTS
@@ -29,6 +29,7 @@ static void show_help(lv_obj_t *element_focused) {
             {ui_lblCatalogue_kiosk,  lang.MUXKIOSK.HELP.CATALOGUE},
             {ui_lblRAConfig_kiosk,   lang.MUXKIOSK.HELP.RACONFIG},
             {ui_lblTheme_kiosk,      lang.MUXKIOSK.HELP.THEME},
+            {ui_lblThemeDown_kiosk,  lang.MUXKIOSK.HELP.THEME_DOWN},
             {ui_lblClock_kiosk,      lang.MUXKIOSK.HELP.CLOCK},
             {ui_lblTimezone_kiosk,   lang.MUXKIOSK.HELP.TIMEZONE},
             {ui_lblApps_kiosk,       lang.MUXKIOSK.HELP.APPS},
@@ -52,13 +53,13 @@ static void show_help(lv_obj_t *element_focused) {
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
 }
 
-static void init_dropdown_settings() {
+static void init_dropdown_settings(void) {
 #define KIOSK(NAME, UDATA) NAME##_original = lv_dropdown_get_selected(ui_dro##NAME##_kiosk);
     KIOSK_ELEMENTS
 #undef KIOSK
 }
 
-static void restore_kiosk_options() {
+static void restore_kiosk_options(void) {
     lv_dropdown_set_selected(ui_droEnable_kiosk, kiosk.ENABLE);
     lv_dropdown_set_selected(ui_droMessage_kiosk, kiosk.MESSAGE);
     lv_dropdown_set_selected(ui_droArchive_kiosk, kiosk.APPLICATION.ARCHIVE);
@@ -79,6 +80,7 @@ static void restore_kiosk_options() {
     lv_dropdown_set_selected(ui_droCatalogue_kiosk, kiosk.CUSTOM.CATALOGUE);
     lv_dropdown_set_selected(ui_droRAConfig_kiosk, kiosk.CUSTOM.CONFIGURATION);
     lv_dropdown_set_selected(ui_droTheme_kiosk, kiosk.CUSTOM.THEME);
+    lv_dropdown_set_selected(ui_droThemeDown_kiosk, kiosk.CUSTOM.THEME_DOWN);
     lv_dropdown_set_selected(ui_droClock_kiosk, kiosk.DATETIME.CLOCK);
     lv_dropdown_set_selected(ui_droTimezone_kiosk, kiosk.DATETIME.TIMEZONE);
     lv_dropdown_set_selected(ui_droApps_kiosk, kiosk.LAUNCH.APPLICATION);
@@ -99,7 +101,7 @@ static void restore_kiosk_options() {
     lv_dropdown_set_selected(ui_droVisual_kiosk, kiosk.SETTING.VISUAL);
 }
 
-static void save_kiosk_options() {
+static void save_kiosk_options(void) {
     int is_modified = 0;
 
     CHECK_AND_SAVE_KSK(kiosk, Enable, "enable", INT);
@@ -122,6 +124,7 @@ static void save_kiosk_options() {
     CHECK_AND_SAVE_KSK(kiosk, Catalogue, "custom/catalogue", INT);
     CHECK_AND_SAVE_KSK(kiosk, RAConfig, "custom/raconfig", INT);
     CHECK_AND_SAVE_KSK(kiosk, Theme, "custom/theme", INT);
+    CHECK_AND_SAVE_KSK(kiosk, ThemeDown, "custom/theme_down", INT);
     CHECK_AND_SAVE_KSK(kiosk, Clock, "datetime/clock", INT);
     CHECK_AND_SAVE_KSK(kiosk, Timezone, "datetime/timezone", INT);
     CHECK_AND_SAVE_KSK(kiosk, Apps, "launch/apps", INT);
@@ -152,7 +155,7 @@ static void save_kiosk_options() {
     }
 }
 
-static void init_navigation_group() {
+static void init_navigation_group(void) {
     static lv_obj_t *ui_objects[UI_COUNT];
     static lv_obj_t *ui_objects_value[UI_COUNT];
     static lv_obj_t *ui_objects_glyph[UI_COUNT];
@@ -178,6 +181,7 @@ static void init_navigation_group() {
     INIT_OPTION_ITEM(-1, kiosk, Catalogue, lang.MUXKIOSK.CATALOGUE, "catalogue", allowed_restricted, 2);
     INIT_OPTION_ITEM(-1, kiosk, RAConfig, lang.MUXKIOSK.RACONFIG, "raconfig", allowed_restricted, 2);
     INIT_OPTION_ITEM(-1, kiosk, Theme, lang.MUXKIOSK.THEME, "theme", allowed_restricted, 2);
+    INIT_OPTION_ITEM(-1, kiosk, ThemeDown, lang.MUXKIOSK.THEME_DOWN, "theme_down", allowed_restricted, 2);
     INIT_OPTION_ITEM(-1, kiosk, Clock, lang.MUXKIOSK.CLOCK, "clock", allowed_restricted, 2);
     INIT_OPTION_ITEM(-1, kiosk, Timezone, lang.MUXKIOSK.TIMEZONE, "timezone", allowed_restricted, 2);
     INIT_OPTION_ITEM(-1, kiosk, Apps, lang.MUXKIOSK.APPS, "apps", allowed_restricted, 2);
@@ -275,7 +279,7 @@ static void handle_help(void) {
     show_help(lv_group_get_focused(ui_group));
 }
 
-static void adjust_panels() {
+static void adjust_panels(void) {
     adjust_panel_priority((lv_obj_t *[]) {
             ui_pnlFooter,
             ui_pnlHeader,
@@ -286,7 +290,7 @@ static void adjust_panels() {
     });
 }
 
-static void init_elements() {
+static void init_elements(void) {
     adjust_panels();
     header_and_footer_setup();
 
@@ -317,7 +321,7 @@ static void ui_refresh_task() {
     }
 }
 
-int muxkiosk_main() {
+int muxkiosk_main(void) {
     init_module("muxkiosk");
 
     init_theme(1, 0);

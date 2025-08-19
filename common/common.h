@@ -24,6 +24,7 @@ extern int is_silence_playing;
 extern Mix_Music *current_bgm;
 extern int current_brightness;
 extern int current_volume;
+extern int is_blank;
 
 extern char *theme_back_compat[];
 
@@ -136,9 +137,7 @@ int directory_exist(char *dirname);
 
 const char **build_term_exec(const char **term_cmd, size_t *term_cnt);
 
-void extract_archive(char *filename);
-
-unsigned long long total_file_size(const char *path);
+void extract_archive(char *filename, char *screen);
 
 int str_compare(const void *a, const void *b);
 
@@ -278,7 +277,7 @@ void process_visual_element(enum visual_type visual, lv_obj_t *element);
 
 void load_skip_patterns();
 
-int should_skip(const char *name);
+int should_skip(const char *name, int is_dir);
 
 void display_testing_message(lv_obj_t *screen);
 

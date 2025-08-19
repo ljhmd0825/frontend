@@ -20,6 +20,8 @@ int first_open = 1;
 int ui_count = 0;
 int holding_cell = 0;
 
+int theme_down_index = 0;
+
 lv_obj_t *msgbox_element = NULL;
 lv_obj_t *overlay_image = NULL;
 lv_obj_t *kiosk_image = NULL;
@@ -35,7 +37,16 @@ char box_image_previous_path[MAX_BUFFER_SIZE];
 char preview_image_previous_path[MAX_BUFFER_SIZE];
 char splash_image_previous_path[MAX_BUFFER_SIZE];
 
-void adjust_box_art() {
+void shuffle_index(int current, int *dir, int *target) {
+    do {
+        int ran = (int) (random() % (ui_count - 1));
+        *target = (ran >= current) ? ran + 1 : ran;
+    } while (*target == 0);
+
+    *dir = (*target > current) ? +1 : -1;
+}
+
+void adjust_box_art(void) {
     switch (config.VISUAL.BOX_ART) {
         case 0: // Behind
             lv_obj_move_background(ui_pnlBox);
@@ -74,7 +85,7 @@ void setup_nav(struct nav_bar *nav_items) {
     }
 }
 
-void header_and_footer_setup() {
+void header_and_footer_setup(void) {
     lv_obj_set_style_bg_opa(ui_pnlHeader, theme.HEADER.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_pnlFooter, theme.FOOTER.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -89,7 +100,7 @@ void header_and_footer_setup() {
     lv_label_set_text(ui_lblMessage, "");
 }
 
-void overlay_display() {
+void overlay_display(void) {
 #if TEST_IMAGE
     display_testing_message(ui_screen);
 #endif
@@ -240,10 +251,12 @@ int32_t get_directory_item_count(const char *base_dir, const char *dir_name, int
 
     while ((entry = readdir(dir))) {
         if (run_skip) {
-            if (!should_skip(entry->d_name)) {
-                if (entry->d_type == DT_DIR) {
+            if (entry->d_type == DT_DIR) {
+                if (!should_skip(entry->d_name, 1)) {
                     if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) dir_count++;
-                } else if (entry->d_type == DT_REG) {
+                }
+            } else if (entry->d_type == DT_REG) {
+                if (!should_skip(entry->d_name, 0)) {
                     dir_count++;
                 }
             }

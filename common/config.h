@@ -36,6 +36,26 @@ struct mux_config {
 
     struct {
         struct {
+            int16_t ALL_THEMES;
+            int16_t RESOLUTION_640x480;
+            int16_t RESOLUTION_720x480;
+            int16_t RESOLUTION_720x720;
+            int16_t RESOLUTION_1024x768;
+            int16_t RESOLUTION_1280x720;
+            int16_t GRID;
+            int16_t HDMI;
+            int16_t LANGUAGE;
+            char LOOKUP[MAX_BUFFER_SIZE];
+        } FILTER;
+
+        struct {
+            char DATA[MAX_BUFFER_SIZE];
+            char PREVIEW[MAX_BUFFER_SIZE];
+        } DOWNLOAD;
+    } THEME;
+
+    struct {
+        struct {
             int16_t ACCELERATE;
             int16_t SWAP;
             int16_t THERMAL;
@@ -47,6 +67,7 @@ struct mux_config {
             int16_t LED;
             int16_t THEME;
             int16_t RETROWAIT;
+            int16_t RETROFREE;
             char USBFUNCTION[MAX_BUFFER_SIZE];
             int16_t VERBOSE;
             int16_t RUMBLE;
@@ -103,6 +124,7 @@ struct mux_config {
         int16_t BOX_ART_ALIGN;
         int16_t NAME;
         int16_t DASH;
+        int16_t LAUNCH_SWAP;
         int16_t SHUFFLE;
         int16_t FRIENDLYFOLDER;
         int16_t THETITLEFORMAT;

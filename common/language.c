@@ -52,6 +52,7 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.DISABLED, "Disabled");
     GENERIC_FIELD(lang->GENERIC.ENABLED, "Enabled");
     GENERIC_FIELD(lang->GENERIC.EXTRACT, "Extract");
+    GENERIC_FIELD(lang->GENERIC.FILTER, "Filter");
     GENERIC_FIELD(lang->GENERIC.INDIVIDUAL, "Individual");
     GENERIC_FIELD(lang->GENERIC.INFO, "Info");
     GENERIC_FIELD(lang->GENERIC.INSTALL, "Install");
@@ -117,6 +118,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.RA_SYSTEM, "RetroArch System");
     SPECIFIC_FIELD(lang->MUXBACKUP.RA_CONFIG, "RetroArch Configs");
     SPECIFIC_FIELD(lang->MUXBACKUP.ASSIGNED, "Assigned Core/Governor System");
+    SPECIFIC_FIELD(lang->MUXBACKUP.CONTROL_SCHEME, "Content Control Schemes");
     SPECIFIC_FIELD(lang->MUXBACKUP.COLLECTION, "Content Collection");
     SPECIFIC_FIELD(lang->MUXBACKUP.HISTORY, "History");
     SPECIFIC_FIELD(lang->MUXBACKUP.MUSIC, "Background Music");
@@ -126,6 +128,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.NET_PROFILE, "Network Profiles");
     SPECIFIC_FIELD(lang->MUXBACKUP.SYNCTHING, "Syncthing Configs");
     SPECIFIC_FIELD(lang->MUXBACKUP.USER_INIT, "User Init Scripts");
+    SPECIFIC_FIELD(lang->MUXBACKUP.ACTIVITY_TRACKER, "User Game Activity Tracker");
     SPECIFIC_FIELD(lang->MUXBACKUP.EXTERNAL, "Standalone Emulator Files");
     SPECIFIC_FIELD(lang->MUXBACKUP.MUOS_CONFIG, "muOS Settings");
     SPECIFIC_FIELD(lang->MUXBACKUP.PACKAGE.THEME, "Themes");
@@ -140,6 +143,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.RA_SYSTEM, "Location of the RetroArch emulator");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.RA_CONFIG, "Location of RetroArch configurations");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.ASSIGNED, "Location of assigned core and governor configurations");
+    SPECIFIC_FIELD(lang->MUXBACKUP.HELP.CONTROL_SCHEME, "Location of content control schemes");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.COLLECTION, "Location of content collection");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.HISTORY, "Location of history");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.MUSIC, "Location of background music");
@@ -149,6 +153,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.NET_PROFILE, "Location of Network Profiles");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.SYNCTHING, "Location of Syncthing configurations");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.USER_INIT, "Location of User Initialisation scripts");
+    SPECIFIC_FIELD(lang->MUXBACKUP.HELP.ACTIVITY_TRACKER, "Location of user's Game Activity Tracker");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.EXTERNAL, "Location of External Emulator files (e.g. PPSSPP, Pico-8, Dreamcast, Drastic)");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.MUOS_CONFIG, "Location of muOS Settings and Configuration");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.PACKAGE.THEME, "Location of themes");
@@ -212,10 +217,11 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.BOOTLOGO, "Bootlogo Images");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CATALOGUE, "Catalogue Sets");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CONFIG, "RetroArch Configurations");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_DOWN, "Theme Download");
     SPECIFIC_FIELD(lang->MUXCUSTOM.THEME, "Theme Picker");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_RESOLUTION, "Theme Resolution");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_RES, "Theme Resolution");
     SPECIFIC_FIELD(lang->MUXCUSTOM.SCREEN, "Screen");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_ALTERNATE, "Alternative Theme");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_ALT, "Alternative Theme");
     SPECIFIC_FIELD(lang->MUXCUSTOM.SPLASH, "Content Launch Splash");
     SPECIFIC_FIELD(lang->MUXCUSTOM.FADE, "Black Fade Animation");
     SPECIFIC_FIELD(lang->MUXCUSTOM.ANIMATION, "Background Animation");
@@ -244,13 +250,17 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND.TITLE, "Navigation Sound");
     SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND.GLOBAL, "Global");
     SPECIFIC_FIELD(lang->MUXCUSTOM.SOUND.THEME, "Theme");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.TITLE, "Content Save State Launch");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.PRESS_A, "Press A");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.HOLD_A, "Hold A");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CHIME, "Startup Chime");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.BOOTLOGO, "Load user created boot logos for your device");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CATALOGUE, "Load user created artwork catalogue for content");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CONFIG, "Load user created RetroArch configurations");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_DOWN, "Download themes from the muOS website");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME, "Change the appearance of the muOS frontend launcher");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_RESOLUTION, "Allows for testing different theme resolutions");
-    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_ALTERNATE, "Switch between different theme alternatives");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_RES, "Allows for testing different theme resolutions");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_ALT, "Switch between different theme alternatives");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.SPLASH, "Toggle the splash image on content launching");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.FADE, "Toggle the fade to black animation on content launching");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.ANIMATION, "Toggle the background animation of the current selected theme");
@@ -261,6 +271,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.SOUND, "Toggle the navigation sound of the frontend");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CHIME, "Toggle the startup chime of the frontend");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.SHUFFLE, "Toggles the ability to shuffle content using the R2 button");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.LAUNCH_SWAP, "Switch between pressing A or holding A to launch content save state automatically");
 
     // muxdanger
     SPECIFIC_FIELD(lang->MUXDANGER.TITLE, "DANGER SETTINGS");
@@ -382,6 +393,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXKIOSK.CATALOGUE, "Custom Catalogue");
     SPECIFIC_FIELD(lang->MUXKIOSK.RACONFIG, "Custom RetroArch Configs");
     SPECIFIC_FIELD(lang->MUXKIOSK.THEME, "Custom Themes");
+    SPECIFIC_FIELD(lang->MUXKIOSK.THEME_DOWN, "Theme Download");
     SPECIFIC_FIELD(lang->MUXKIOSK.CLOCK, "Date and Time");
     SPECIFIC_FIELD(lang->MUXKIOSK.TIMEZONE, "Timezone");
     SPECIFIC_FIELD(lang->MUXKIOSK.APPS, "Applications");
@@ -420,6 +432,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.CATALOGUE, "Allow access to install content catalogues");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.RACONFIG, "Allow access to use custom RetroArch configs");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.THEME, "Permit changing system themes");
+    SPECIFIC_FIELD(lang->MUXKIOSK.HELP.THEME_DOWN, "Permit downloading of themes");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.CLOCK, "Allow changing the system clock");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.TIMEZONE, "Permit adjusting the timezone");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.APPS, "Enable access to applications");
@@ -581,6 +594,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXPICKER.CATALOGUE, "CATALOGUE PICKER");
     SPECIFIC_FIELD(lang->MUXPICKER.CONFIG, "CONFIG PICKER");
     SPECIFIC_FIELD(lang->MUXPICKER.THEME, "THEME PICKER");
+    SPECIFIC_FIELD(lang->MUXPICKER.THEME_DOWN, "Theme Download");
     SPECIFIC_FIELD(lang->MUXPICKER.INVALID_VER, "Incompatible Theme Version Detected");
     SPECIFIC_FIELD(lang->MUXPICKER.INVALID_RES, "Incompatible Theme Resolution Detected");
     SPECIFIC_FIELD(lang->MUXPICKER.NONE.CREDIT, "There are no attributed credits!");
@@ -677,6 +691,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSTORAGE.RA_SYSTEM, "RetroArch System");
     SPECIFIC_FIELD(lang->MUXSTORAGE.RA_CONFIG, "RetroArch Configs");
     SPECIFIC_FIELD(lang->MUXSTORAGE.ASSIGNED, "Assigned Core/Governor System");
+    SPECIFIC_FIELD(lang->MUXSTORAGE.CONTROL_SCHEME, "Content Control Schemes");
     SPECIFIC_FIELD(lang->MUXSTORAGE.COLLECTION, "Content Collection");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HISTORY, "History");
     SPECIFIC_FIELD(lang->MUXSTORAGE.MUSIC, "Background Music");
@@ -696,6 +711,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.RA_SYSTEM, "Location of the RetroArch emulator");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.RA_CONFIG, "Location of RetroArch configurations");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.ASSIGNED, "Location of assigned core and governor configurations");
+    SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.CONTROL_SCHEME, "Location of content control schemes");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.COLLECTION, "Location of content collection");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.HISTORY, "Location of history");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.MUSIC, "Location of background music");
@@ -750,6 +766,34 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTESTER.ANY, "Press any button to start input testing!");
     SPECIFIC_FIELD(lang->MUXTESTER.QUIT, "Press DOWN + B to finish testing");
 
+    // muxthemedown
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.TITLE, "THEME DOWNLOAD");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.REFRESH, "Refresh");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.REFRESH_RUN, "Refreshing…");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.THEME_REMOVED, "Theme Removed");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.NONE, "No Content Found…");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.DOWNLOAD, "Download");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.DOWN.THEME, "Downloading Theme");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.DOWN.DATA, "Downloading Theme Data");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.DOWN.PREVIEW, "Downloading Theme Previews");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.REMOVE, "Remove");
+    SPECIFIC_FIELD(lang->MUXTHEMEDOWN.ERROR_GET_DATA, "Error Retrieving Theme Data");
+
+    // muxthemefilter
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.TITLE, "THEME FILTER");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.COMPATIBILITY, "Theme Compatibility");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.COMPAT.DEVICE, "Device");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.COMPAT.ALL, "All");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.GRID, "Grid");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.HDMI, "HDMI");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.LANGUAGE, "Language");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.LOOKUP, "Lookup");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.HELP.COMPATIBILITY, "Filter to themes for this device or all themes.  All themes can work on any device but if the theme does not implement your devices resolution it will be letterboxed.");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.HELP.GRID, "Filter to themes that support displaying content folders in a tile layout");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.HELP.HDMI, "Filter to themes that support HDMI resolution 1280x720.  Themes will still work on HDMI without support for 1280x720 but content will be letterboxed.");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.HELP.LANGUAGE, "Filter to themes that let muOS handle translating text.  Themes that use static images for the main menu will be filtere out.");
+    SPECIFIC_FIELD(lang->MUXTHEMEFILTER.HELP.LOOKUP, "Filter to theme with a name containing lookup text.");
+
     // muxtimezone
     SPECIFIC_FIELD(lang->MUXTIMEZONE.TITLE, "TIMEZONE");
     SPECIFIC_FIELD(lang->MUXTIMEZONE.NONE, "No Timezones Found…");
@@ -765,6 +809,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.LED, "LED During Play");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RANDOM, "Random Theme on Boot");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.NET_WAIT, "RetroArch Network Wait");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.RA_FREE, "RetroArch Config Freedom");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.VERBOSE, "Verbose Messages");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.USER_INIT, "User Init Scripts");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.DPAD, "DPAD Swap Function");
@@ -800,6 +845,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.LED, "Toggle the power LED during content launch");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RANDOM, "Change the default theme used for the next device launch");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.NET_WAIT, "Toggle a delayed start of RetroArch until a network connection is established");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RA_FREE, "Toggle the forced settings muOS places on RetroArch configurations");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.VERBOSE, "Toggle startup and shutdown verbose messages used for debugging faults");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.USER_INIT, "Toggle the functionality of the user initialisation scripts on device startup");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.DPAD, "Toggle the functionality of the power button to switch DPAD mode");

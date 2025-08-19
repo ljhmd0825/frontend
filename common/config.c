@@ -27,6 +27,36 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->NETWORK.MONITOR, CONF_CONFIG_PATH "network/monitor", 1)
     CFG_INT_FIELD(config->NETWORK.BOOT, CONF_CONFIG_PATH "network/boot", 1)
 
+    CFG_INT_FIELD(config->THEME.FILTER.ALL_THEMES, CONF_CONFIG_PATH "theme/filter/allthemes", 0)
+    CFG_INT_FIELD(config->THEME.FILTER.GRID, CONF_CONFIG_PATH "theme/filter/grid", 0)
+    CFG_INT_FIELD(config->THEME.FILTER.HDMI, CONF_CONFIG_PATH "theme/filter/hdmi", 0)
+    CFG_INT_FIELD(config->THEME.FILTER.LANGUAGE, CONF_CONFIG_PATH "theme/filter/language", 0)
+    CFG_STR_FIELD(config->THEME.FILTER.LOOKUP, CONF_CONFIG_PATH "theme/filter/lookup", "")
+    if (!config->THEME.FILTER.ALL_THEMES) {
+        int width = read_line_int_from((CONF_DEVICE_PATH "mux/width"), 1);
+        int height = read_line_int_from((CONF_DEVICE_PATH "mux/height"), 1);
+        if (width == 640 && height == 480) {
+            config->THEME.FILTER.RESOLUTION_640x480 = 1;
+        } else if (width == 720 && height == 480) {
+            config->THEME.FILTER.RESOLUTION_720x480 = 1;
+        } else if (width == 720 && height == 720) {
+            config->THEME.FILTER.RESOLUTION_720x720 = 1;
+        } else if (width == 1024 && height == 768) {
+            config->THEME.FILTER.RESOLUTION_1024x768 = 1;
+        } else if (width == 1280 && height == 720) {
+            config->THEME.FILTER.RESOLUTION_1280x720 = 1;
+        }
+    } else {
+        config->THEME.FILTER.RESOLUTION_640x480 = 0;
+        config->THEME.FILTER.RESOLUTION_720x480 = 0;
+        config->THEME.FILTER.RESOLUTION_720x720 = 0;
+        config->THEME.FILTER.RESOLUTION_1024x768 = 0;
+        config->THEME.FILTER.RESOLUTION_1280x720 = 0;
+    }
+
+    CFG_STR_FIELD(config->THEME.DOWNLOAD.DATA, CONF_CONFIG_PATH "theme/download/data", "")
+    CFG_STR_FIELD(config->THEME.DOWNLOAD.PREVIEW, CONF_CONFIG_PATH "theme/download/preview", "")
+
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.ACCELERATE, CONF_CONFIG_PATH "settings/advanced/accelerate", 96)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.SWAP, CONF_CONFIG_PATH "settings/advanced/swap", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.THERMAL, CONF_CONFIG_PATH "settings/advanced/thermal", 1)
@@ -36,6 +66,7 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.LED, CONF_CONFIG_PATH "settings/advanced/led", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.THEME, CONF_CONFIG_PATH "settings/advanced/random_theme", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.RETROWAIT, CONF_CONFIG_PATH "settings/advanced/retrowait", 0)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.RETROFREE, CONF_CONFIG_PATH "settings/advanced/retrofree", 0)
     CFG_STR_FIELD(config->SETTINGS.ADVANCED.USBFUNCTION, CONF_CONFIG_PATH "settings/advanced/usb_function", "none")
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.VERBOSE, CONF_CONFIG_PATH "settings/advanced/verbose", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.RUMBLE, CONF_CONFIG_PATH "settings/advanced/rumble", 0)
@@ -110,6 +141,7 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->VISUAL.BOX_ART_ALIGN, CONF_CONFIG_PATH "visual/boxartalign", 0)
     CFG_INT_FIELD(config->VISUAL.NAME, CONF_CONFIG_PATH "visual/name", 0)
     CFG_INT_FIELD(config->VISUAL.DASH, CONF_CONFIG_PATH "visual/dash", 0)
+    CFG_INT_FIELD(config->VISUAL.LAUNCH_SWAP, CONF_CONFIG_PATH "visual/launch_swap", 0)
     CFG_INT_FIELD(config->VISUAL.SHUFFLE, CONF_CONFIG_PATH "visual/shuffle", 1)
     CFG_INT_FIELD(config->VISUAL.FRIENDLYFOLDER, CONF_CONFIG_PATH "visual/friendlyfolder", 1)
     CFG_INT_FIELD(config->VISUAL.THETITLEFORMAT, CONF_CONFIG_PATH "visual/thetitleformat", 0)

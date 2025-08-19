@@ -40,8 +40,8 @@ MODULES = muxapp muxarchive muxassign muxbackup muxcollect muxconfig \
           muxnetinfo muxnetprofile muxnetscan muxnetwork muxoption \
           muxpass muxpicker muxpower muxplore muxrtc muxsearch muxshot \
           muxspace muxsplash muxstorage muxsysinfo muxtag muxtask \
-          muxtester muxtext muxtimezone muxtweakadv muxtweakgen \
-          muxvisual muxwebserv muxshare
+          muxthemedown muxthemefilter muxtester muxtext muxtimezone \
+          muxtweakadv muxtweakgen muxvisual muxwebserv muxshare
 MODULE_DIR = .
 
 SRCS := $(foreach mod,$(MODULES), \

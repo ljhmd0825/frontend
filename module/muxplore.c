@@ -89,7 +89,7 @@ static char *load_content_core(int force, int run_quit) {
     return NULL;
 }
 
-static char *load_content_description() {
+static char *load_content_description(void) {
     char content_desc[MAX_BUFFER_SIZE];
 
     char *content_label = items[current_item_index].name;
@@ -241,10 +241,10 @@ static void add_directory_and_file_names(const char *base_dir, char ***dir_names
     }
 
     while ((entry = readdir(dir))) {
-        if (!should_skip(entry->d_name)) {
-            char full_path[PATH_MAX];
-            snprintf(full_path, sizeof(full_path), "%s/%s", base_dir, entry->d_name);
-            if (entry->d_type == DT_DIR) {
+        char full_path[PATH_MAX];
+        snprintf(full_path, sizeof(full_path), "%s/%s", base_dir, entry->d_name);
+        if (entry->d_type == DT_DIR) {
+            if (!should_skip(entry->d_name, 1)) {
                 if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
                     if (config.VISUAL.FOLDEREMPTY || get_directory_item_count(base_dir, entry->d_name, 1) != 0) {
                         char *subdir_path = (char *) malloc(strlen(entry->d_name) + 2);
@@ -255,7 +255,9 @@ static void add_directory_and_file_names(const char *base_dir, char ***dir_names
                         (dir_count)++;
                     }
                 }
-            } else if (entry->d_type == DT_REG) {
+            }
+        } else if (entry->d_type == DT_REG) {
+            if (!should_skip(entry->d_name, 0)) {
                 char *file_path = (char *) malloc(strlen(entry->d_name) + 2);
                 snprintf(file_path, strlen(entry->d_name) + 2, "%s", entry->d_name);
 
@@ -385,7 +387,7 @@ static void gen_item(char **file_names, int file_count) {
     }
 }
 
-static void init_navigation_group_grid() {
+static void init_navigation_group_grid(void) {
     grid_mode_enabled = 1;
     init_grid_info((int) item_count, theme.GRID.COLUMN_COUNT);
     create_grid_panel(&theme, (int) item_count);
@@ -429,7 +431,7 @@ static void init_navigation_group_grid() {
     }
 }
 
-static void create_content_items() {
+static void create_content_items(void) {
     char item_curr_dir[PATH_MAX];
     snprintf(item_curr_dir, sizeof(item_curr_dir), "%s", sys_dir);
 
@@ -754,23 +756,23 @@ static void process_load(int from_start) {
     mux_input_stop();
 }
 
-static void handle_a() {
-    process_load(0);
+static void handle_a(void) {
+    process_load(config.VISUAL.LAUNCH_SWAP ? 1 : 0);
 }
 
-static void handle_a_alt() {
-    process_load(1);
+static void handle_a_hold(void) {
+    process_load(config.VISUAL.LAUNCH_SWAP ? 0 : 1);
 }
 
-static void handle_l2_hold() {
+static void handle_l2_hold(void) {
     holding_cell = 1;
 }
 
-static void handle_l2_release() {
+static void handle_l2_release(void) {
     holding_cell = 0;
 }
 
-static void handle_b() {
+static void handle_b(void) {
     if (holding_cell) return;
 
     if (msgbox_active) {
@@ -796,7 +798,7 @@ static void handle_b() {
     mux_input_stop();
 }
 
-static void handle_x() {
+static void handle_x(void) {
     if (msgbox_active || !ui_count || holding_cell) return;
 
     toast_message(lang.MUXPLORE.REFRESH_RUN, 0);
@@ -812,7 +814,7 @@ static void handle_x() {
     mux_input_stop();
 }
 
-static void handle_y() {
+static void handle_y(void) {
     if (msgbox_active || !ui_count || holding_cell) return;
 
     if (items[current_item_index].content_type == FOLDER) {
@@ -828,7 +830,7 @@ static void handle_y() {
     }
 }
 
-static void handle_start() {
+static void handle_start(void) {
     if (msgbox_active || !ui_count || holding_cell) return;
 
     play_sound(SND_CONFIRM);
@@ -840,7 +842,7 @@ static void handle_start() {
     mux_input_stop();
 }
 
-static void handle_select() {
+static void handle_select(void) {
     if (msgbox_active || !ui_count || holding_cell) return;
 
     play_sound(SND_CONFIRM);
@@ -869,7 +871,7 @@ static void handle_select() {
     mux_input_stop();
 }
 
-static void handle_menu() {
+static void handle_menu(void) {
     if (msgbox_active || progress_onscreen != -1 || !ui_count || holding_cell) return;
 
     play_sound(SND_INFO_OPEN);
@@ -878,16 +880,16 @@ static void handle_menu() {
     show_info_box(items[current_item_index].display_name, load_content_description(), 1);
 }
 
-static void handle_random_select() {
+static void handle_random_select(void) {
     if (msgbox_active || ui_count < 2 || holding_cell || !config.VISUAL.SHUFFLE) return;
 
-    uint32_t random_select = random() % ui_count;
-    int selected_index = (int) (random_select & INT16_MAX);
+    int dir, target;
+    shuffle_index(current_item_index, &dir, &target);
 
-    !(selected_index & 1) ? list_nav_move(selected_index, +1) : list_nav_move(selected_index, -1);
+    list_nav_move(target, dir);
 }
 
-static void adjust_panels() {
+static void adjust_panels(void) {
     adjust_panel_priority((lv_obj_t *[]) {
             ui_pnlFooter,
             ui_pnlHeader,
@@ -900,7 +902,7 @@ static void adjust_panels() {
     });
 }
 
-static void init_elements() {
+static void init_elements(void) {
     lv_obj_set_align(ui_imgBox, config.VISUAL.BOX_ART_ALIGN);
     lv_obj_set_align(ui_viewport_objects[0], config.VISUAL.BOX_ART_ALIGN);
 
@@ -1066,7 +1068,7 @@ int muxplore_main(int index, char *dir) {
                     [MUX_INPUT_L2] = handle_l2_release,
             },
             .hold_handler = {
-                    [MUX_INPUT_A] = handle_a_alt,
+                    [MUX_INPUT_A] = handle_a_hold,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_DPAD_LEFT] = handle_list_nav_left_hold,
