@@ -47,9 +47,11 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.BACK, "Back");
     GENERIC_FIELD(lang->GENERIC.TOP, "Top");
     GENERIC_FIELD(lang->GENERIC.CLEAR, "Clear");
+    GENERIC_FIELD(lang->GENERIC.CLOSE, "Close");
     GENERIC_FIELD(lang->GENERIC.COLLECT, "Collect");
     GENERIC_FIELD(lang->GENERIC.DIRECTORY, "Directory");
     GENERIC_FIELD(lang->GENERIC.DISABLED, "Disabled");
+    GENERIC_FIELD(lang->GENERIC.DOWNLOAD, "Download");
     GENERIC_FIELD(lang->GENERIC.ENABLED, "Enabled");
     GENERIC_FIELD(lang->GENERIC.EXTRACT, "Extract");
     GENERIC_FIELD(lang->GENERIC.FILTER, "Filter");
@@ -74,9 +76,10 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.RESCAN, "Rescan");
     GENERIC_FIELD(lang->GENERIC.RESTORE, "Restore");
     GENERIC_FIELD(lang->GENERIC.SAVE, "Save");
+    GENERIC_FIELD(lang->GENERIC.SCROLL, "Scroll");
     GENERIC_FIELD(lang->GENERIC.SELECT, "Select");
-    GENERIC_FIELD(lang->GENERIC.SWITCH_IMAGE, "Switch to Preview Image");
-    GENERIC_FIELD(lang->GENERIC.SWITCH_INFO, "Switch to Information");
+    GENERIC_FIELD(lang->GENERIC.SWITCH_IMAGE, "Preview Image");
+    GENERIC_FIELD(lang->GENERIC.SWITCH_INFO, "Information");
     GENERIC_FIELD(lang->GENERIC.SYNC, "Sync to SD1");
     GENERIC_FIELD(lang->GENERIC.UNKNOWN, "Unknown");
     GENERIC_FIELD(lang->GENERIC.CHANNEL, "Channel");
@@ -87,8 +90,9 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.NOT_CONNECTED, "Not Connected");
     GENERIC_FIELD(lang->GENERIC.EDIT, "Edit");
     GENERIC_FIELD(lang->GENERIC.CHANGE, "Change");
-    SPECIFIC_FIELD(lang->GENERIC.ALLOWED, "Allowed");
-    SPECIFIC_FIELD(lang->GENERIC.RESTRICTED, "Restricted");
+    GENERIC_FIELD(lang->GENERIC.ALLOWED, "Allowed");
+    GENERIC_FIELD(lang->GENERIC.RESTRICTED, "Restricted");
+    GENERIC_FIELD(lang->GENERIC.REFRESH, "Refreshing…");
 
     // muxapp
     SPECIFIC_FIELD(lang->MUXAPP.TITLE, "APPLICATIONS");
@@ -96,6 +100,14 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXAPP.NO_APP, "No Applications Found");
     SPECIFIC_FIELD(lang->MUXAPP.ARCHIVE, "Archive Manager");
     SPECIFIC_FIELD(lang->MUXAPP.TASK, "Task Toolkit");
+
+    // muxappcon
+    SPECIFIC_FIELD(lang->MUXAPPCON.TITLE, "APPLICATION OPTION");
+    SPECIFIC_FIELD(lang->MUXAPPCON.NAME, "Name");
+    SPECIFIC_FIELD(lang->MUXAPPCON.GOVERNOR, "Governor");
+    SPECIFIC_FIELD(lang->MUXAPPCON.CONTROL, "Control Scheme");
+    SPECIFIC_FIELD(lang->MUXAPPCON.HELP.GOVERNOR, "Set the CPU governor for the selected application");
+    SPECIFIC_FIELD(lang->MUXAPPCON.HELP.CONTROL, "Set the control scheme for the selected application");
 
     // muxarchive
     SPECIFIC_FIELD(lang->MUXARCHIVE.TITLE, "ARCHIVE MANAGER");
@@ -109,6 +121,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXASSIGN.FILE, "Assigned to file");
     SPECIFIC_FIELD(lang->MUXASSIGN.NONE, "No Cores Found…");
     SPECIFIC_FIELD(lang->MUXASSIGN.HELP, "This is where you can assign a core or external emulator to content");
+    SPECIFIC_FIELD(lang->MUXASSIGN.CORE_DOWN, "Core Downloader");
 
     // muxbackup
     SPECIFIC_FIELD(lang->MUXBACKUP.TITLE, "DEVICE BACKUP");
@@ -166,7 +179,7 @@ void load_lang(struct mux_lang *lang) {
     // muxcharge
     SPECIFIC_FIELD(lang->MUXCHARGE.BOOT, "Booting System - Please Wait…");
     SPECIFIC_FIELD(lang->MUXCHARGE.CAPACITY, "Capacity");
-    SPECIFIC_FIELD(lang->MUXCHARGE.POWER, "Press POWER button to continue booting…");
+    SPECIFIC_FIELD(lang->MUXCHARGE.START, "Press START button to continue booting…");
     SPECIFIC_FIELD(lang->MUXCHARGE.VOLTAGE, "Voltage");
 
     // muxcollect
@@ -253,6 +266,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.TITLE, "Content Save State Launch");
     SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.PRESS_A, "Press A");
     SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.HOLD_A, "Hold A");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.LOAD_STATE, "Load State");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.LAUNCH_SWAP.START_FRESH, "Start Fresh");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CHIME, "Startup Chime");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.BOOTLOGO, "Load user created boot logos for your device");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CATALOGUE, "Load user created artwork catalogue for content");
@@ -323,6 +338,15 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXDEVICE.HELP.NETWORK, "Toggles Network integration on device");
     SPECIFIC_FIELD(lang->MUXDEVICE.HELP.PORTMASTER, "Toggles internal Portmaster support on device");
 
+    // muxdownload
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.TITLE.CORE, "CORE DOWNLOADER");
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.TITLE.APP, "APP DOWNLOADER");
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.DOWN.ARCHIVE, "Downloading Archive");
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.DOWN.DATA, "Downloading Data");
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.REFRESH, "Refresh");
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.ARCHIVE_REMOVED, "Archive Removed");
+    SPECIFIC_FIELD(lang->MUXDOWNLOAD.ERROR_GET_DATA, "Error Retrieving Data");
+
     // muxgov
     SPECIFIC_FIELD(lang->MUXGOV.TITLE, "GOVERNOR");
     SPECIFIC_FIELD(lang->MUXGOV.HELP, "Configure CPU governors to dynamically adjust the CPU frequency and help balance power consumption and performance");
@@ -381,6 +405,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXKIOSK.LANGUAGE, "Language");
     SPECIFIC_FIELD(lang->MUXKIOSK.NETWORK, "Wi-Fi Network");
     SPECIFIC_FIELD(lang->MUXKIOSK.STORAGE, "Storage");
+    SPECIFIC_FIELD(lang->MUXKIOSK.BACKUP, "Backup");
     SPECIFIC_FIELD(lang->MUXKIOSK.WEBSERV, "Web Services");
     SPECIFIC_FIELD(lang->MUXKIOSK.CORE, "Content Core");
     SPECIFIC_FIELD(lang->MUXKIOSK.GOVERNOR, "Content Governor");
@@ -420,6 +445,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.LANGUAGE, "Permit changing the system language");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.NETWORK, "Allow editing of network settings");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.STORAGE, "Allow user to migrate or sync user based content");
+    SPECIFIC_FIELD(lang->MUXKIOSK.HELP.BACKUP, "Allow the use of the user based content backup tool");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.WEBSERV, "Enable use of web based features");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.CORE, "Allow selection of content cores");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.GOVERNOR, "Allow selection of content governor");
@@ -457,6 +483,9 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXLANGUAGE.NONE, "No Languages Found…");
     SPECIFIC_FIELD(lang->MUXLANGUAGE.SAVE, "Saving Language");
     SPECIFIC_FIELD(lang->MUXLANGUAGE.HELP, "Select your preferred language");
+    SPECIFIC_FIELD(lang->MUXLANGUAGE.REFRESH, "Refresh");
+    SPECIFIC_FIELD(lang->MUXLANGUAGE.DOWNLOADING, "Downloading Language Updates");
+    SPECIFIC_FIELD(lang->MUXLANGUAGE.ERROR_GET_DATA, "Error Retrieving Language Data");
 
     // muxlaunch
     SPECIFIC_FIELD(lang->MUXLAUNCH.TITLE, "MAIN MENU");
@@ -580,7 +609,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXOPTION.NONE, "None");
     SPECIFIC_FIELD(lang->MUXOPTION.NOT_ASSIGNED, "Not Assigned");
     SPECIFIC_FIELD(lang->MUXOPTION.HELP.CORE, "Set the system core or external emulator for the selected content or directory");
-    SPECIFIC_FIELD(lang->MUXOPTION.HELP.GOV, "Set the CPU governor for the selected content or directory");
+    SPECIFIC_FIELD(lang->MUXOPTION.HELP.GOVERNOR, "Set the CPU governor for the selected content or directory");
     SPECIFIC_FIELD(lang->MUXOPTION.HELP.CONTROL, "Set the control scheme for the selected content or directory");
     SPECIFIC_FIELD(lang->MUXOPTION.HELP.TAG, "Set the specific tag of the content selected to change the glyph");
     SPECIFIC_FIELD(lang->MUXOPTION.HELP.SEARCH, "Search for content within the selected directory");
@@ -737,9 +766,10 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSYSINFO.TEMP, "Temperature");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CAPACITY, "Battery Capacity");
     SPECIFIC_FIELD(lang->MUXSYSINFO.VOLTAGE, "Battery Voltage");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.REFRESH, "Refresh Frontend");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.INFO, "CPU Information");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.SPEED, "CPU Speed");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.GOV, "CPU Governor");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.GOVERNOR, "CPU Governor");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.VERSION, "The current version of muOS running on the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.DEVICE, "The current device type detected and configured");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.KERNEL, "The current Linux kernel");
@@ -748,9 +778,10 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.TEMP, "The current detected temperature of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CAPACITY, "The current detected battery capacity");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.VOLTAGE, "The current detected battery voltage");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.REFRESH, "Refresh the current frontend configuration values if changed elsewhere");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU.INFO, "The detected CPU type of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU.SPEED, "The current CPU frequency of the device");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU.GOV, "The current running governor of the device");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU.GOVERNOR, "The current running governor of the device");
 
     // muxtag
     SPECIFIC_FIELD(lang->MUXTAG.TITLE, "TAG");

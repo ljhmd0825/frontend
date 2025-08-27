@@ -81,7 +81,7 @@ static void create_screenshot_items(void) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -112,25 +112,27 @@ static void list_nav_next(int steps) {
     list_nav_move(steps, +1);
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active || ui_count <= 0) return;
+static void handle_a(void) {
+    if (msgbox_active || !ui_count || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
     if (is_fullscreen) {
         is_fullscreen = 0;
-        lv_obj_set_style_img_opa(ui_imgScreenshot, 25, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_img_opa(ui_imgScreenshot, 25, MU_OBJ_MAIN_DEFAULT);
         lv_obj_clear_flag(ui_pnlHeader, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui_pnlFooter, LV_OBJ_FLAG_HIDDEN);
     } else {
         is_fullscreen = 1;
-        lv_obj_set_style_img_opa(ui_imgScreenshot, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_img_opa(ui_imgScreenshot, 255, MU_OBJ_MAIN_DEFAULT);
         lv_obj_add_flag(ui_pnlHeader, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui_pnlFooter, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
-static void handle_back(void) {
+static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -146,7 +148,7 @@ static void handle_back(void) {
 }
 
 static void handle_remove(void) {
-    if (msgbox_active || is_fullscreen || !ui_count) return;
+    if (msgbox_active || is_fullscreen || !ui_count || hold_call) return;
 
     char screenshot_file[PATH_MAX];
     snprintf(screenshot_file, sizeof(screenshot_file), "%s/%s.png",
@@ -162,7 +164,7 @@ static void handle_remove(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || is_fullscreen) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || is_fullscreen || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
@@ -196,7 +198,7 @@ static void init_elements(void) {
     ui_imgScreenshot = lv_img_create(ui_screen);
     lv_img_set_pivot(ui_imgScreenshot, 0, 0);
     lv_img_set_src(ui_imgScreenshot, &ui_image_Nothing);
-    lv_obj_set_style_img_opa(ui_imgScreenshot, 25, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_opa(ui_imgScreenshot, 25, MU_OBJ_MAIN_DEFAULT);
 
     overlay_display();
 }
@@ -252,8 +254,8 @@ int muxshot_main(void) {
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_X] = handle_remove,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
@@ -261,10 +263,14 @@ int muxshot_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

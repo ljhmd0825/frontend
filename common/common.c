@@ -842,14 +842,14 @@ void decrease_option_value(lv_obj_t *element) {
     }
 }
 
-void load_assign(const char *rom, const char *dir, const char *sys, int forced) {
-    FILE *file = fopen(MUOS_ASS_LOAD, "w");
+void load_assign(const char *loader, const char *rom, const char *dir, const char *sys, int forced, int app) {
+    FILE *file = fopen(loader, "w");
     if (file == NULL) {
         perror(lang.SYSTEM.FAIL_FILE_OPEN);
         return;
     }
 
-    fprintf(file, "%s\n%s\n%s\n%d", rom, dir, sys, forced);
+    fprintf(file, "%s\n%s\n%s\n%d\n%d", rom, dir, sys, forced, app);
     fclose(file);
 }
 
@@ -1253,7 +1253,7 @@ void load_overlay_image(lv_obj_t *ui_screen, lv_obj_t *overlay_image) {
 
     if (file_exist(static_image_path)) {
         lv_img_set_src(overlay_image, static_image_embed);
-        lv_obj_set_style_img_opa(overlay_image, config.VISUAL.OVERLAY_TRANSPARENCY, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_img_opa(overlay_image, config.VISUAL.OVERLAY_TRANSPARENCY, MU_OBJ_MAIN_DEFAULT);
         lv_obj_move_foreground(overlay_image);
     }
 }
@@ -1414,7 +1414,7 @@ void load_font_text_from_file(const char *filepath, lv_obj_t *element) {
     snprintf(theme_font_text_fs, sizeof(theme_font_text_fs), "M:%s", filepath);
     lv_font_t *font = lv_font_load(theme_font_text_fs);
     font->fallback = get_language_font();
-    lv_obj_set_style_text_font(element, font, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(element, font, MU_OBJ_MAIN_DEFAULT);
 }
 
 void load_font_text(lv_obj_t *screen) {
@@ -1456,7 +1456,7 @@ void load_font_text(lv_obj_t *screen) {
     }
 
     LOG_INFO(mux_module, "Loading Default Language Font")
-    lv_obj_set_style_text_font(screen, language_font, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(screen, language_font, MU_OBJ_MAIN_DEFAULT);
 }
 
 void load_font_section(const char *section, lv_obj_t *element) {
@@ -1623,10 +1623,10 @@ void display_testing_message(lv_obj_t *screen) {
 
     lv_obj_set_align(ui_conTest, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ui_conTest, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_text_color(ui_conTest, lv_color_hex(0x808080), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_conTest, spec, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(ui_conTest, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_line_space(ui_conTest, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_conTest, lv_color_hex(0x808080), MU_OBJ_MAIN_DEFAULT);
+    lv_obj_set_style_text_opa(ui_conTest, spec, MU_OBJ_MAIN_DEFAULT);
+    lv_obj_set_style_text_letter_space(ui_conTest, 0, MU_OBJ_MAIN_DEFAULT);
+    lv_obj_set_style_text_line_space(ui_conTest, 0, MU_OBJ_MAIN_DEFAULT);
 
     lv_obj_t *ui_lblTestBottom = lv_label_create(ui_conTest);
     lv_obj_set_width(ui_lblTestBottom, LV_SIZE_CONTENT);
@@ -1729,10 +1729,10 @@ void update_image(lv_obj_t *ui_imgobj, struct ImageSettings image_settings) {
         }
 
         lv_obj_set_align(ui_imgobj, image_settings.align);
-        lv_obj_set_style_pad_left(ui_imgobj, image_settings.pad_left, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_pad_right(ui_imgobj, image_settings.pad_right, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_pad_top(ui_imgobj, image_settings.pad_top, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_pad_bottom(ui_imgobj, image_settings.pad_bottom, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_left(ui_imgobj, image_settings.pad_left, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_pad_right(ui_imgobj, image_settings.pad_right, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_pad_top(ui_imgobj, image_settings.pad_top, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_pad_bottom(ui_imgobj, image_settings.pad_bottom, MU_OBJ_MAIN_DEFAULT);
         lv_img_set_src(ui_imgobj, image_path);
         lv_obj_move_foreground(ui_imgobj);
     } else {
@@ -2301,7 +2301,7 @@ int get_grid_row_item_count(int current_item_index) {
 }
 
 void kiosk_denied(void) {
-    if (kiosk.MESSAGE) {
+    if (is_ksk(kiosk.MESSAGE)) {
         play_sound(SND_ERROR);
         toast_message(lang.GENERIC.KIOSK_DISABLE, 1000);
         refresh_screen(ui_screen);
@@ -2347,6 +2347,15 @@ char *get_content_line(char *dir, char *name, char *ext, size_t line) {
     } else {
         snprintf(path, sizeof(path), "%s/%s/%s.%s", INFO_COR_PATH, subdir, strip_ext(name), ext);
     }
+
+    if (file_exist(path)) return read_line_char_from(path, line);
+
+    return "";
+}
+
+char *get_application_line(char *dir, char *ext, size_t line) {
+    static char path[MAX_BUFFER_SIZE];
+    snprintf(path, sizeof(path), "%s/mux_option.%s", dir, ext);
 
     if (file_exist(path)) return read_line_char_from(path, line);
 
@@ -2521,10 +2530,9 @@ int direct_to_previous(lv_obj_t **ui_objects, size_t ui_count, int *nav_moved) {
 
     int text_hit = 0;
     for (size_t i = 0; i < ui_count; i++) {
-        if (!strcasecmp(lv_obj_get_user_data(ui_objects[i]), prev)) {
-            text_hit = i;
-            break;
-        }
+        const bool item_hidden = lv_obj_has_flag(ui_objects[i], LV_OBJ_FLAG_HIDDEN);
+        if (!item_hidden && !strcasecmp(lv_obj_get_user_data(ui_objects[i]), prev)) break;
+        if (!item_hidden) text_hit++;
     }
 
     int nav_next_return = 0;

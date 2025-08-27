@@ -4,7 +4,7 @@
 #define UI_COUNT 17
 
 #define CUSTOM(NAME, UDATA) static int NAME##_original;
-    CUSTOM_ELEMENTS
+CUSTOM_ELEMENTS
 #undef CUSTOM
 
 static void list_nav_move(int steps, int direction);
@@ -154,7 +154,9 @@ static void init_navigation_group(void) {
 
     char *launch_swap_options[] = {
             lang.MUXCUSTOM.LAUNCH_SWAP.PRESS_A,
-            lang.MUXCUSTOM.LAUNCH_SWAP.HOLD_A
+            lang.MUXCUSTOM.LAUNCH_SWAP.HOLD_A,
+            lang.MUXCUSTOM.LAUNCH_SWAP.LOAD_STATE,
+            lang.MUXCUSTOM.LAUNCH_SWAP.START_FRESH
     };
 
     INIT_OPTION_ITEM(-1, custom, Bootlogo, lang.MUXCUSTOM.BOOTLOGO, "bootlogo", NULL, 0);
@@ -172,7 +174,7 @@ static void init_navigation_group(void) {
     INIT_OPTION_ITEM(-1, custom, Animation, lang.MUXCUSTOM.ANIMATION, "animation", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, custom, Music, lang.MUXCUSTOM.MUSIC.TITLE, "music", music_options, 3);
     INIT_OPTION_ITEM(-1, custom, BlackFade, lang.MUXCUSTOM.FADE, "blackfade", disabled_enabled, 2);
-    INIT_OPTION_ITEM(-1, custom, LaunchSwap, lang.MUXCUSTOM.LAUNCH_SWAP.TITLE, "launch_swap", launch_swap_options, 2);
+    INIT_OPTION_ITEM(-1, custom, LaunchSwap, lang.MUXCUSTOM.LAUNCH_SWAP.TITLE, "launch_swap", launch_swap_options, 4);
     INIT_OPTION_ITEM(-1, custom, Shuffle, lang.MUXCUSTOM.SHUFFLE, "shuffle", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, custom, BoxArtImage, lang.MUXCUSTOM.BOX_ART.TITLE, "boxart", boxart_image, 5);
     INIT_OPTION_ITEM(-1, custom, BoxArtAlign, lang.MUXCUSTOM.BOX_ART.ALIGN.TITLE, "align", boxart_align, 9);
@@ -183,13 +185,14 @@ static void init_navigation_group(void) {
 
     lv_dropdown_clear_options(ui_droThemeResolution_custom);
     lv_dropdown_add_option(ui_droThemeResolution_custom, lang.MUXCUSTOM.SCREEN, LV_DROPDOWN_POS_LAST);
+
     char theme_device_folder[MAX_BUFFER_SIZE];
     for (int i = 0; i < A_SIZE(theme_resolutions); i++) {
         snprintf(theme_device_folder, sizeof(theme_device_folder), "%s/%s",
                  STORAGE_THEME, theme_resolutions[i].resolution);
+
         if (directory_exist(theme_device_folder)) {
-            lv_dropdown_add_option(ui_droThemeResolution_custom,
-                                   theme_resolutions[i].resolution, LV_DROPDOWN_POS_LAST);
+            lv_dropdown_add_option(ui_droThemeResolution_custom, theme_resolutions[i].resolution, LV_DROPDOWN_POS_LAST);
         }
     }
 
@@ -378,8 +381,8 @@ static void save_custom_options(void) {
     }
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active) return;
+static void handle_a(void) {
+    if (msgbox_active || hold_call) return;
 
     struct {
         const char *mux_name;
@@ -389,7 +392,7 @@ static void handle_confirm(void) {
             {"theme",     "/theme",            &kiosk.CUSTOM.THEME},
             {"bootlogo",  "package/bootlogo",  &kiosk.CUSTOM.BOOTLOGO},
             {"catalogue", "package/catalogue", &kiosk.CUSTOM.CATALOGUE},
-            {"config",    "package/config",    &kiosk.CUSTOM.CONFIGURATION}
+            {"config",    "package/config",    &kiosk.CUSTOM.RACONFIG}
     };
 
     struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
@@ -407,7 +410,7 @@ static void handle_confirm(void) {
 
             return;
         } else if (!strcasecmp(u_data, elements[i].mux_name)) {
-            if (kiosk.ENABLE && elements[i].kiosk_flag && *elements[i].kiosk_flag) {
+            if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
             }
@@ -436,7 +439,9 @@ static void handle_confirm(void) {
     handle_option_next();
 }
 
-static void handle_back(void) {
+static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -455,7 +460,7 @@ static void handle_back(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -532,8 +537,8 @@ int muxcustom_main(void) {
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
@@ -542,12 +547,16 @@ int muxcustom_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

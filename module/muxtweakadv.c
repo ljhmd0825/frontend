@@ -4,7 +4,7 @@
 #define UI_COUNT 22
 
 #define TWEAKADV(NAME, UDATA) static int NAME##_original;
-    TWEAKADV_ELEMENTS
+TWEAKADV_ELEMENTS
 #undef TWEAKADV
 
 static void show_help(lv_obj_t *element_focused) {
@@ -220,23 +220,14 @@ static void init_navigation_group(void) {
         lv_group_add_obj(ui_group_panel, ui_objects_panel[i]);
     }
 
-    if (!device.DEVICE.HAS_NETWORK) {
-        lv_obj_add_flag(ui_pnlRetroWait_tweakadv, MU_OBJ_FLAG_HIDE_FLOAT);
-        ui_count -= 1;
-    }
+    if (!device.DEVICE.HAS_NETWORK) HIDE_OPTION_ITEM(tweakadv, RetroWait);
+    if (!device.DEVICE.HAS_LID) HIDE_OPTION_ITEM(tweakadv, LidSwitch);
 
-    if (!device.DEVICE.HAS_LID) {
-        lv_obj_add_flag(ui_pnlLidSwitch_tweakadv, MU_OBJ_FLAG_HIDE_FLOAT);
-        ui_count -= 1;
-    }
+    // Removal of random theme because it is causing a number of issues
+    HIDE_OPTION_ITEM(tweakadv, Theme);
 
-    {
-        // Removal of random theme because it is causing a number of issues
-        lv_obj_add_flag(ui_pnlTheme_tweakadv, MU_OBJ_FLAG_HIDE_FLOAT);
-        // Removal of verbose messages due to changes to muterm not playing ball
-        lv_obj_add_flag(ui_pnlVerbose_tweakadv, MU_OBJ_FLAG_HIDE_FLOAT);
-        ui_count -= 2;
-    }
+    // Removal of verbose messages due to changes to muterm not playing ball
+    HIDE_OPTION_ITEM(tweakadv, Verbose);
 }
 
 static void list_nav_move(int steps, int direction) {
@@ -279,13 +270,15 @@ static void handle_option_next(void) {
     increase_option_value(lv_group_get_focused(ui_group_value));
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active) return;
+static void handle_a(void) {
+    if (msgbox_active || hold_call) return;
 
     handle_option_next();
 }
 
-static void handle_back(void) {
+static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -304,7 +297,7 @@ static void handle_back(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -373,12 +366,13 @@ int muxtweakadv_main(void) {
     init_dropdown_settings();
 
     init_timer(ui_refresh_task, NULL);
+    list_nav_next(0);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
@@ -387,12 +381,16 @@ int muxtweakadv_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

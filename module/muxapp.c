@@ -154,7 +154,7 @@ static void create_app_items(void) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -194,22 +194,22 @@ static void list_nav_next(int steps) {
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (ui_count > 0) {
         struct {
-            const char *app_name;
+            const char *mux_name;
             int16_t *kiosk_flag;
         } elements[] = {
-                {lang.MUXAPP.ARCHIVE, &kiosk.APPLICATION.ARCHIVE},
-                {lang.MUXAPP.TASK,    &kiosk.APPLICATION.TASK}
+                {"Archive Manager", &kiosk.APPLICATION.ARCHIVE},
+                {"Task Toolkit",    &kiosk.APPLICATION.TASK}
         };
 
         int skip_toast = 0;
 
         for (size_t i = 0; i < A_SIZE(elements); i++) {
-            if (strcasecmp(items[current_item_index].name, elements[i].app_name) == 0) {
-                if (*(elements[i].kiosk_flag)) {
+            if (strcasecmp(items[current_item_index].name, elements[i].mux_name) == 0) {
+                if (is_ksk(*elements[i].kiosk_flag)) {
                     kiosk_denied();
                     return;
                 }
@@ -223,6 +223,19 @@ static void handle_a(void) {
         if (!skip_toast) {
             toast_message(lang.MUXAPP.LOAD_APP, 0);
             refresh_screen(ui_screen);
+
+            char app_dir[MAX_BUFFER_SIZE];
+            snprintf(app_dir, sizeof(app_dir), "%s/%s/%s",
+                     device.STORAGE.ROM.MOUNT, MUOS_APPS_PATH, items[current_item_index].name);
+
+            char *assigned_gov = specify_asset(load_content_governor(app_dir, NULL, 0, 1, 1),
+                                               device.CPU.DEFAULT, "Governor");
+
+            char *assigned_con = specify_asset(load_content_control_scheme(app_dir, NULL, 0, 1, 1),
+                                               "system", "Control Scheme");
+
+            write_text_to_file(MUOS_GOV_LOAD, "w", CHAR, assigned_gov);
+            write_text_to_file(MUOS_CON_LOAD, "w", CHAR, assigned_con);
         }
 
         write_text_to_file(MUOS_APP_LOAD, "w", CHAR, items[current_item_index].extra_data);
@@ -234,6 +247,8 @@ static void handle_a(void) {
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -250,10 +265,41 @@ static void handle_b(void) {
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
+}
+
+static void handle_select(void) {
+    if (msgbox_active || !ui_count || hold_call) return;
+
+    struct {
+        const char *mux_name;
+    } elements[] = {
+            {"Archive Manager"},
+            {"Task Toolkit"}
+    };
+
+    for (size_t i = 0; i < A_SIZE(elements); i++) {
+        if (strcasecmp(items[current_item_index].name, elements[i].mux_name) == 0) {
+            return;
+        }
+    }
+
+    char app_dir[MAX_BUFFER_SIZE];
+    snprintf(app_dir, sizeof(app_dir), "%s/%s/%s",
+             device.STORAGE.ROM.MOUNT, MUOS_APPS_PATH, items[current_item_index].name);
+
+    load_assign(MUOS_APL_LOAD, items[current_item_index].name, app_dir, "none", 0, 1);
+
+    play_sound(SND_CONFIRM);
+    write_text_to_file(MUOS_AIN_LOAD, "w", INT, current_item_index);
+
+    load_mux("appcon");
+
+    close_input();
+    mux_input_stop();
 }
 
 static void adjust_panels(void) {
@@ -337,6 +383,7 @@ int muxapp_main(void) {
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
+                    [MUX_INPUT_SELECT] = handle_select,
                     [MUX_INPUT_MENU_SHORT] = handle_menu,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
@@ -345,12 +392,16 @@ int muxapp_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_DPAD_LEFT] = handle_list_nav_left_hold,
                     [MUX_INPUT_DPAD_RIGHT] = handle_list_nav_right_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

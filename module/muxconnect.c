@@ -106,14 +106,12 @@ static void init_navigation_group(void) {
     }
 
     if (!device.DEVICE.HAS_NETWORK) {
-        lv_obj_add_flag(ui_pnlNetwork_connect, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_pnlServices_connect, LV_OBJ_FLAG_HIDDEN);
-        ui_count -= 2;
+        HIDE_OPTION_ITEM(connect, Network);
+        HIDE_OPTION_ITEM(connect, Services);
     }
 
     if (!device.DEVICE.HAS_BLUETOOTH || true) { // TODO: remove true when bluetooth is implemented
-        lv_obj_add_flag(ui_pnlBluetooth_connect, LV_OBJ_FLAG_HIDDEN);
-        ui_count -= 1;
+        HIDE_OPTION_ITEM(connect, Bluetooth);
     }
 
     list_nav_move(direct_to_previous(ui_objects, UI_COUNT, &nav_moved), +1);
@@ -153,20 +151,16 @@ static void list_nav_next(int steps) {
 
 static void handle_option_prev(void) {
     if (msgbox_active) return;
-
-    play_sound(SND_NAVIGATE);
     decrease_option_value(lv_group_get_focused(ui_group_value));
 }
 
 static void handle_option_next(void) {
     if (msgbox_active) return;
-
-    play_sound(SND_NAVIGATE);
     increase_option_value(lv_group_get_focused(ui_group_value));
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     struct {
         const char *glyph_name;
@@ -182,7 +176,7 @@ static void handle_a(void) {
 
     for (size_t i = 0; i < A_SIZE(elements); i++) {
         if (strcasecmp(u_data, elements[i].glyph_name) == 0) {
-            if (kiosk.ENABLE && elements[i].kiosk_flag && *elements[i].kiosk_flag) {
+            if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
             }
@@ -201,6 +195,8 @@ static void handle_a(void) {
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -220,7 +216,7 @@ static void handle_b(void) {
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -303,12 +299,16 @@ int muxconnect_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

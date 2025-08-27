@@ -4,7 +4,7 @@
 #define UI_COUNT 8
 
 #define TWEAKGEN(NAME, UDATA) static int NAME##_original;
-    TWEAKGEN_ELEMENTS
+TWEAKGEN_ELEMENTS
 #undef TWEAKGEN
 
 static void list_nav_move(int steps, int direction);
@@ -167,15 +167,8 @@ static void init_navigation_group(void) {
         lv_group_add_obj(ui_group_panel, ui_objects_panel[i]);
     }
 
-    if (!device.DEVICE.HAS_HDMI) {
-        lv_obj_add_flag(ui_pnlHdmi_tweakgen, MU_OBJ_FLAG_HIDE_FLOAT);
-        ui_count -= 1;
-    }
-
-    if (!device.DEVICE.RGB) {
-        lv_obj_add_flag(ui_pnlRgb_tweakgen, MU_OBJ_FLAG_HIDE_FLOAT);
-        ui_count -= 1;
-    }
+    if (!device.DEVICE.HAS_HDMI) HIDE_OPTION_ITEM(tweakgen, Hdmi);
+    if (!device.DEVICE.RGB) HIDE_OPTION_ITEM(tweakgen, Rgb);
 
     list_nav_move(direct_to_previous(ui_objects, UI_COUNT, &nav_moved), +1);
 }
@@ -253,8 +246,8 @@ static void handle_option_next(void) {
     update_option_values();
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active || block_input) return;
+static void handle_a(void) {
+    if (msgbox_active || block_input || hold_call) return;
 
     struct {
         const char *glyph_name;
@@ -271,7 +264,7 @@ static void handle_confirm(void) {
 
     for (size_t i = 0; i < A_SIZE(elements); i++) {
         if (strcasecmp(u_data, elements[i].glyph_name) == 0) {
-            if (kiosk.ENABLE && elements[i].kiosk_flag && *elements[i].kiosk_flag) {
+            if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
             }
@@ -291,8 +284,8 @@ static void handle_confirm(void) {
     handle_option_next();
 }
 
-static void handle_back(void) {
-    if (block_input) return;
+static void handle_b(void) {
+    if (block_input || hold_call) return;
 
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
@@ -312,14 +305,14 @@ static void handle_back(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || block_input) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || block_input || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
 }
 
 static void launch_danger(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (lv_group_get_focused(ui_group) == ui_lblAdvanced_tweakgen) {
         load_mux("danger");
@@ -400,8 +393,8 @@ int muxtweakgen_main(void) {
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
@@ -410,12 +403,16 @@ int muxtweakgen_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
             .combo = {

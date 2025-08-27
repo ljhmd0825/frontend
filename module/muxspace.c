@@ -12,7 +12,7 @@ struct mount {
 };
 
 static void show_help(lv_obj_t *element_focused) {
-    show_info_box(TS(lv_label_get_text(lv_group_get_focused(ui_group))), lang.MUXSPACE.HELP, 0);
+    show_info_box(TS(lv_label_get_text(element_focused)), lang.MUXSPACE.HELP, 0);
 }
 
 static void update_storage_info() {
@@ -40,10 +40,8 @@ static void update_storage_info() {
             lv_label_set_text(storage_info[i].value, space_info);
 
             if (percentage >= 90) {
-                lv_obj_set_style_bg_color(storage_info[i].bar, lv_color_hex(0xEE3F3F),
-                                          LV_PART_INDICATOR | LV_STATE_DEFAULT);
-                lv_obj_set_style_bg_opa(storage_info[i].bar, 255,
-                                        LV_PART_INDICATOR | LV_STATE_DEFAULT);
+                lv_obj_set_style_bg_color(storage_info[i].bar, lv_color_hex(0xEE3F3F), MU_OBJ_INDI_DEFAULT);
+                lv_obj_set_style_bg_opa(storage_info[i].bar, 255, MU_OBJ_INDI_DEFAULT);
             }
         } else {
             lv_obj_add_flag(storage_info[i].value_panel, LV_OBJ_FLAG_HIDDEN);
@@ -105,6 +103,8 @@ static void list_nav_next(int steps) {
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -121,7 +121,7 @@ static void handle_b(void) {
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -187,6 +187,7 @@ int muxspace_main(void) {
     update_storage_info();
 
     init_timer(ui_refresh_task, update_storage_info);
+    list_nav_next(0);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -198,10 +199,14 @@ int muxspace_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

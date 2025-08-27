@@ -31,9 +31,11 @@ struct mux_lang {
         char BACK[MAX_BUFFER_SIZE];
         char TOP[MAX_BUFFER_SIZE];
         char CLEAR[MAX_BUFFER_SIZE];
+        char CLOSE[MAX_BUFFER_SIZE];
         char COLLECT[MAX_BUFFER_SIZE];
         char DIRECTORY[MAX_BUFFER_SIZE];
         char DISABLED[MAX_BUFFER_SIZE];
+        char DOWNLOAD[MAX_BUFFER_SIZE];
         char ENABLED[MAX_BUFFER_SIZE];
         char EXTRACT[MAX_BUFFER_SIZE];
         char FILTER[MAX_BUFFER_SIZE];
@@ -58,6 +60,7 @@ struct mux_lang {
         char RESCAN[MAX_BUFFER_SIZE];
         char RESTORE[MAX_BUFFER_SIZE];
         char SAVE[MAX_BUFFER_SIZE];
+        char SCROLL[MAX_BUFFER_SIZE];
         char SELECT[MAX_BUFFER_SIZE];
         char SWITCH_IMAGE[MAX_BUFFER_SIZE];
         char SWITCH_INFO[MAX_BUFFER_SIZE];
@@ -73,6 +76,7 @@ struct mux_lang {
         char CHANGE[MAX_BUFFER_SIZE];
         char ALLOWED[MAX_BUFFER_SIZE];
         char RESTRICTED[MAX_BUFFER_SIZE];
+        char REFRESH[MAX_BUFFER_SIZE];
     } GENERIC;
 
     struct {
@@ -82,6 +86,17 @@ struct mux_lang {
         char ARCHIVE[MAX_BUFFER_SIZE];
         char TASK[MAX_BUFFER_SIZE];
     } MUXAPP;
+
+    struct {
+        char TITLE[MAX_BUFFER_SIZE];
+        char NAME[MAX_BUFFER_SIZE];
+        char GOVERNOR[MAX_BUFFER_SIZE];
+        char CONTROL[MAX_BUFFER_SIZE];
+        struct {
+            char GOVERNOR[MAX_BUFFER_SIZE];
+            char CONTROL[MAX_BUFFER_SIZE];
+        } HELP;
+    } MUXAPPCON;
 
     struct {
         char HELP[MAX_BUFFER_SIZE];
@@ -96,12 +111,13 @@ struct mux_lang {
         char HELP[MAX_BUFFER_SIZE];
         char NONE[MAX_BUFFER_SIZE];
         char TITLE[MAX_BUFFER_SIZE];
+        char CORE_DOWN[MAX_BUFFER_SIZE];
     } MUXASSIGN;
 
     struct {
         char BOOT[MAX_BUFFER_SIZE];
         char CAPACITY[MAX_BUFFER_SIZE];
-        char POWER[MAX_BUFFER_SIZE];
+        char START[MAX_BUFFER_SIZE];
         char VOLTAGE[MAX_BUFFER_SIZE];
     } MUXCHARGE;
 
@@ -212,6 +228,8 @@ struct mux_lang {
             char TITLE[MAX_BUFFER_SIZE];
             char PRESS_A[MAX_BUFFER_SIZE];
             char HOLD_A[MAX_BUFFER_SIZE];
+            char LOAD_STATE[MAX_BUFFER_SIZE];
+            char START_FRESH[MAX_BUFFER_SIZE];
         } LAUNCH_SWAP;
         struct {
             char BOOTLOGO[MAX_BUFFER_SIZE];
@@ -292,6 +310,20 @@ struct mux_lang {
     } MUXDEVICE;
 
     struct {
+        char ERROR_GET_DATA[MAX_BUFFER_SIZE];
+        char ARCHIVE_REMOVED[MAX_BUFFER_SIZE];
+        char REFRESH[MAX_BUFFER_SIZE];
+        struct {
+            char ARCHIVE[MAX_BUFFER_SIZE];
+            char DATA[MAX_BUFFER_SIZE];
+        } DOWN;
+        struct {
+            char APP[MAX_BUFFER_SIZE];
+            char CORE[MAX_BUFFER_SIZE];
+        } TITLE;
+    } MUXDOWNLOAD;
+
+    struct {
         char HELP[MAX_BUFFER_SIZE];
         char NONE[MAX_BUFFER_SIZE];
         char TITLE[MAX_BUFFER_SIZE];
@@ -369,6 +401,7 @@ struct mux_lang {
         char LANGUAGE[MAX_BUFFER_SIZE];
         char NETWORK[MAX_BUFFER_SIZE];
         char STORAGE[MAX_BUFFER_SIZE];
+        char BACKUP[MAX_BUFFER_SIZE];
         char WEBSERV[MAX_BUFFER_SIZE];
         char CORE[MAX_BUFFER_SIZE];
         char GOVERNOR[MAX_BUFFER_SIZE];
@@ -413,6 +446,7 @@ struct mux_lang {
             char LANGUAGE[MAX_BUFFER_SIZE];
             char NETWORK[MAX_BUFFER_SIZE];
             char STORAGE[MAX_BUFFER_SIZE];
+            char BACKUP[MAX_BUFFER_SIZE];
             char WEBSERV[MAX_BUFFER_SIZE];
             char CORE[MAX_BUFFER_SIZE];
             char GOVERNOR[MAX_BUFFER_SIZE];
@@ -456,6 +490,9 @@ struct mux_lang {
         char NONE[MAX_BUFFER_SIZE];
         char SAVE[MAX_BUFFER_SIZE];
         char HELP[MAX_BUFFER_SIZE];
+        char REFRESH[MAX_BUFFER_SIZE];
+        char DOWNLOADING[MAX_BUFFER_SIZE];
+        char ERROR_GET_DATA[MAX_BUFFER_SIZE];
     } MUXLANGUAGE;
 
     struct {
@@ -598,7 +635,7 @@ struct mux_lang {
         char NOT_ASSIGNED[MAX_BUFFER_SIZE];
         struct {
             char CORE[MAX_BUFFER_SIZE];
-            char GOV[MAX_BUFFER_SIZE];
+            char GOVERNOR[MAX_BUFFER_SIZE];
             char CONTROL[MAX_BUFFER_SIZE];
             char TAG[MAX_BUFFER_SIZE];
             char SEARCH[MAX_BUFFER_SIZE];
@@ -848,10 +885,11 @@ struct mux_lang {
         char TEMP[MAX_BUFFER_SIZE];
         char CAPACITY[MAX_BUFFER_SIZE];
         char VOLTAGE[MAX_BUFFER_SIZE];
+        char REFRESH[MAX_BUFFER_SIZE];
         struct {
             char INFO[MAX_BUFFER_SIZE];
             char SPEED[MAX_BUFFER_SIZE];
-            char GOV[MAX_BUFFER_SIZE];
+            char GOVERNOR[MAX_BUFFER_SIZE];
         } CPU;
         struct {
             char VERSION[MAX_BUFFER_SIZE];
@@ -863,10 +901,11 @@ struct mux_lang {
             char SERVICE[MAX_BUFFER_SIZE];
             char CAPACITY[MAX_BUFFER_SIZE];
             char VOLTAGE[MAX_BUFFER_SIZE];
+            char REFRESH[MAX_BUFFER_SIZE];
             struct {
                 char INFO[MAX_BUFFER_SIZE];
                 char SPEED[MAX_BUFFER_SIZE];
-                char GOV[MAX_BUFFER_SIZE];
+                char GOVERNOR[MAX_BUFFER_SIZE];
             } CPU;
         } HELP;
     } MUXSYSINFO;

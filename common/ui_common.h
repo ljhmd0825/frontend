@@ -24,6 +24,8 @@ void apply_gradient_to_ui_screen(lv_obj_t *ui_screen, struct theme_config *theme
 void init_ui_common_screen(struct theme_config *theme, struct mux_device *device,
                            struct mux_lang *lang, const char *title);
 
+void init_ui_item_counter(struct theme_config *theme);
+
 void ui_common_handle_bright_up();
 
 void ui_common_handle_bright_down();
@@ -37,9 +39,9 @@ void ui_common_handle_idle();
 lv_obj_t *create_header_glyph(lv_obj_t *parent, struct theme_config *theme);
 
 lv_obj_t *create_footer_glyph(lv_obj_t *parent, struct theme_config *theme, char *glyph_name,
-                              struct footer_glyph nav_footer_glyph);
+                              struct footer_glyph nav_footer_glyph, int16_t add_hide_flag);
 
-lv_obj_t *create_footer_text(lv_obj_t *parent, struct theme_config *theme, uint32_t text_color, int16_t text_alpha);
+lv_obj_t *create_footer_text(lv_obj_t *parent, struct theme_config *theme, uint32_t text_color, int16_t text_alpha, int16_t add_hide_flag);
 
 int load_header_glyph(const char *theme_base, const char *mux_dimension, const char *glyph_name,
                       char *image_path, size_t image_size);
@@ -119,6 +121,10 @@ extern lv_obj_t *ui_lblHelpHeader;
 extern lv_obj_t *ui_pnlHelpContent;
 extern lv_obj_t *ui_lblHelpContent;
 extern lv_obj_t *ui_pnlHelpExtra;
+extern lv_obj_t *ui_lblHelpNavUDGlyph;
+extern lv_obj_t *ui_lblHelpNavUD;
+extern lv_obj_t *ui_lblHelpNavBGlyph;
+extern lv_obj_t *ui_lblHelpNavB;
 extern lv_obj_t *ui_lblPreviewHeaderGlyph;
 extern lv_obj_t *ui_lblPreviewHeader;
 extern lv_obj_t *ui_pnlHelpPreview;
@@ -128,6 +134,8 @@ extern lv_obj_t *ui_imgHelpPreviewImage;
 extern lv_obj_t *ui_pnlHelpPreviewInfo;
 extern lv_obj_t *ui_lblHelpPreviewInfoGlyph;
 extern lv_obj_t *ui_lblHelpPreviewInfoMessage;
+extern lv_obj_t *ui_lblHelpPreviewNavBGlyph;
+extern lv_obj_t *ui_lblHelpPreviewNavB;
 extern lv_obj_t *ui_pnlProgressBrightness;
 extern lv_obj_t *ui_icoProgressBrightness;
 extern lv_obj_t *ui_barProgressBrightness;
@@ -137,6 +145,7 @@ extern lv_obj_t *ui_barProgressVolume;
 extern lv_obj_t *ui_pnlDownload;
 extern lv_obj_t *ui_barDownload;
 extern lv_obj_t *ui_lblDownload;
+extern lv_obj_t *ui_lblCounter_explore;
 
 
 LV_IMG_DECLARE(ui_img_nothing_png)

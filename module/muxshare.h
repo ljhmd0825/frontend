@@ -56,7 +56,7 @@ extern int nav_moved;
 extern int current_item_index;
 extern int first_open;
 extern int ui_count;
-extern int holding_cell;
+extern int hold_call;
 
 extern int theme_down_index;
 
@@ -71,6 +71,12 @@ extern lv_group_t *ui_group_value;
 extern char box_image_previous_path[MAX_BUFFER_SIZE];
 extern char preview_image_previous_path[MAX_BUFFER_SIZE];
 extern char splash_image_previous_path[MAX_BUFFER_SIZE];
+
+int is_ksk(int k);
+
+void hold_call_set(void);
+
+void hold_call_release(void);
 
 void shuffle_index(int current, int *dir, int *target);
 
@@ -87,9 +93,9 @@ void viewport_refresh(lv_obj_t **ui_viewport_objects, char *artwork_config,
 
 char *specify_asset(char *val, const char *def_val, const char *label);
 
-char *load_content_governor(char *sys_dir, char *pointer, int force, int run_quit);
+char *load_content_governor(char *sys_dir, char *pointer, int force, int run_quit, int is_app);
 
-char *load_content_control_scheme(char *sys_dir, char *pointer, int force, int run_quit);
+char *load_content_control_scheme(char *sys_dir, char *pointer, int force, int run_quit, int is_app);
 
 int32_t get_directory_item_count(const char *base_dir, const char *dir_name, int run_skip);
 
@@ -102,11 +108,15 @@ void update_title(char *folder_path, int fn_valid, struct json fn_json,
 
 void gen_label(char *module, char *item_glyph, char *item_text);
 
+int launch_flag(int mode, int held);
+
 int muxapp_main();
+
+int muxappcon_main(int auto_assign, char *name, char *dir, char *sys, int app);
 
 int muxarchive_main();
 
-int muxassign_main(int auto_assign, char *name, char *dir, char *sys);
+int muxassign_main(int auto_assign, char *name, char *dir, char *sys, int app);
 
 int muxbackup_main();
 
@@ -116,7 +126,7 @@ int muxconfig_main();
 
 int muxconnect_main();
 
-int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys);
+int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app);
 
 int muxcustom_main();
 
@@ -124,7 +134,9 @@ int muxdanger_main();
 
 int muxdevice_main();
 
-int muxgov_main(int auto_assign, char *name, char *dir, char *sys);
+int muxdownload_main(char *type);
+
+int muxgov_main(int auto_assign, char *name, char *dir, char *sys, int app);
 
 int muxhdmi_main();
 
@@ -146,7 +158,7 @@ int muxnetscan_main();
 
 int muxnetwork_main();
 
-int muxoption_main(int nothing, char *name, char *dir, char *sys);
+int muxoption_main(int nothing, char *name, char *dir, char *sys, int app);
 
 int muxpass_main(char *p_type);
 
@@ -172,7 +184,7 @@ int muxsysinfo_main();
 
 int muxtext_main();
 
-int muxtag_main(int nothing, char *name, char *dir, char *sys);
+int muxtag_main(int nothing, char *name, char *dir, char *sys, int app);
 
 int muxtask_main(char *ex_dir);
 
@@ -221,14 +233,14 @@ int muxwebserv_main();
         ui_count++;                                                                 \
     } while (0)
 
-#define HIDE_OPTION_ITEM(MODULE, NAME)                                     \
-    do {                                                                   \
-        lv_obj_add_flag(ui_pnl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
-        lv_obj_add_flag(ui_lbl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
-        lv_obj_add_flag(ui_ico##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
-        lv_obj_add_flag(ui_dro##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);  \
-                                                                           \
-        ui_count--;                                                        \
+#define HIDE_OPTION_ITEM(MODULE, NAME)                                    \
+    do {                                                                  \
+        lv_obj_add_flag(ui_pnl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+        lv_obj_add_flag(ui_lbl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+        lv_obj_add_flag(ui_ico##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+        lv_obj_add_flag(ui_dro##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+                                                                          \
+        ui_count--;                                                       \
     } while (0)
 
 #define INIT_STATIC_ITEM(INDEX, MODULE, NAME, LABEL, GLYPH, NOGEN)                                                       \
@@ -254,6 +266,15 @@ int muxwebserv_main();
         ui_count++;                                                                                                      \
     } while (0)
 
+#define HIDE_STATIC_ITEM(MODULE, NAME)                                    \
+    do {                                                                  \
+        lv_obj_add_flag(ui_pnl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+        lv_obj_add_flag(ui_lbl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+        lv_obj_add_flag(ui_ico##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+                                                                          \
+        ui_count--;                                                       \
+    } while (0)
+
 #define INIT_VALUE_ITEM(INDEX, MODULE, NAME, LABEL, GLYPH, VALUE)                   \
     do {                                                                            \
         int _idx = ((INDEX) < 0) ? ui_count : (ui_count + (INDEX));                 \
@@ -269,7 +290,17 @@ int muxwebserv_main();
         ui_objects_panel[_idx] = ui_pnl##NAME##_##MODULE;                           \
                                                                                     \
         ui_count++;                                                                 \
-} while (0)
+    } while (0)
+
+#define HIDE_VALUE_ITEM(MODULE, NAME)                                          \
+    do {                                                                       \
+        lv_obj_add_flag(ui_pnl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);      \
+        lv_obj_add_flag(ui_lbl##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);      \
+        lv_obj_add_flag(ui_ico##NAME##_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT);      \
+        lv_obj_add_flag(ui_lbl##NAME##Value_##MODULE, MU_OBJ_FLAG_HIDE_FLOAT); \
+                                                                               \
+        ui_count--;                                                            \
+    } while (0)
 
 #define CHECK_AND_SAVE_KSK(MODULE, NAME, FILE, TYPE)                         \
     do {                                                                     \

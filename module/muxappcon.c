@@ -1,60 +1,112 @@
 #include "muxshare.h"
-#include "ui/ui_muxconfig.h"
+#include "ui/ui_muxappcon.h"
 
-#define UI_COUNT 8
+#define UI_COUNT 3
+
+static char app_name[MAX_BUFFER_SIZE];
+static char app_dir[MAX_BUFFER_SIZE];
+
+static lv_obj_t *ui_objects[UI_COUNT];
+static lv_obj_t *ui_objects_panel[UI_COUNT];
+static lv_obj_t *ui_objects_glyph[UI_COUNT];
+static lv_obj_t *ui_objects_value[UI_COUNT];
+
+static int group_index = 0;
 
 static void list_nav_move(int steps, int direction);
 
 static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
-            {ui_lblGeneral_config,   lang.MUXCONFIG.HELP.GENERAL},
-            {ui_lblConnect_config,   lang.MUXCONFIG.HELP.CONNECTIVITY},
-            {ui_lblCustom_config,    lang.MUXCONFIG.HELP.CUSTOM},
-            {ui_lblInterface_config, lang.MUXCONFIG.HELP.VISUAL},
-            {ui_lblLanguage_config,  lang.MUXCONFIG.HELP.LANGUAGE},
-            {ui_lblPower_config,     lang.MUXCONFIG.HELP.POWER},
-            {ui_lblStorage_config,   lang.MUXCONFIG.HELP.STORAGE},
-            {ui_lblBackup_config,    lang.MUXCONFIG.HELP.BACKUP},
+            {ui_lblGovernor_appcon, lang.MUXAPPCON.HELP.GOVERNOR},
+            {ui_lblControl_appcon,  lang.MUXAPPCON.HELP.CONTROL},
     };
 
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
 }
 
-static void init_navigation_group(void) {
-    static lv_obj_t *ui_objects[UI_COUNT];
-    static lv_obj_t *ui_objects_glyph[UI_COUNT];
-    static lv_obj_t *ui_objects_panel[UI_COUNT];
+static void add_static_item(int index, const char *item_label, const char *item_value,
+                            const char *glyph_name, bool add_bottom_border) {
+    lv_obj_t *ui_pnlInfoItem = lv_obj_create(ui_pnlContent);
+    apply_theme_list_panel(ui_pnlInfoItem);
 
-    INIT_STATIC_ITEM(-1, config, General, lang.MUXCONFIG.GENERAL, "general", 0);
-    INIT_STATIC_ITEM(-1, config, Connect, lang.MUXCONFIG.CONNECTIVITY, "connect", 0);
-    INIT_STATIC_ITEM(-1, config, Custom, lang.MUXCONFIG.CUSTOM, "custom", 0);
-    INIT_STATIC_ITEM(-1, config, Interface, lang.MUXCONFIG.VISUAL, "interface", 0);
-    INIT_STATIC_ITEM(-1, config, Language, lang.MUXCONFIG.LANGUAGE, "language", 0);
-    INIT_STATIC_ITEM(-1, config, Power, lang.MUXCONFIG.POWER, "power", 0);
-    INIT_STATIC_ITEM(-1, config, Storage, lang.MUXCONFIG.STORAGE, "storage", 0);
-    INIT_STATIC_ITEM(-1, config, Backup, lang.MUXCONFIG.BACKUP, "backup", 0);
+    lv_obj_t *ui_lblInfoItem = lv_label_create(ui_pnlInfoItem);
+    apply_theme_list_item(&theme, ui_lblInfoItem, item_label);
+
+    lv_obj_t *ui_icoInfoItem = lv_img_create(ui_pnlInfoItem);
+    apply_theme_list_glyph(&theme, ui_icoInfoItem, mux_module, glyph_name);
+
+    lv_obj_t *ui_lblInfoItemValue = lv_label_create(ui_pnlInfoItem);
+    apply_theme_list_value(&theme, ui_lblInfoItemValue, item_value);
+
+    if (add_bottom_border) {
+        lv_obj_set_height(ui_pnlInfoItem, 1);
+        lv_obj_set_style_border_width(ui_pnlInfoItem, 1, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_color(ui_pnlInfoItem, lv_color_hex(theme.LIST_DEFAULT.TEXT), MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_opa(ui_pnlInfoItem, theme.LIST_DEFAULT.TEXT_ALPHA, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_side(ui_pnlInfoItem, LV_BORDER_SIDE_BOTTOM, MU_OBJ_MAIN_DEFAULT);
+    } else if (theme.MUX.ITEM.COUNT < UI_COUNT) {
+        ui_objects_panel[group_index] = ui_pnlInfoItem;
+        ui_objects[group_index] = ui_lblInfoItem;
+        lv_obj_set_user_data(ui_lblInfoItem, "info_item");
+        ui_objects_glyph[group_index] = ui_icoInfoItem;
+        ui_objects_value[group_index] = ui_lblInfoItemValue;
+        group_index++;
+    }
+
+    lv_obj_move_to_index(ui_pnlInfoItem, index);
+}
+
+static void add_info_item_type(lv_obj_t *ui_lblItemValue, const char *get_file, const char *opt_type) {
+    const char *value = get_file;
+
+    if (!*value) value = !strcmp(opt_type, "gov") ? device.CPU.DEFAULT : "System";
+
+    char cap_value[MAX_BUFFER_SIZE];
+    snprintf(cap_value, sizeof(cap_value), "%s", value);
+
+    apply_theme_list_value(&theme, ui_lblItemValue, str_capital_all(cap_value));
+}
+
+static void add_info_items(void) {
+    const char *app_gov = get_application_line(app_dir, "gov", 1);
+    add_info_item_type(ui_lblGovernorValue_appcon, app_gov, "gov");
+
+    const char *app_con = get_application_line(app_dir, "con", 1);
+    add_info_item_type(ui_lblControlValue_appcon, app_con, "con");
+}
+
+static void init_navigation_group(void) {
+    int line_index = 0;
+
+    add_static_item(line_index++, lang.MUXAPPCON.NAME, app_name, "app", false);
+    add_static_item(line_index, "", "", "", true);
+
+    INIT_VALUE_ITEM(-1, appcon, Governor, lang.MUXAPPCON.GOVERNOR, "governor", "");
+    INIT_VALUE_ITEM(-1, appcon, Control, lang.MUXAPPCON.CONTROL, "control", "");
+
+    add_info_items();
 
     ui_group = lv_group_create();
     ui_group_glyph = lv_group_create();
     ui_group_panel = lv_group_create();
+    ui_group_value = lv_group_create();
 
     for (unsigned int i = 0; i < ui_count; i++) {
         lv_group_add_obj(ui_group, ui_objects[i]);
         lv_group_add_obj(ui_group_glyph, ui_objects_glyph[i]);
         lv_group_add_obj(ui_group_panel, ui_objects_panel[i]);
+        lv_group_add_obj(ui_group_value, ui_objects_value[i]);
     }
 
-    if (!is_partition_mounted(device.STORAGE.SDCARD.MOUNT)) HIDE_STATIC_ITEM(config, Storage);
+    if (strcasecmp(app_name, "RetroArch") != 0) HIDE_VALUE_ITEM(appcon, Control);
 
-    list_nav_move(direct_to_previous(ui_objects, UI_COUNT, &nav_moved), +1);
+    list_nav_move(direct_to_previous(ui_objects, ui_count, &nav_moved), +1);
 }
 
 static void list_nav_move(int steps, int direction) {
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
-        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group));
-
         if (direction < 0) {
             current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
         } else {
@@ -64,10 +116,11 @@ static void list_nav_move(int steps, int direction) {
         nav_move(ui_group, direction);
         nav_move(ui_group_glyph, direction);
         nav_move(ui_group_panel, direction);
+        nav_move(ui_group_value, direction);
     }
 
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
-    set_label_long_mode(&theme, lv_group_get_focused(ui_group));
+    update_scroll_position(theme.MUX.ITEM.COUNT - 1, theme.MUX.ITEM.PANEL,
+                           ui_count, current_item_index, ui_pnlContent);
     nav_moved = 1;
 }
 
@@ -87,18 +140,13 @@ static void handle_a(void) {
         const char *mux_name;
         int16_t *kiosk_flag;
     } elements[] = {
-            {"general",   "tweakgen", &kiosk.SETTING.GENERAL},
-            {"connect",   "connect",  &kiosk.CONFIG.CONNECTIVITY},
-            {"custom",    "custom",   &kiosk.CONFIG.CUSTOMISATION},
-            {"interface", "visual",   &kiosk.SETTING.VISUAL},
-            {"language",  "language", &kiosk.CONFIG.LANGUAGE},
-            {"power",     "power",    &kiosk.SETTING.POWER},
-            {"storage",   "storage",  &kiosk.CONFIG.STORAGE},
-            {"backup",    "backup",   &kiosk.CONFIG.BACKUP}
+            {"governor", "governor", &kiosk.CONTENT.GOVERNOR},
+            {"control",  "control",  &kiosk.CONTENT.CONTROL},
     };
 
     struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
     const char *u_data = lv_obj_get_user_data(element_focused);
+    if (strcasecmp(u_data, "info_item") == 0) return;
 
     for (size_t i = 0; i < A_SIZE(elements); i++) {
         if (strcasecmp(u_data, elements[i].glyph_name) == 0) {
@@ -108,6 +156,7 @@ static void handle_a(void) {
             }
 
             play_sound(SND_CONFIRM);
+            write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, elements[i].glyph_name);
             load_mux(elements[i].mux_name);
 
             break;
@@ -130,13 +179,15 @@ static void handle_b(void) {
     }
 
     play_sound(SND_BACK);
-    write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "config");
+
+    remove(MUOS_SAA_LOAD);
+    remove(MUOS_SAG_LOAD);
 
     close_input();
     mux_input_stop();
 }
 
-static void handle_menu(void) {
+static void handle_help(void) {
     if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
@@ -166,9 +217,9 @@ static void init_elements(void) {
             {NULL, NULL,                           0}
     });
 
-#define CONFIG(NAME, UDATA) lv_obj_set_user_data(ui_lbl##NAME##_config, UDATA);
-    CONFIG_ELEMENTS
-#undef CONFIG
+#define APPCON(NAME, UDATA) lv_obj_set_user_data(ui_lbl##NAME##_appcon, UDATA);
+    APPCON_ELEMENTS
+#undef APPCON
 
     overlay_display();
 }
@@ -185,13 +236,17 @@ static void ui_refresh_task() {
     }
 }
 
-int muxconfig_main(void) {
-    init_module("muxconfig");
+int muxappcon_main(int nothing, char *name, char *dir, char *sys, int app) {
+    group_index = 0;
 
-    init_theme(1, 1);
+    snprintf(app_name, sizeof(app_name), "%s", name);
+    snprintf(app_dir, sizeof(app_dir), "%s", dir);
 
-    init_ui_common_screen(&theme, &device, &lang, lang.MUXCONFIG.TITLE);
-    init_muxconfig(ui_pnlContent);
+    init_module("muxappcon");
+    init_theme(1, 0);
+
+    init_ui_common_screen(&theme, &device, &lang, lang.MUXAPPCON.TITLE);
+    init_muxappcon(ui_pnlContent);
     init_elements();
 
     lv_obj_set_user_data(ui_screen, mux_module);
@@ -209,7 +264,7 @@ int muxconfig_main(void) {
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
-                    [MUX_INPUT_MENU_SHORT] = handle_menu,
+                    [MUX_INPUT_MENU_SHORT] = handle_help,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,

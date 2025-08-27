@@ -1,4 +1,7 @@
 #include "muxshare.h"
+#include "../common/download.h"
+
+static char language_data_local_path[MAX_BUFFER_SIZE];
 
 static void show_help(void) {
     show_info_box(lang.MUXLANGUAGE.TITLE, lang.MUXLANGUAGE.HELP, 0);
@@ -30,7 +33,7 @@ static void populate_languages(void) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -53,10 +56,12 @@ static void list_nav_move(int steps, int direction) {
 }
 
 static void list_nav_prev(int steps) {
+    if (download_in_progress) return;
     list_nav_move(steps, -1);
 }
 
 static void list_nav_next(int steps) {
+    if (download_in_progress) return;
     list_nav_move(steps, +1);
 }
 
@@ -87,8 +92,27 @@ static void create_language_items(void) {
     }
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active) return;
+static void refresh_language_data_finished(int result) {
+    if (result == 0) {
+        extract_archive(language_data_local_path, "language");
+    } else {
+        play_sound(SND_ERROR);
+        toast_message(lang.MUXLANGUAGE.ERROR_GET_DATA, 0);
+    }
+}
+
+static void update_language_data(void) {
+    snprintf(language_data_local_path, sizeof(language_data_local_path), "%s/%s/lang.muxzip",
+             device.STORAGE.ROM.MOUNT, MUOS_ARCH_PATH);
+
+    if (file_exist(language_data_local_path)) remove(language_data_local_path);
+    set_download_callbacks(refresh_language_data_finished);
+    initiate_download(config.EXTRA.LANGUAGE.DATA, language_data_local_path, true,
+                      lang.MUXLANGUAGE.DOWNLOADING);
+}
+
+static void handle_a(void) {
+    if (download_in_progress || msgbox_active || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
@@ -104,7 +128,9 @@ static void handle_confirm(void) {
     mux_input_stop();
 }
 
-static void handle_back(void) {
+static void handle_b(void) {
+    if (download_in_progress || hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -119,8 +145,14 @@ static void handle_back(void) {
     mux_input_stop();
 }
 
+static void handle_x(void) {
+    if (download_in_progress || msgbox_active || !is_network_connected() || hold_call) return;
+    play_sound(SND_CONFIRM);
+    update_language_data();
+}
+
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (download_in_progress || msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
@@ -148,6 +180,14 @@ static void init_elements(void) {
             {ui_lblNavB,      lang.GENERIC.BACK,   0},
             {NULL, NULL,                           0}
     });
+
+    if (device.DEVICE.HAS_NETWORK && is_network_connected()) {
+        setup_nav((struct nav_bar[]) {
+                {ui_lblNavXGlyph, "",                       0},
+                {ui_lblNavX,      lang.MUXLANGUAGE.REFRESH, 0},
+                {NULL, NULL,                                0}
+        });
+    }
 
     overlay_display();
 }
@@ -192,18 +232,23 @@ int muxlanguage_main(void) {
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
+                    [MUX_INPUT_X] = handle_x,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

@@ -20,7 +20,7 @@ static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
             {ui_lblSearch_option,   lang.MUXOPTION.HELP.SEARCH},
             {ui_lblCore_option,     lang.MUXOPTION.HELP.CORE},
-            {ui_lblGovernor_option, lang.MUXOPTION.HELP.GOV},
+            {ui_lblGovernor_option, lang.MUXOPTION.HELP.GOVERNOR},
             {ui_lblControl_option,  lang.MUXOPTION.HELP.CONTROL},
             {ui_lblTag_option,      lang.MUXOPTION.HELP.TAG},
     };
@@ -44,14 +44,10 @@ static void add_static_item(int index, const char *item_label, const char *item_
 
     if (add_bottom_border) {
         lv_obj_set_height(ui_pnlInfoItem, 1);
-        lv_obj_set_style_border_width(ui_pnlInfoItem, 1,
-                                      LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_border_color(ui_pnlInfoItem, lv_color_hex(theme.LIST_DEFAULT.TEXT),
-                                      LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_border_opa(ui_pnlInfoItem, theme.LIST_DEFAULT.TEXT_ALPHA,
-                                    LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_border_side(ui_pnlInfoItem, LV_BORDER_SIDE_BOTTOM,
-                                     LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_border_width(ui_pnlInfoItem, 1, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_color(ui_pnlInfoItem, lv_color_hex(theme.LIST_DEFAULT.TEXT), MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_opa(ui_pnlInfoItem, theme.LIST_DEFAULT.TEXT_ALPHA, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_side(ui_pnlInfoItem, LV_BORDER_SIDE_BOTTOM, MU_OBJ_MAIN_DEFAULT);
     } else if (theme.MUX.ITEM.COUNT < UI_COUNT) {
         ui_objects_panel[group_index] = ui_pnlInfoItem;
         ui_objects[group_index] = ui_lblInfoItem;
@@ -171,7 +167,10 @@ static char *get_launch_count(void) {
 static void init_navigation_group(void) {
     int line_index = 0;
 
-    add_static_item(line_index++, lang.MUXOPTION.DIRECTORY, get_last_subdir(rom_dir, '/', 4), "folder", false);
+    int dir_level = 4;
+    if (strcasecmp(rom_dir, STORAGE_PATH) == 0) dir_level = 3;
+
+    add_static_item(line_index++, lang.MUXOPTION.DIRECTORY, get_last_subdir(rom_dir, '/', dir_level), "folder", false);
     add_static_item(line_index++, lang.MUXOPTION.NAME, rom_name, "rom", false);
     add_static_item(line_index++, lang.MUXOPTION.TIME, get_time_played(), "time", false);
     add_static_item(line_index++, lang.MUXOPTION.LAUNCH, get_launch_count(), "count", false);
@@ -201,6 +200,8 @@ static void init_navigation_group(void) {
         lv_group_add_obj(ui_group_value, ui_objects_value[i]);
     }
 
+    if (strcasecmp(grab_ext(lv_label_get_text(ui_lblCoreValue_option)), "so") != 0) HIDE_VALUE_ITEM(option, Control);
+
     list_nav_move(direct_to_previous(ui_objects, ui_count, &nav_moved), +1);
 }
 
@@ -220,7 +221,8 @@ static void list_nav_move(int steps, int direction) {
         nav_move(ui_group_value, direction);
     }
 
-    update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count, current_item_index, ui_pnlContent);
+    update_scroll_position(theme.MUX.ITEM.COUNT - 4, theme.MUX.ITEM.PANEL,
+                           ui_count, current_item_index, ui_pnlContent);
     nav_moved = 1;
 }
 
@@ -232,8 +234,8 @@ static void list_nav_next(int steps) {
     list_nav_move(steps, +1);
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active) return;
+static void handle_a(void) {
+    if (msgbox_active || hold_call) return;
 
     struct {
         const char *glyph_name;
@@ -253,7 +255,7 @@ static void handle_confirm(void) {
 
     for (size_t i = 0; i < A_SIZE(elements); i++) {
         if (strcasecmp(u_data, elements[i].glyph_name) == 0) {
-            if (kiosk.ENABLE && elements[i].kiosk_flag && *elements[i].kiosk_flag) {
+            if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
             }
@@ -261,6 +263,7 @@ static void handle_confirm(void) {
             play_sound(SND_CONFIRM);
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, elements[i].glyph_name);
             load_mux(elements[i].mux_name);
+
             break;
         }
     }
@@ -269,7 +272,9 @@ static void handle_confirm(void) {
     mux_input_stop();
 }
 
-static void handle_back(void) {
+static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -288,7 +293,7 @@ static void handle_back(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -336,9 +341,7 @@ static void ui_refresh_task() {
     }
 }
 
-int muxoption_main(int nothing, char *name, char *dir, char *sys) {
-    (void) nothing;
-
+int muxoption_main(int nothing, char *name, char *dir, char *sys, int app) {
     group_index = 0;
 
     snprintf(rom_name, sizeof(rom_name), "%s", name);
@@ -373,18 +376,22 @@ int muxoption_main(int nothing, char *name, char *dir, char *sys) {
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

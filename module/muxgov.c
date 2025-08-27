@@ -4,6 +4,8 @@ static char rom_name[PATH_MAX];
 static char rom_dir[PATH_MAX];
 static char rom_system[PATH_MAX];
 
+static int is_app = 0;
+
 static void show_help(void) {
     show_info_box(lang.MUXGOV.TITLE, lang.MUXGOV.HELP, 0);
 }
@@ -61,9 +63,14 @@ static void assign_gov_parent(char *core_dir, const char *gov) {
 
 static void create_gov_assignment(const char *gov, char *rom, enum gen_type method) {
     char core_dir[MAX_BUFFER_SIZE];
-    snprintf(core_dir, sizeof(core_dir), "%s/%s/", INFO_COR_PATH, get_last_subdir(rom_dir, '/', 4));
-    remove_double_slashes(core_dir);
 
+    if (is_app) {
+        snprintf(core_dir, sizeof(core_dir), "%s/", rom_dir);
+    } else {
+        snprintf(core_dir, sizeof(core_dir), "%s/%s/", INFO_COR_PATH, get_last_subdir(rom_dir, '/', 4));
+    }
+
+    remove_double_slashes(core_dir);
     create_directories(core_dir);
 
     switch (method) {
@@ -168,7 +175,7 @@ static void create_gov_items(const char *target) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -199,19 +206,23 @@ static void list_nav_next(int steps) {
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     LOG_INFO(mux_module, "Single Governor Assignment Triggered")
     play_sound(SND_CONFIRM);
 
     const char *selected = str_tolower(str_trim(lv_label_get_text(lv_group_get_focused(ui_group))));
-    create_gov_assignment(selected, rom_name, SINGLE);
+    create_gov_assignment(selected, is_app ? "mux_option" : rom_name, SINGLE);
+
+    if (is_app) load_mux("appcon");
 
     close_input();
     mux_input_stop();
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -223,12 +234,14 @@ static void handle_b(void) {
     play_sound(SND_BACK);
     remove(MUOS_SAG_LOAD);
 
+    if (is_app) load_mux("appcon");
+
     close_input();
     mux_input_stop();
 }
 
 static void handle_x(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || is_app || hold_call) return;
 
     LOG_INFO(mux_module, "Directory Governor Assignment Triggered")
     play_sound(SND_CONFIRM);
@@ -241,7 +254,7 @@ static void handle_x(void) {
 }
 
 static void handle_y(void) {
-    if (msgbox_active || at_base(rom_dir, "ROMS")) return;
+    if (msgbox_active || is_app || at_base(rom_dir, "ROMS") || hold_call) return;
 
     LOG_INFO(mux_module, "Parent Governor Assignment Triggered")
     play_sound(SND_CONFIRM);
@@ -254,7 +267,7 @@ static void handle_y(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
@@ -278,19 +291,22 @@ static void init_elements(void) {
     struct nav_bar nav_items[9];
     int i = 0;
 
-    nav_items[i++] = (struct nav_bar){ui_lblNavAGlyph, "",                      1};
-    nav_items[i++] = (struct nav_bar){ui_lblNavA,      lang.GENERIC.INDIVIDUAL, 1};
-    nav_items[i++] = (struct nav_bar){ui_lblNavBGlyph, "",                      0};
-    nav_items[i++] = (struct nav_bar){ui_lblNavB,      lang.GENERIC.BACK,       0};
-    nav_items[i++] = (struct nav_bar){ui_lblNavXGlyph, "",                      1};
-    nav_items[i++] = (struct nav_bar){ui_lblNavX,      lang.GENERIC.DIRECTORY,  1};
+    nav_items[i++] = (struct nav_bar) {ui_lblNavAGlyph, "", 1};
+    nav_items[i++] = (struct nav_bar) {ui_lblNavA, lang.GENERIC.INDIVIDUAL, 1};
+    nav_items[i++] = (struct nav_bar) {ui_lblNavBGlyph, "", 0};
+    nav_items[i++] = (struct nav_bar) {ui_lblNavB, lang.GENERIC.BACK, 0};
 
-    if (!at_base(rom_dir, "ROMS")) {
-        nav_items[i++] = (struct nav_bar){ui_lblNavYGlyph, "",                      1};
-        nav_items[i++] = (struct nav_bar){ui_lblNavY,      lang.GENERIC.RECURSIVE,  1};
+    if (!is_app) {
+        nav_items[i++] = (struct nav_bar) {ui_lblNavXGlyph, "", 1};
+        nav_items[i++] = (struct nav_bar) {ui_lblNavX, lang.GENERIC.DIRECTORY, 1};
+
+        if (!at_base(rom_dir, "ROMS")) {
+            nav_items[i++] = (struct nav_bar) {ui_lblNavYGlyph, "", 1};
+            nav_items[i++] = (struct nav_bar) {ui_lblNavY, lang.GENERIC.RECURSIVE, 1};
+        }
     }
 
-    nav_items[i] = (struct nav_bar){NULL, NULL, 0};  // Null-terminate
+    nav_items[i] = (struct nav_bar) {NULL, NULL, 0};  // Null-terminate
 
     setup_nav(nav_items);
 
@@ -309,18 +325,25 @@ static void ui_refresh_task() {
     }
 }
 
-int muxgov_main(int auto_assign, char *name, char *dir, char *sys) {
+int muxgov_main(int auto_assign, char *name, char *dir, char *sys, int app) {
     snprintf(rom_name, sizeof(rom_name), "%s", name);
     snprintf(rom_dir, sizeof(rom_name), "%s", dir);
     snprintf(rom_system, sizeof(rom_name), "%s", sys);
 
+    is_app = app;
+
     init_module("muxgov");
 
-    LOG_INFO(mux_module, "Assign Governor ROM_NAME: \"%s\"", rom_name)
-    LOG_INFO(mux_module, "Assign Governor ROM_DIR: \"%s\"", rom_dir)
-    LOG_INFO(mux_module, "Assign Governor ROM_SYS: \"%s\"", rom_system)
+    if (is_app) {
+        LOG_INFO(mux_module, "Assign Governor APP_NAME: \"%s\"", rom_name)
+        LOG_INFO(mux_module, "Assign Governor APP_DIR: \"%s\"", rom_dir)
+    } else {
+        LOG_INFO(mux_module, "Assign Governor ROM_NAME: \"%s\"", rom_name)
+        LOG_INFO(mux_module, "Assign Governor ROM_DIR: \"%s\"", rom_dir)
+        LOG_INFO(mux_module, "Assign Governor ROM_SYS: \"%s\"", rom_system)
+    }
 
-    if (auto_assign && !file_exist(MUOS_SAG_LOAD)) {
+    if (auto_assign && !file_exist(MUOS_SAG_LOAD) && !is_app) {
         LOG_INFO(mux_module, "Automatic Assign Governor Initiated")
 
         char core_file[MAX_BUFFER_SIZE];
@@ -418,7 +441,7 @@ int muxgov_main(int auto_assign, char *name, char *dir, char *sys) {
     load_wallpaper(ui_screen, NULL, ui_pnlWall, ui_imgWall, GENERAL);
     init_fonts();
 
-    if (!strcasecmp(rom_system, "none")) {
+    if (!strcasecmp(rom_system, "none") && !is_app) {
         char assign_file[MAX_BUFFER_SIZE];
         snprintf(assign_file, sizeof(assign_file), "%s/%s.json",
                  device.STORAGE.ROM.MOUNT, STORE_LOC_ASIN);
@@ -447,8 +470,6 @@ int muxgov_main(int auto_assign, char *name, char *dir, char *sys) {
     snprintf(title, sizeof(title), "%s - %s", lang.MUXGOV.TITLE, get_last_dir(dir));
     lv_label_set_text(ui_lblTitle, title);
 
-    printf("ROM SYSTEM IS: %s\n", rom_system);
-
     create_gov_items(rom_system);
     init_elements();
 
@@ -475,10 +496,14 @@ int muxgov_main(int auto_assign, char *name, char *dir, char *sys) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

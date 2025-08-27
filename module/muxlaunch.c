@@ -157,8 +157,9 @@ static void list_nav_next(int steps) {
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
+    static int16_t KIOSK_PASS = 0;
     struct {
         const char *glyph_name;
         const char *mux_name;
@@ -170,16 +171,16 @@ static void handle_a(void) {
             {"apps",       "app",        &kiosk.LAUNCH.APPLICATION},
             {"info",       "info",       &kiosk.LAUNCH.INFORMATION},
             {"config",     "config",     &kiosk.LAUNCH.CONFIGURATION},
-            {"reboot",     "reboot",   NULL},
-            {"shutdown",   "shutdown", NULL}
-    }; /* Leave the reboot and shutdown as null as they should always be available! */
+            {"reboot",     "reboot",     &KIOSK_PASS},
+            {"shutdown",   "shutdown",   &KIOSK_PASS}
+    };
 
     struct _lv_obj_t *element_focused = lv_group_get_focused(ui_group);
     const char *u_data = lv_obj_get_user_data(element_focused);
 
     for (size_t i = 0; i < A_SIZE(elements); i++) {
         if (!strcasecmp(u_data, elements[i].glyph_name)) {
-            if (kiosk.ENABLE && elements[i].kiosk_flag && *elements[i].kiosk_flag) {
+            if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
             }
@@ -194,6 +195,7 @@ static void handle_a(void) {
             }
 
             load_mux(elements[i].mux_name);
+
             break;
         }
     }
@@ -203,6 +205,8 @@ static void handle_a(void) {
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -219,7 +223,7 @@ static void handle_b(void) {
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1) return;
+    if (msgbox_active || progress_onscreen != -1 || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -375,7 +379,7 @@ static void handle_right(void) {
 }
 
 static void launch_kiosk(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (current_item_index == 5) { /* config */
         load_mux("kiosk");
@@ -455,9 +459,13 @@ int muxlaunch_main(void) {
                     [MUX_INPUT_DPAD_RIGHT] = handle_right,
                     [MUX_INPUT_MENU_SHORT] = handle_menu,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_down_hold,
+                    [MUX_INPUT_L2] = hold_call_set,
             },
             .combo = {
                     {

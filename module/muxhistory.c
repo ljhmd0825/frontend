@@ -177,7 +177,7 @@ static char *get_glyph_name(size_t index) {
     const char *file_name = strip_ext(items[index].name);
     const char *system_name = read_line_char_from(history_file, CACHE_CORE_DIR);
 
-    const char *collection_path = (kiosk.COLLECT.ACCESS && directory_exist(INFO_CKS_PATH))
+    const char *collection_path = (is_ksk(kiosk.COLLECT.ACCESS) && directory_exist(INFO_CKS_PATH))
                                   ? INFO_CKS_PATH
                                   : INFO_COL_PATH;
 
@@ -209,9 +209,20 @@ static void gen_item(int file_count, char **file_names, char **last_dirs) {
         int fn_valid = 0;
         struct json fn_json;
 
-        if (json_valid(read_all_char_from(custom_lookup))) {
-            fn_valid = 1;
-            fn_json = json_parse(read_all_char_from(custom_lookup));
+        if (file_exist(custom_lookup)) {
+            char *lookup_content = read_all_char_from(custom_lookup);
+
+            if (lookup_content && json_valid(lookup_content)) {
+                fn_valid = 1;
+                fn_json = json_parse(read_all_char_from(custom_lookup));
+                LOG_SUCCESS(mux_module, "Using Friendly Name: %s", custom_lookup)
+            } else {
+                LOG_WARN(mux_module, "Invalid Friendly Name: %s", custom_lookup)
+            }
+
+            free(lookup_content);
+        } else {
+            LOG_WARN(mux_module, "Friendly Name does not exist: %s", custom_lookup)
         }
 
         if (fn_valid) {
@@ -313,18 +324,17 @@ static int load_content(const char *content_name) {
              read_line_char_from(pointer_file, CACHE_CORE_PATH));
 
     if (file_exist(cache_file)) {
+        LOG_INFO(mux_module, "Using Configuration: %s", cache_file)
+
         char *assigned_core = read_line_char_from(cache_file, CONTENT_CORE);
 
-        char *assigned_gov = specify_asset(load_content_governor(NULL, cache_file, 0, 0),
+        LOG_INFO(mux_module, "Assigned Core: %s", assigned_core)
+
+        char *assigned_gov = specify_asset(load_content_governor(NULL, cache_file, 0, 0, 0),
                                            device.CPU.DEFAULT, "Governor");
 
-        char *assigned_con = specify_asset(load_content_control_scheme(NULL, cache_file, 0, 0),
+        char *assigned_con = specify_asset(load_content_control_scheme(NULL, cache_file, 0, 0, 0),
                                            "system", "Control Scheme");
-
-        LOG_INFO(mux_module, "Assigned Core: %s", assigned_core)
-        LOG_INFO(mux_module, "Assigned Governor: %s", assigned_gov)
-        LOG_INFO(mux_module, "Assigned Control Scheme: %s", assigned_con)
-        LOG_INFO(mux_module, "Using Configuration: %s", cache_file)
 
         char add_to_history[MAX_BUFFER_SIZE];
         snprintf(add_to_history, sizeof(add_to_history), INFO_HIS_PATH "/%s", content_name);
@@ -346,7 +356,7 @@ static int load_content(const char *content_name) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -379,7 +389,7 @@ static void list_nav_next(int steps) {
 }
 
 static void process_load(int from_start) {
-    if (!ui_count || holding_cell) return;
+    if (!ui_count || hold_call) return;
 
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
@@ -408,7 +418,7 @@ static void process_load(int from_start) {
                 lv_obj_move_foreground(overlay_image);
 
                 for (unsigned int i = 0; i <= 255; i += 15) {
-                    lv_obj_set_style_img_opa(ui_imgSplash, i, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_img_opa(ui_imgSplash, i, MU_OBJ_MAIN_DEFAULT);
                     lv_task_handler();
                     usleep(128);
                 }
@@ -432,23 +442,17 @@ static void process_load(int from_start) {
 }
 
 static void handle_a(void) {
-    process_load(config.VISUAL.LAUNCH_SWAP ? 1 : 0);
+    if (hold_call) return;
+    process_load(launch_flag(config.VISUAL.LAUNCH_SWAP, 0));
 }
 
 static void handle_a_hold(void) {
-    process_load(config.VISUAL.LAUNCH_SWAP ? 0 : 1);
-}
-
-static void handle_l2_hold(void) {
-    holding_cell = 1;
-}
-
-static void handle_l2_release(void) {
-    holding_cell = 0;
+    if (msgbox_active || hold_call) return;
+    process_load(launch_flag(config.VISUAL.LAUNCH_SWAP, 1));
 }
 
 static void handle_b(void) {
-    if (holding_cell) return;
+    if (hold_call) return;
 
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
@@ -465,21 +469,21 @@ static void handle_b(void) {
 }
 
 static void handle_x(void) {
-    if (msgbox_active || !ui_count || kiosk.CONTENT.HISTORY || holding_cell) return;
+    if (msgbox_active || !ui_count || is_ksk(kiosk.CONTENT.HISTORY) || hold_call) return;
 
     play_sound(SND_CONFIRM);
     remove_from_history();
 }
 
 static void handle_y(void) {
-    if (msgbox_active || !ui_count || kiosk.COLLECT.ADD_CON || holding_cell) return;
+    if (msgbox_active || !ui_count || is_ksk(kiosk.COLLECT.ADD_CON) || hold_call) return;
 
     play_sound(SND_CONFIRM);
     add_to_collection();
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || holding_cell) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     image_refresh("preview");
@@ -488,7 +492,7 @@ static void handle_menu(void) {
 }
 
 static void handle_random_select(void) {
-    if (msgbox_active || ui_count < 2 || holding_cell || !config.VISUAL.SHUFFLE) return;
+    if (msgbox_active || ui_count < 2 || hold_call || !config.VISUAL.SHUFFLE) return;
 
     int dir, target;
     shuffle_index(current_item_index, &dir, &target);
@@ -516,6 +520,8 @@ static void init_elements(void) {
     adjust_box_art();
     adjust_panels();
     header_and_footer_setup();
+    lv_label_set_text(ui_lblPreviewHeader, lang.GENERIC.SWITCH_IMAGE);
+    lv_obj_clear_flag(ui_lblPreviewHeaderGlyph, LV_OBJ_FLAG_HIDDEN);
 
     setup_nav((struct nav_bar[]) {
             {ui_lblNavAGlyph,    "",                   1},
@@ -575,7 +581,7 @@ int muxhistory_main(int his_index) {
     ui_viewport_objects[6] = lv_img_create(ui_viewport_objects[0]);
 
     ui_imgSplash = lv_img_create(ui_screen);
-    lv_obj_set_style_img_opa(ui_imgSplash, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_opa(ui_imgSplash, 0, MU_OBJ_MAIN_DEFAULT);
 
     lv_obj_set_user_data(ui_screen, mux_module);
     lv_label_set_text(ui_lblDatetime, get_datetime());
@@ -618,12 +624,12 @@ int muxhistory_main(int his_index) {
     set_nav_flags(nav_e, A_SIZE(nav_e));
     adjust_panels();
 
-    if (kiosk.CONTENT.HISTORY) {
+    if (is_ksk(kiosk.CONTENT.HISTORY)) {
         lv_obj_add_flag(ui_lblNavXGlyph, MU_OBJ_FLAG_HIDE_FLOAT);
         lv_obj_add_flag(ui_lblNavX, MU_OBJ_FLAG_HIDE_FLOAT);
     }
 
-    if (kiosk.COLLECT.ADD_CON) {
+    if (is_ksk(kiosk.COLLECT.ADD_CON)) {
         lv_obj_add_flag(ui_lblNavYGlyph, MU_OBJ_FLAG_HIDE_FLOAT);
         lv_obj_add_flag(ui_lblNavY, MU_OBJ_FLAG_HIDE_FLOAT);
     }
@@ -657,7 +663,7 @@ int muxhistory_main(int his_index) {
             },
             .release_handler = {
                     [MUX_INPUT_A] = handle_a,
-                    [MUX_INPUT_L2] = handle_l2_release,
+                    [MUX_INPUT_L2] = hold_call_release,
             },
             .hold_handler = {
                     [MUX_INPUT_A] = handle_a_hold,
@@ -666,7 +672,7 @@ int muxhistory_main(int his_index) {
                     [MUX_INPUT_DPAD_LEFT] = handle_list_nav_left_hold,
                     [MUX_INPUT_DPAD_RIGHT] = handle_list_nav_right_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
-                    [MUX_INPUT_L2] = handle_l2_hold,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
                     [MUX_INPUT_R2] = handle_random_select,
             }

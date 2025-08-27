@@ -18,7 +18,7 @@ int nav_moved = 0;
 int current_item_index = 0;
 int first_open = 1;
 int ui_count = 0;
-int holding_cell = 0;
+int hold_call = 0;
 
 int theme_down_index = 0;
 
@@ -36,6 +36,18 @@ lv_group_t *ui_group_value;
 char box_image_previous_path[MAX_BUFFER_SIZE];
 char preview_image_previous_path[MAX_BUFFER_SIZE];
 char splash_image_previous_path[MAX_BUFFER_SIZE];
+
+int is_ksk(int k) {
+    return kiosk.ENABLE && k;
+}
+
+void hold_call_set(void) {
+    hold_call = 1;
+}
+
+void hold_call_release(void) {
+    hold_call = 0;
+}
 
 void shuffle_index(int current, int *dir, int *target) {
     do {
@@ -86,11 +98,11 @@ void setup_nav(struct nav_bar *nav_items) {
 }
 
 void header_and_footer_setup(void) {
-    lv_obj_set_style_bg_opa(ui_pnlHeader, theme.HEADER.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui_pnlFooter, theme.FOOTER.BACKGROUND_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_pnlHeader, theme.HEADER.BACKGROUND_ALPHA, MU_OBJ_MAIN_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_pnlFooter, theme.FOOTER.BACKGROUND_ALPHA, MU_OBJ_MAIN_DEFAULT);
 
     lv_label_set_text(ui_lblPreviewHeader, "");
-    lv_label_set_text(ui_lblPreviewHeaderGlyph, "");
+    lv_obj_add_flag(ui_lblPreviewHeaderGlyph, LV_OBJ_FLAG_HIDDEN);
 
     process_visual_element(CLOCK, ui_lblDatetime);
     process_visual_element(BLUETOOTH, ui_staBluetooth);
@@ -115,7 +127,7 @@ void overlay_display(void) {
 }
 
 char *specify_asset(char *val, const char *def_val, const char *label) {
-    if (!val || !strcasecmp(val, "(null)")) {
+    if (!val || !strlen(val) || !strcasecmp(val, "(null)")) {
         LOG_INFO(mux_module, "Using Default %s: %s", label, def_val)
         return strdup(def_val);
     }
@@ -124,12 +136,24 @@ char *specify_asset(char *val, const char *def_val, const char *label) {
     return val;
 }
 
-static char *load_content_asset(char *sys_dir, char *pointer, int force,
-                                int run_quit, const char *ext, const char *label) {
+static char *load_content_asset(char *sys_dir, char *pointer, int force, int run_quit,
+                                const char *ext, const char *label, int is_app) {
     char path[MAX_BUFFER_SIZE];
     const char *last_subdir = NULL;
 
     if (pointer == NULL) {
+        if (is_app) {
+            snprintf(path, sizeof(path), "%s/mux_option.%s", sys_dir, ext);
+
+            LOG_SUCCESS(mux_module, "Loading Application %s: %s", label, path)
+
+            char *txt = read_all_char_from(path);
+            if (txt) return txt;
+
+            LOG_ERROR(mux_module, "Failed to read application %s", label)
+            return NULL;
+        }
+
         last_subdir = get_last_subdir(sys_dir, '/', 4);
 
         if (!strcasecmp(last_subdir, strip_dir(STORAGE_PATH))) {
@@ -180,12 +204,12 @@ static char *load_content_asset(char *sys_dir, char *pointer, int force,
     return NULL;
 }
 
-char *load_content_governor(char *sys_dir, char *pointer, int force, int run_quit) {
-    return load_content_asset(sys_dir, pointer, force, run_quit, "gov", "Governor");
+char *load_content_governor(char *sys_dir, char *pointer, int force, int run_quit, int is_app) {
+    return load_content_asset(sys_dir, pointer, force, run_quit, "gov", "Governor", is_app);
 }
 
-char *load_content_control_scheme(char *sys_dir, char *pointer, int force, int run_quit) {
-    return load_content_asset(sys_dir, pointer, force, run_quit, "con", "Control Scheme");
+char *load_content_control_scheme(char *sys_dir, char *pointer, int force, int run_quit, int is_app) {
+    return load_content_asset(sys_dir, pointer, force, run_quit, "con", "Control Scheme", is_app);
 }
 
 void viewport_refresh(lv_obj_t **ui_viewport_objects, char *artwork_config,
@@ -333,4 +357,18 @@ void gen_label(char *module, char *item_glyph, char *item_text) {
 
     apply_size_to_content(&theme, ui_pnlContent, ui_lblItem, ui_lblItemGlyph, item_text);
     apply_text_long_dot(&theme, ui_pnlContent, ui_lblItem);
+}
+
+/* Talk about a confusing state, but here we go!
+ * 0=Press A, 1=Hold A, 2=Load State, 3=Start Fresh
+*/
+int launch_flag(int mode, int held) {
+    static const uint8_t LAUNCH[4][2] = {
+            {1, 0}, // 0 Press A
+            {0, 1}, // 1 Hold A
+            {0, 0}, // 2 Load State (always)
+            {1, 1}  // 3 Start Fresh (always)
+    };
+    if ((unsigned) mode > 3) mode = 0;
+    return LAUNCH[mode][held ? 0 : 1];
 }

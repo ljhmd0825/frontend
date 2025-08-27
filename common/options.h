@@ -11,6 +11,13 @@
 #define IDLE_MS 16 /* ~60 FPS */
 
 #define MU_OBJ_FLAG_HIDE_FLOAT (LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_FLOATING)
+#define MU_OBJ_MAIN_DEFAULT    (LV_PART_MAIN | LV_STATE_DEFAULT)
+#define MU_OBJ_MAIN_FOCUS      (LV_PART_MAIN | LV_STATE_FOCUSED)
+#define MU_OBJ_MAIN_SCROLL     (LV_PART_MAIN | LV_STATE_SCROLLED)
+#define MU_OBJ_INDI_DEFAULT    (LV_PART_INDICATOR | LV_STATE_DEFAULT)
+#define MU_OBJ_INDI_FOCUS      (LV_PART_INDICATOR | LV_STATE_FOCUSED)
+#define MU_OBJ_SELECT_DEFAULT  (LV_PART_SELECTED | LV_STATE_DEFAULT)
+#define MU_OBJ_SELECT_FOCUS    (LV_PART_SELECTED | LV_STATE_FOCUSED)
 
 #define TIMER_DATETIME  16384
 #define TIMER_CAPACITY  16384
@@ -81,6 +88,7 @@
 #define INFO_ACT_PATH RUN_STORAGE_PATH "info/track"
 
 #define MUOS_APPS_PATH "MUOS/application"
+#define MUOS_ARCH_PATH "ARCHIVE"
 #define MUOS_TASK_PATH "MUOS/task"
 #define MUOS_INFO_PATH "MUOS/info"
 
@@ -112,6 +120,7 @@
 
 #define MUOS_ACT_LOAD "/tmp/act_go" // Module Action
 #define MUOS_AIN_LOAD "/tmp/ain_go" // Application Last Index
+#define MUOS_APL_LOAD "/tmp/apl_go" // Application Content Loader
 #define MUOS_APP_LOAD "/tmp/app_go" // Application Launch
 #define MUOS_ASS_LOAD "/tmp/ass_go" // Core/System Assignment Loader
 #define MUOS_CON_LOAD "/tmp/con_go" // Control Scheme
@@ -135,12 +144,14 @@
 #define BRIGHT_PERC "/tmp/current_brightness_percent"
 #define VOLUME_PERC "/tmp/current_volume_percent"
 
+#define MUX_BLANK       "/tmp/mux_blank"
 #define PLAYTIME_DATA   "playtime_data.json"
 #define FRIENDLY_RESULT "/tmp/f_result.json"
 #define MANUAL_RA_LOAD  "/tmp/ra_no_load"
 #define APP_LAUNCHER    "mux_launch.sh"
 
 #define THEME_DATA   "theme_data.json"
+#define EXTRA_DATA   "extra_data.json"
 
 #define FONT_PANEL_FOLDER  "panel"
 #define FONT_HEADER_FOLDER "header"

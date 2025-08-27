@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxsysinfo.h"
 
-#define UI_COUNT  11
+#define UI_COUNT  12
 
 static char hostname[32];
 static int tap_count = 0;
@@ -14,11 +14,12 @@ static void show_help(lv_obj_t *element_focused) {
             {ui_lblUptime_sysinfo,   lang.MUXSYSINFO.HELP.UPTIME},
             {ui_lblCpu_sysinfo,      lang.MUXSYSINFO.HELP.CPU.INFO},
             {ui_lblSpeed_sysinfo,    lang.MUXSYSINFO.HELP.CPU.SPEED},
-            {ui_lblGovernor_sysinfo, lang.MUXSYSINFO.HELP.CPU.GOV},
+            {ui_lblGovernor_sysinfo, lang.MUXSYSINFO.HELP.CPU.GOVERNOR},
             {ui_lblMemory_sysinfo,   lang.MUXSYSINFO.HELP.MEMORY},
             {ui_lblTemp_sysinfo,     lang.MUXSYSINFO.HELP.TEMP},
             {ui_lblCapacity_sysinfo, lang.MUXSYSINFO.HELP.CAPACITY},
             {ui_lblVoltage_sysinfo,  lang.MUXSYSINFO.HELP.VOLTAGE},
+            {ui_lblRefresh_sysinfo,  lang.MUXSYSINFO.HELP.REFRESH},
     };
 
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
@@ -189,6 +190,7 @@ static void update_system_info() {
     lv_label_set_text(ui_lblTempValue_sysinfo, get_temperature());
     lv_label_set_text(ui_lblCapacityValue_sysinfo, get_battery_cap());
     lv_label_set_text(ui_lblVoltageValue_sysinfo, read_battery_voltage());
+    lv_label_set_text(ui_lblRefreshValue_sysinfo, "");
 }
 
 static void init_navigation_group(void) {
@@ -203,11 +205,12 @@ static void init_navigation_group(void) {
     INIT_VALUE_ITEM(-1, sysinfo, Uptime, lang.MUXSYSINFO.UPTIME, "uptime", get_uptime());
     INIT_VALUE_ITEM(-1, sysinfo, Cpu, lang.MUXSYSINFO.CPU.INFO, "cpu", get_cpu_model());
     INIT_VALUE_ITEM(-1, sysinfo, Speed, lang.MUXSYSINFO.CPU.SPEED, "speed", get_current_frequency());
-    INIT_VALUE_ITEM(-1, sysinfo, Governor, lang.MUXSYSINFO.CPU.GOV, "governor", get_scaling_governor());
+    INIT_VALUE_ITEM(-1, sysinfo, Governor, lang.MUXSYSINFO.CPU.GOVERNOR, "governor", get_scaling_governor());
     INIT_VALUE_ITEM(-1, sysinfo, Memory, lang.MUXSYSINFO.MEMORY.INFO, "memory", get_memory_usage());
     INIT_VALUE_ITEM(-1, sysinfo, Temp, lang.MUXSYSINFO.TEMP, "temp", get_temperature());
     INIT_VALUE_ITEM(-1, sysinfo, Capacity, lang.MUXSYSINFO.CAPACITY, "capacity", get_battery_cap());
     INIT_VALUE_ITEM(-1, sysinfo, Voltage, lang.MUXSYSINFO.VOLTAGE, "voltage", read_battery_voltage());
+    INIT_VALUE_ITEM(-1, sysinfo, Refresh, lang.MUXSYSINFO.REFRESH, "refresh", "");
 
     ui_group = lv_group_create();
     ui_group_value = lv_group_create();
@@ -251,7 +254,7 @@ static void list_nav_next(int steps) {
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (lv_group_get_focused(ui_group) == ui_lblVersion_sysinfo) {
         play_sound(SND_MUOS);
@@ -364,10 +367,27 @@ static void handle_a(void) {
         toast_message(hostname, 1000);
     }
 
+    if (lv_group_get_focused(ui_group) == ui_lblRefresh_sysinfo) {
+        toast_message(lang.GENERIC.REFRESH, 0);
+
+        refresh_config = 1;
+        refresh_device = 1;
+        refresh_kiosk = 1;
+        refresh_resolution = 1;
+
+        if (file_exist(MUOS_PDI_LOAD)) remove(MUOS_PDI_LOAD);
+        load_mux("launcher");
+
+        close_input();
+        mux_input_stop();
+    }
+
     refresh_screen(ui_screen);
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -384,14 +404,14 @@ static void handle_b(void) {
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
 }
 
 static void launch_device(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (lv_group_get_focused(ui_group) == ui_lblDevice_sysinfo) {
         load_mux("device");
@@ -459,6 +479,7 @@ int muxsysinfo_main(void) {
     init_navigation_group();
 
     init_timer(ui_refresh_task, update_system_info);
+    list_nav_next(0);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -471,10 +492,14 @@ int muxsysinfo_main(void) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
             .combo = {

@@ -129,7 +129,7 @@ static void gen_result(char *item_glyph, char *item_text, char *item_data, char 
 
     lv_obj_t *ui_lblResultItemValue = lv_label_create(ui_pnlResult);
     lv_label_set_text(ui_lblResultItemValue, item_value);
-    lv_obj_set_style_text_opa(ui_lblResultItemValue, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_lblResultItemValue, 0, MU_OBJ_MAIN_DEFAULT);
     lv_obj_set_width(ui_lblResultItemValue, 0);
 
     lv_obj_t *ui_lblResultItemGlyph = lv_img_create(ui_pnlResult);
@@ -174,15 +174,15 @@ static void gen_result(char *item_glyph, char *item_text, char *item_data, char 
     }
 
     if (strcasecmp(item_data, "folder") == 0) {
-        lv_obj_set_style_border_width(ui_pnlResult, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_border_color(ui_pnlResult, lv_color_hex(theme.LIST_DEFAULT.TEXT), LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_border_opa(ui_pnlResult, theme.LIST_DEFAULT.TEXT_ALPHA, LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_border_side(ui_pnlResult, LV_BORDER_SIDE_TOP, LV_PART_MAIN | LV_STATE_DEFAULT);
+        lv_obj_set_style_border_width(ui_pnlResult, 1, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_color(ui_pnlResult, lv_color_hex(theme.LIST_DEFAULT.TEXT), MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_opa(ui_pnlResult, theme.LIST_DEFAULT.TEXT_ALPHA, MU_OBJ_MAIN_DEFAULT);
+        lv_obj_set_style_border_side(ui_pnlResult, LV_BORDER_SIDE_TOP, MU_OBJ_MAIN_DEFAULT);
     }
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -315,7 +315,8 @@ static void process_results(const char *json_results) {
                         }
 
                         adjust_visual_label(content_name, config.VISUAL.NAME, config.VISUAL.DASH);
-                        add_item(&folder_items, &folder_item_count, content_name, content_name, content_full_path, ITEM);
+                        add_item(&folder_items, &folder_item_count, content_name, content_name, content_full_path,
+                                 ITEM);
                     }
                 }
 
@@ -326,7 +327,7 @@ static void process_results(const char *json_results) {
                         add_item(&t_all_items, &t_all_item_count, folder_items[i].name,
                                  folder_items[i].display_name, folder_items[i].extra_data, ITEM);
                         gen_result("content", strip_ext(folder_items[i].display_name),
-                                  "content", folder_items[i].extra_data);
+                                   "content", folder_items[i].extra_data);
                     }
                 }
 
@@ -453,7 +454,7 @@ static void handle_confirm(void) {
 }
 
 static void handle_random_select(void) {
-    if (msgbox_active || ui_count < 2) return;
+    if (msgbox_active || ui_count < 2 || hold_call) return;
 
     uint32_t random_select = random() % ui_count;
     int selected_index = (int) (random_select & INT16_MAX);
@@ -465,19 +466,21 @@ static void handle_back(void) {
     play_sound(SND_BACK);
 
     if (file_exist(MUOS_RES_LOAD)) remove(MUOS_RES_LOAD);
-    if (strlen(rom_dir) == 0 || strcasecmp(rom_dir, STORAGE_PATH) == 0 || kiosk.CONTENT.OPTION) load_mux("explore");
+    if (is_ksk(kiosk.CONTENT.OPTION)) load_mux("explore");
 
     close_input();
     mux_input_stop();
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     key_show ? handle_keyboard_press() : handle_confirm();
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -495,7 +498,7 @@ static void handle_b(void) {
 }
 
 static void handle_x(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (key_show) {
         key_backspace(ui_txtEntry_search);
@@ -512,7 +515,7 @@ static void handle_x(void) {
 }
 
 static void handle_y(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (key_show) key_swap();
 
@@ -520,7 +523,7 @@ static void handle_y(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || key_show) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || key_show || hold_call) return;
 
     if (all_items[current_item_index].content_type != ITEM) {
         play_sound(SND_INFO_OPEN);
@@ -717,12 +720,16 @@ int muxsearch_main(char *dir) {
                     [MUX_INPUT_R1] = handle_r1,
                     [MUX_INPUT_R2] = handle_random_select,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_down_hold,
                     [MUX_INPUT_DPAD_LEFT] = handle_left_hold,
                     [MUX_INPUT_DPAD_RIGHT] = handle_right_hold,
                     [MUX_INPUT_L1] = handle_l1,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_r1,
                     [MUX_INPUT_R2] = handle_random_select,
             }

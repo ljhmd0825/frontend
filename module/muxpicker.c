@@ -10,7 +10,7 @@ static char *picker_extension;
 #define TEMP_CREDITS "credits.txt"
 
 static void show_help(void) {
-    if (items[current_item_index].content_type == FOLDER) return;
+    if (items[current_item_index].content_type == FOLDER || items[current_item_index].content_type == MENU) return;
 
     char *picker_name = lv_label_get_text(lv_group_get_focused(ui_group));
     char picker_archive[MAX_BUFFER_SIZE];
@@ -61,25 +61,32 @@ static void image_refresh(void) {
 
     lv_img_cache_invalidate_src(lv_img_get_src(ui_imgBox));
 
+    char image_picker[MAX_BUFFER_SIZE];
+    snprintf(image_picker, sizeof(image_picker), "%s", get_last_subdir(picker_type, '/', 1));
+
     char *name = lv_label_get_text(lv_group_get_focused(ui_group));
     char preview_path[PATH_MAX];
     snprintf(preview_path, sizeof(preview_path), "%s/%s/box/%s%s.png", INFO_CAT_PATH,
-             get_last_subdir(picker_type, '/', 1), mux_dimension, name);
+             str_capital(image_picker), mux_dimension, name);
 
     char fallback_path[PATH_MAX];
     snprintf(fallback_path, sizeof(fallback_path), "%s/%s/box/640x480/%s.png", INFO_CAT_PATH,
-             get_last_subdir(picker_type, '/', 1), name);
+             str_capital(image_picker), name);
 
     if (!file_exist(preview_path) && !file_exist(fallback_path)) {
-        if (!extract_preview(mux_dimension, preview_path) && !strcmp("640x480/", mux_dimension))
-            extract_preview("640x480/", fallback_path);
+        char catalogue_path[PATH_MAX];
+        snprintf(catalogue_path, sizeof(catalogue_path), "%s/%s/box/%s", INFO_CAT_PATH,
+                 str_capital(image_picker), mux_dimension);
+        create_directories(catalogue_path);
+
+        extract_preview(mux_dimension, preview_path);
     }
 
     if (!file_exist(preview_path) && !file_exist(fallback_path)) {
         lv_img_set_src(ui_imgBox, &ui_image_Nothing);
     } else {
         struct ImageSettings image_settings = {
-                file_exist(preview_path) ? preview_path : fallback_path, config.VISUAL.BOX_ART_ALIGN,
+                file_exist(preview_path) ? preview_path : fallback_path, 6,
                 validate_int16((int16_t) (device.MUX.WIDTH * .45), "width"),
                 validate_int16((int16_t) (device.MUX.HEIGHT), "height"),
                 theme.IMAGE_LIST.PAD_LEFT, theme.IMAGE_LIST.PAD_RIGHT,
@@ -90,8 +97,9 @@ static void image_refresh(void) {
 }
 
 static void create_picker_items(void) {
-    if (device.DEVICE.HAS_NETWORK && !strcasecmp(picker_type, "/theme") && strcasecmp(base_dir, sys_dir) == 0 &&
-        !kiosk.CUSTOM.THEME_DOWN) {
+    if (device.DEVICE.HAS_NETWORK && is_network_connected() &&
+        !strcasecmp(picker_type, "/theme") && strcasecmp(base_dir, sys_dir) == 0 &&
+        !is_ksk(kiosk.CUSTOM.THEME_DOWN)) {
         add_item(&items, &item_count, lang.MUXPICKER.THEME_DOWN,
                  lang.MUXPICKER.THEME_DOWN, "", MENU);
     }
@@ -157,7 +165,7 @@ static void create_picker_items(void) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -187,8 +195,8 @@ static void list_nav_next(int steps) {
     list_nav_move(steps, +1);
 }
 
-static void handle_confirm(void) {
-    if (msgbox_active || ui_count <= 0) return;
+static void handle_a(void) {
+    if (msgbox_active || !ui_count || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
@@ -260,10 +268,10 @@ static void handle_confirm(void) {
     mux_input_stop();
 }
 
-static void handle_confirm_force(void) {
-    if (msgbox_active || ui_count <= 0 ||
+static void handle_a_force(void) {
+    if (msgbox_active || hold_call || !ui_count ||
         strcasecmp(picker_type, "/theme") != 0 ||
-        items[current_item_index].content_type == FOLDER || 
+        items[current_item_index].content_type == FOLDER ||
         items[current_item_index].content_type == MENU) {
         return;
     }
@@ -308,7 +316,9 @@ static void handle_confirm_force(void) {
     mux_input_stop();
 }
 
-static void handle_back(void) {
+static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -334,7 +344,7 @@ static void handle_back(void) {
 }
 
 static void handle_save(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
@@ -361,7 +371,7 @@ static void handle_save(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
@@ -424,8 +434,6 @@ int muxpicker_main(char *type, char *ex_dir) {
     init_module("muxpicker");
 
     init_theme(1, 1);
-
-    config.VISUAL.BOX_ART = 1;  //Force correct panel size for displaying preview in bottom right
 
     const char *picker_title = NULL;
     if (!strcasecmp(picker_type, "/theme")) {
@@ -494,9 +502,9 @@ int muxpicker_main(char *type, char *ex_dir) {
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
-                    [MUX_INPUT_A] = handle_confirm,
-                    [MUX_INPUT_B] = handle_back,
-                    [MUX_INPUT_X] = handle_confirm_force,
+                    [MUX_INPUT_A] = handle_a,
+                    [MUX_INPUT_B] = handle_b,
+                    [MUX_INPUT_X] = handle_a_force,
                     [MUX_INPUT_Y] = handle_save,
                     [MUX_INPUT_MENU_SHORT] = handle_help,
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
@@ -504,10 +512,14 @@ int muxpicker_main(char *type, char *ex_dir) {
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };

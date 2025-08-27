@@ -312,16 +312,14 @@ static void init_navigation_group(void) {
     }
 
     if (!is_network_connected()) {
-        lv_obj_add_flag(ui_pnlIp_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlSsid_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlGateway_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlDns_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlSignal_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlChannel_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlAcTraffic_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-        lv_obj_add_flag(ui_pnlTpTraffic_netinfo, MU_OBJ_FLAG_HIDE_FLOAT);
-
-        ui_count -= 7;
+        HIDE_VALUE_ITEM(netinfo, Ip);
+        HIDE_VALUE_ITEM(netinfo, Ssid);
+        HIDE_VALUE_ITEM(netinfo, Gateway);
+        HIDE_VALUE_ITEM(netinfo, Dns);
+        HIDE_VALUE_ITEM(netinfo, Signal);
+        HIDE_VALUE_ITEM(netinfo, Channel);
+        HIDE_VALUE_ITEM(netinfo, AcTraffic);
+        HIDE_VALUE_ITEM(netinfo, TpTraffic);
     }
 }
 
@@ -418,7 +416,7 @@ static void handle_back(void) {
 }
 
 static void handle_a(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (key_show) {
         handle_keyboard_press();
@@ -455,6 +453,8 @@ static void handle_a(void) {
 }
 
 static void handle_b(void) {
+    if (hold_call) return;
+
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
         msgbox_active = 0;
@@ -467,19 +467,19 @@ static void handle_b(void) {
 }
 
 static void handle_x(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (key_show) key_backspace(ui_txtEntry_netinfo);
 }
 
 static void handle_y(void) {
-    if (msgbox_active) return;
+    if (msgbox_active || hold_call) return;
 
     if (key_show) key_swap();
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || key_show) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || key_show || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     show_help(lv_group_get_focused(ui_group));
@@ -598,6 +598,7 @@ int muxnetinfo_main(void) {
     init_osk(ui_pnlEntry_netinfo, ui_txtEntry_netinfo, false);
 
     init_timer(ui_refresh_task, update_network_info);
+    list_nav_next(0);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -614,12 +615,16 @@ int muxnetinfo_main(void) {
                     [MUX_INPUT_L1] = handle_l1,
                     [MUX_INPUT_R1] = handle_r1,
             },
+            .release_handler = {
+                    [MUX_INPUT_L2] = hold_call_release,
+            },
             .hold_handler = {
                     [MUX_INPUT_DPAD_UP] = handle_up_hold,
                     [MUX_INPUT_DPAD_DOWN] = handle_down_hold,
                     [MUX_INPUT_DPAD_LEFT] = handle_left_hold,
                     [MUX_INPUT_DPAD_RIGHT] = handle_right_hold,
                     [MUX_INPUT_L1] = handle_l1,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_r1,
             }
     };

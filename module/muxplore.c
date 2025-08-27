@@ -1,5 +1,5 @@
 #include "muxshare.h"
-#include "ui/ui_muxplore.h"
+#include "../common/skip_list.h"
 
 static lv_obj_t *ui_imgSplash;
 static lv_obj_t *ui_viewport_objects[7];
@@ -82,7 +82,7 @@ static char *load_content_core(int force, int run_quit) {
         LOG_ERROR(mux_module, "Failed to build global core")
     }
 
-    load_assign(items[current_item_index].name, sys_dir, "none", force);
+    load_assign(MUOS_ASS_LOAD, items[current_item_index].name, sys_dir, "none", force, 0);
     if (run_quit) mux_input_stop();
 
     LOG_INFO(mux_module, "No core detected")
@@ -288,54 +288,75 @@ static void gen_item(char **file_names, int file_count) {
 
     char custom_lookup[MAX_BUFFER_SIZE];
     snprintf(custom_lookup, sizeof(custom_lookup), INFO_NAM_PATH "/%s.json", last_dir);
-
-    if (!file_exist(custom_lookup)) {
-        snprintf(custom_lookup, sizeof(custom_lookup), INFO_NAM_PATH "/global.json");
-        LOG_INFO(mux_module, "Using Global Friendly Name file: %s", custom_lookup)
-    } else {
-        LOG_SUCCESS(mux_module, "Using Local Friendly Name file %s", custom_lookup)
-    }
+    if (!file_exist(custom_lookup)) snprintf(custom_lookup, sizeof(custom_lookup), INFO_NAM_PATH "/global.json");
 
     int fn_valid = 0;
-    struct json fn_json = {0};
+    struct json fn_json;
 
-    if (json_valid(read_all_char_from(custom_lookup))) {
-        fn_valid = 1;
-        fn_json = json_parse(read_all_char_from(custom_lookup));
+    if (file_exist(custom_lookup)) {
+        char *lookup_content = read_all_char_from(custom_lookup);
+
+        if (lookup_content && json_valid(lookup_content)) {
+            fn_valid = 1;
+            fn_json = json_parse(read_all_char_from(custom_lookup));
+            LOG_SUCCESS(mux_module, "Using Friendly Name: %s", custom_lookup)
+        } else {
+            LOG_WARN(mux_module, "Invalid Friendly Name: %s", custom_lookup)
+        }
+
+        free(lookup_content);
+    } else {
+        LOG_WARN(mux_module, "Friendly Name does not exist: %s", custom_lookup)
+    }
+
+    SkipList skiplist;
+    init_skiplist(&skiplist);
+    for (int i = 0; i < file_count; i++) {
+        if (ends_with(file_names[i], ".cue")) {
+            process_cue_file(sys_dir, file_names[i], &skiplist);
+        } else if (ends_with(file_names[i], ".gdi")) {
+            process_gdi_file(sys_dir, file_names[i], &skiplist);
+        } else if (ends_with(file_names[i], ".m3u")) {
+            process_m3u_file(sys_dir, file_names[i], &skiplist);
+        }
     }
 
     for (int i = 0; i < file_count; i++) {
-        int has_custom_name = 0;
-        char fn_name[MAX_BUFFER_SIZE];
-        char *stripped_name = strip_ext(file_names[i]);
+        if (!in_skiplist(&skiplist, file_names[i])) {
+            int has_custom_name = 0;
+            char fn_name[MAX_BUFFER_SIZE];
+            char *stripped_name = strip_ext(file_names[i]);
 
-        if (fn_valid) {
-            struct json custom_lookup_json = json_object_get(fn_json, str_tolower(stripped_name));
-            if (json_exists(custom_lookup_json)) {
-                json_string_copy(custom_lookup_json, fn_name, sizeof(fn_name));
-                has_custom_name = 1;
+            if (fn_valid) {
+                struct json custom_lookup_json = json_object_get(fn_json, str_tolower(stripped_name));
+                if (json_exists(custom_lookup_json)) {
+                    json_string_copy(custom_lookup_json, fn_name, sizeof(fn_name));
+                    has_custom_name = 1;
+                }
             }
+
+            int lookup_line = CONTENT_LOOKUP;
+            char name_lookup[MAX_BUFFER_SIZE];
+            snprintf(name_lookup, sizeof(name_lookup), "%s/%s.cfg", str_rem_last_char(init_meta_dir, 1), stripped_name);
+
+            if (!file_exist(name_lookup)) {
+                snprintf(name_lookup, sizeof(name_lookup), "%score.cfg", init_meta_dir);
+                lookup_line = GLOBAL_LOOKUP;
+            }
+
+            if (!has_custom_name) {
+                const char *lookup_result = read_line_int_from(name_lookup, lookup_line) ? lookup(stripped_name) : NULL;
+                snprintf(fn_name, sizeof(fn_name), "%s", lookup_result ? lookup_result : stripped_name);
+            }
+
+            content_item *new_item = add_item(&items, &item_count, file_names[i], fn_name, "", ITEM);
+            adjust_visual_label(new_item->display_name, config.VISUAL.NAME, config.VISUAL.DASH);
+
+            free(file_names[i]);
         }
-
-        int lookup_line = CONTENT_LOOKUP;
-        char name_lookup[MAX_BUFFER_SIZE];
-        snprintf(name_lookup, sizeof(name_lookup), "%s/%s.cfg", str_rem_last_char(init_meta_dir, 1), stripped_name);
-
-        if (!file_exist(name_lookup)) {
-            snprintf(name_lookup, sizeof(name_lookup), "%score.cfg", init_meta_dir);
-            lookup_line = GLOBAL_LOOKUP;
-        }
-
-        if (!has_custom_name) {
-            const char *lookup_result = read_line_int_from(name_lookup, lookup_line) ? lookup(stripped_name) : NULL;
-            snprintf(fn_name, sizeof(fn_name), "%s", lookup_result ? lookup_result : stripped_name);
-        }
-
-        content_item *new_item = add_item(&items, &item_count, file_names[i], fn_name, "", ITEM);
-        adjust_visual_label(new_item->display_name, config.VISUAL.NAME, config.VISUAL.DASH);
-
-        free(file_names[i]);
     }
+
+    free_skiplist(&skiplist);
 
     sort_items(items, item_count);
 
@@ -444,16 +465,23 @@ static void create_content_items(void) {
 
     if (config.VISUAL.FRIENDLYFOLDER) {
         char folder_name_file[MAX_BUFFER_SIZE];
-        snprintf(folder_name_file, sizeof(folder_name_file), "%s/folder.json",
-                 INFO_NAM_PATH);
+        snprintf(folder_name_file, sizeof(folder_name_file), INFO_NAM_PATH "/folder.json");
 
-        char *file_content = read_all_char_from(folder_name_file);
-        if (file_content && json_valid(file_content)) {
-            fn_valid = 1;
-            fn_json = json_parse(strdup(file_content));
+        if (file_exist(folder_name_file)) {
+            char *file_content = read_all_char_from(folder_name_file);
+
+            if (file_content && json_valid(file_content)) {
+                fn_valid = 1;
+                fn_json = json_parse(strdup(file_content));
+                LOG_SUCCESS(mux_module, "Using Friendly Folder: %s", folder_name_file)
+            } else {
+                LOG_WARN(mux_module, "Invalid Friendly Folder: %s", folder_name_file)
+            }
+
+            free(file_content);
+        } else {
+            LOG_WARN(mux_module, "Friendly Folder does not exist: %s", folder_name_file)
         }
-
-        free(file_content);
     }
 
     update_title(item_curr_dir, fn_valid, fn_json, lang.MUXPLORE.TITLE, STORAGE_PATH);
@@ -555,6 +583,8 @@ static int load_content(int add_collection) {
         snprintf(cache_file, sizeof(cache_file), INFO_COR_PATH "/%s/%s.cfg",
                  system_sub, content_name);
 
+        LOG_INFO(mux_module, "Using Configuration: %s", cache_file)
+
         snprintf(pointer, sizeof(pointer), "%s\n%s\n%s",
                  cache_file, system_sub, content_name);
 
@@ -562,16 +592,13 @@ static int load_content(int add_collection) {
             snprintf(content, sizeof(content), "%s.cfg", content_name);
             add_to_collection(content, pointer);
         } else {
-            char *assigned_gov = specify_asset(load_content_governor(sys_dir, NULL, 0, 1),
+            LOG_INFO(mux_module, "Assigned Core: %s", assigned_core)
+
+            char *assigned_gov = specify_asset(load_content_governor(sys_dir, NULL, 0, 1, 0),
                                                device.CPU.DEFAULT, "Governor");
 
-            char *assigned_con = specify_asset(load_content_control_scheme(sys_dir, NULL, 0, 1),
+            char *assigned_con = specify_asset(load_content_control_scheme(sys_dir, NULL, 0, 1, 0),
                                                "system", "Control Scheme");
-
-            LOG_INFO(mux_module, "Assigned Core: %s", assigned_core)
-            LOG_INFO(mux_module, "Assigned Governor: %s", assigned_gov)
-            LOG_INFO(mux_module, "Assigned Control Scheme: %s", assigned_con)
-            LOG_INFO(mux_module, "Using Configuration: %s", cache_file)
 
             snprintf(content, sizeof(content), INFO_HIS_PATH "/%s-%08X.cfg",
                      content_name, fnv1a_hash(cache_file));
@@ -613,7 +640,7 @@ static void update_list_items(int start_index) {
 }
 
 static void list_nav_move(int steps, int direction) {
-    if (ui_count <= 0) return;
+    if (!ui_count) return;
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
@@ -683,7 +710,7 @@ static void list_nav_next(int steps) {
 }
 
 static void process_load(int from_start) {
-    if (!ui_count || holding_cell) return;
+    if (!ui_count || hold_call) return;
 
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
@@ -722,7 +749,7 @@ static void process_load(int from_start) {
                     lv_obj_move_foreground(overlay_image);
 
                     for (unsigned int i = 0; i <= 255; i += 15) {
-                        lv_obj_set_style_img_opa(ui_imgSplash, i, LV_PART_MAIN | LV_STATE_DEFAULT);
+                        lv_obj_set_style_img_opa(ui_imgSplash, i, MU_OBJ_MAIN_DEFAULT);
                         lv_task_handler();
                         usleep(128);
                     }
@@ -757,23 +784,17 @@ static void process_load(int from_start) {
 }
 
 static void handle_a(void) {
-    process_load(config.VISUAL.LAUNCH_SWAP ? 1 : 0);
+    if (hold_call) return;
+    process_load(launch_flag(config.VISUAL.LAUNCH_SWAP, 0));
 }
 
 static void handle_a_hold(void) {
-    process_load(config.VISUAL.LAUNCH_SWAP ? 0 : 1);
-}
-
-static void handle_l2_hold(void) {
-    holding_cell = 1;
-}
-
-static void handle_l2_release(void) {
-    holding_cell = 0;
+    if (msgbox_active || hold_call) return;
+    process_load(launch_flag(config.VISUAL.LAUNCH_SWAP, 1));
 }
 
 static void handle_b(void) {
-    if (holding_cell) return;
+    if (hold_call) return;
 
     if (msgbox_active) {
         play_sound(SND_INFO_CLOSE);
@@ -799,7 +820,7 @@ static void handle_b(void) {
 }
 
 static void handle_x(void) {
-    if (msgbox_active || !ui_count || holding_cell) return;
+    if (msgbox_active || !ui_count || hold_call) return;
 
     toast_message(lang.MUXPLORE.REFRESH_RUN, 0);
     lv_obj_move_foreground(ui_pnlMessage);
@@ -815,13 +836,13 @@ static void handle_x(void) {
 }
 
 static void handle_y(void) {
-    if (msgbox_active || !ui_count || holding_cell) return;
+    if (msgbox_active || !ui_count || hold_call) return;
 
     if (items[current_item_index].content_type == FOLDER) {
         play_sound(SND_ERROR);
         toast_message(lang.MUXPLORE.ERROR.NO_FOLDER, 1000);
     } else {
-        if (kiosk.LAUNCH.COLLECTION || kiosk.COLLECT.ADD_CON) return;
+        if (is_ksk(kiosk.LAUNCH.COLLECTION) || is_ksk(kiosk.COLLECT.ADD_CON)) return;
 
         if (!load_content(1)) {
             play_sound(SND_ERROR);
@@ -831,7 +852,7 @@ static void handle_y(void) {
 }
 
 static void handle_start(void) {
-    if (msgbox_active || !ui_count || holding_cell) return;
+    if (msgbox_active || !ui_count || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
@@ -843,14 +864,14 @@ static void handle_start(void) {
 }
 
 static void handle_select(void) {
-    if (msgbox_active || !ui_count || holding_cell) return;
+    if (msgbox_active || !ui_count || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
     write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
 
-    if (kiosk.CONTENT.OPTION) {
-        if (!kiosk.CONTENT.SEARCH) {
+    if (is_ksk(kiosk.CONTENT.OPTION)) {
+        if (!is_ksk(kiosk.CONTENT.SEARCH)) {
             load_mux("search");
 
             close_input();
@@ -863,7 +884,7 @@ static void handle_select(void) {
     write_text_to_file(MUOS_SAG_LOAD, "w", INT, 1);
 
     load_content_core(1, 0);
-    load_content_governor(sys_dir, NULL, 1, 0);
+    load_content_governor(sys_dir, NULL, 1, 0, 0);
 
     load_mux("option");
 
@@ -872,7 +893,7 @@ static void handle_select(void) {
 }
 
 static void handle_menu(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || holding_cell) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
 
     play_sound(SND_INFO_OPEN);
     image_refresh("preview");
@@ -881,7 +902,7 @@ static void handle_menu(void) {
 }
 
 static void handle_random_select(void) {
-    if (msgbox_active || ui_count < 2 || holding_cell || !config.VISUAL.SHUFFLE) return;
+    if (msgbox_active || ui_count < 2 || hold_call || !config.VISUAL.SHUFFLE) return;
 
     int dir, target;
     shuffle_index(current_item_index, &dir, &target);
@@ -909,6 +930,8 @@ static void init_elements(void) {
     adjust_box_art();
     adjust_panels();
     header_and_footer_setup();
+    lv_label_set_text(ui_lblPreviewHeader, lang.GENERIC.SWITCH_IMAGE);
+    lv_obj_clear_flag(ui_lblPreviewHeaderGlyph, LV_OBJ_FLAG_HIDDEN);
 
     setup_nav((struct nav_bar[]) {
             {ui_lblNavAGlyph,    "",                    1},
@@ -963,7 +986,7 @@ int muxplore_main(int index, char *dir) {
     init_theme(1, 1);
 
     init_ui_common_screen(&theme, &device, &lang, "");
-    init_muxplore(ui_screen, &theme);
+    init_ui_item_counter(&theme);
 
     ui_viewport_objects[0] = lv_obj_create(ui_pnlBox);
     ui_viewport_objects[1] = lv_img_create(ui_viewport_objects[0]);
@@ -974,7 +997,7 @@ int muxplore_main(int index, char *dir) {
     ui_viewport_objects[6] = lv_img_create(ui_viewport_objects[0]);
 
     ui_imgSplash = lv_img_create(ui_screen);
-    lv_obj_set_style_img_opa(ui_imgSplash, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_img_opa(ui_imgSplash, 0, MU_OBJ_MAIN_DEFAULT);
 
     lv_obj_set_user_data(ui_screen, mux_module);
     lv_label_set_text(ui_lblDatetime, get_datetime());
@@ -1027,7 +1050,7 @@ int muxplore_main(int index, char *dir) {
     set_nav_flags(nav_e, A_SIZE(nav_e));
     adjust_panels();
 
-    if (kiosk.LAUNCH.COLLECTION || kiosk.COLLECT.ADD_CON) {
+    if (is_ksk(kiosk.LAUNCH.COLLECTION) || is_ksk(kiosk.COLLECT.ADD_CON)) {
         lv_obj_add_flag(ui_lblNavYGlyph, MU_OBJ_FLAG_HIDE_FLOAT);
         lv_obj_add_flag(ui_lblNavY, MU_OBJ_FLAG_HIDE_FLOAT);
     }
@@ -1065,7 +1088,7 @@ int muxplore_main(int index, char *dir) {
             },
             .release_handler = {
                     [MUX_INPUT_A] = handle_a,
-                    [MUX_INPUT_L2] = handle_l2_release,
+                    [MUX_INPUT_L2] = hold_call_release,
             },
             .hold_handler = {
                     [MUX_INPUT_A] = handle_a_hold,
@@ -1074,7 +1097,7 @@ int muxplore_main(int index, char *dir) {
                     [MUX_INPUT_DPAD_LEFT] = handle_list_nav_left_hold,
                     [MUX_INPUT_DPAD_RIGHT] = handle_list_nav_right_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
-                    [MUX_INPUT_L2] = handle_l2_hold,
+                    [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
                     [MUX_INPUT_R2] = handle_random_select,
             }

@@ -1,11 +1,15 @@
 #include "muxshare.h"
 #include "../lvgl/src/drivers/display/sdl.h"
 
+int first_boot = 1;
+
 static int last_index = 0;
+static int forced_flag = 0;
+static int is_app = 0;
+
 static char rom_name[PATH_MAX];
 static char rom_dir[PATH_MAX];
 static char rom_sys[PATH_MAX];
-static char forced_flag[PATH_MAX];
 
 static char previous_module[MAX_BUFFER_SIZE];
 static char splash_image_path[MAX_BUFFER_SIZE];
@@ -51,16 +55,18 @@ static void cleanup_screen(void) {
     snprintf(splash_image_previous_path, sizeof(splash_image_previous_path), "");
 }
 
-static void process_content_action(char *action, char *module) {
+static void process_action(char *action, char *module) {
     if (!file_exist(action)) return;
 
     snprintf(rom_name, sizeof(rom_name), "%s", read_line_char_from(action, 1));
     snprintf(rom_dir, sizeof(rom_dir), "%s", read_line_char_from(action, 2));
     snprintf(rom_sys, sizeof(rom_sys), "%s", read_line_char_from(action, 3));
-    snprintf(forced_flag, sizeof(forced_flag), "%s", read_line_char_from(action, 4));
+
+    forced_flag = read_line_int_from(action, 4);
+    is_app = read_line_int_from(action, 5);
 
     remove(action);
-    load_mux((strcmp(forced_flag, "1") == 0) ? "option" : module);
+    if (!is_app) load_mux(forced_flag ? "option" : module);
 }
 
 static void last_index_check(void) {
@@ -136,9 +142,9 @@ static void module_explore(void) {
     last_index_check();
 
     char *explore_dir = read_line_char_from(EXPLORE_DIR, 1);
-    muxassign_main(1, rom_name, explore_dir, "none");
-    muxgov_main(1, rom_name, explore_dir, "none");
-    muxcontrol_main(1, rom_name, explore_dir, "none");
+    muxassign_main(1, rom_name, explore_dir, "none", 0);
+    muxgov_main(1, rom_name, explore_dir, "none", 0);
+    muxcontrol_main(1, rom_name, explore_dir, "none", 0);
 
     load_mux("launcher");
     if (muxplore_main(last_index, explore_dir) == 1) safe_quit(0);
@@ -163,7 +169,7 @@ static void module_content_list(const char *path, const char *max_depth, int is_
 }
 
 static void module_collection(void) {
-    const char *collection_path = (kiosk.COLLECT.ACCESS && directory_exist(INFO_CKS_PATH))
+    const char *collection_path = (is_ksk(kiosk.COLLECT.ACCESS) && directory_exist(INFO_CKS_PATH))
                                   ? INFO_CKS_PATH : INFO_COL_PATH;
     module_content_list(collection_path, "2", 1);
 }
@@ -193,13 +199,18 @@ static void module_picker(void) {
     muxpicker_main(read_line_char_from(MUOS_PIK_LOAD, 1), read_line_char_from(EXPLORE_DIR, 1));
 }
 
-static void module_run(const char *mux, int (*func_to_exec)(int, char *, char *, char *)) {
+static void module_run(const char *mux, int (*func_to_exec)(int, char *, char *, char *, int)) {
     load_mux(mux);
-    func_to_exec(0, rom_name, rom_dir, rom_sys);
+    func_to_exec(0, rom_name, rom_dir, rom_sys, is_app);
 }
 
 static void module_assign(void) {
     module_run("option", muxassign_main);
+}
+
+static void module_download(void) {
+    load_mux("assign");
+    muxdownload_main("core");
 }
 
 static void module_governor(void) {
@@ -216,6 +227,10 @@ static void module_tag(void) {
 
 static void module_option(void) {
     module_run("explore", muxoption_main);
+}
+
+static void module_appcon(void) {
+    module_run("app", muxappcon_main);
 }
 
 static void module_app(void) {
@@ -311,6 +326,7 @@ static const ModuleEntry modules[] = {
         {"reboot",     NULL, NULL, NULL, module_reboot},
         {"shutdown",   NULL, NULL, NULL, module_shutdown},
         {"assign",     NULL, NULL, NULL, module_assign},
+        {"coredown",   NULL, NULL, NULL, module_download},
         {"governor",   NULL, NULL, NULL, module_governor},
         {"control",    NULL, NULL, NULL, module_control},
         {"tag",        NULL, NULL, NULL, module_tag},
@@ -320,6 +336,7 @@ static const ModuleEntry modules[] = {
         {"search",     NULL, NULL, NULL, module_search},
         {"picker",     NULL, NULL, NULL, module_picker},
         {"option",     NULL, NULL, NULL, module_option},
+        {"appcon",     NULL, NULL, NULL, module_appcon},
         {"app",        NULL, NULL, NULL, module_app},
         {"task",       NULL, NULL, NULL, module_task},
         {"config",     NULL, NULL, NULL, module_config},
@@ -426,9 +443,17 @@ int main(void) {
             break;
         }
 
+        if (first_boot) {
+            first_boot = 0;
+            lv_task_handler();
+        }
+
+        // Process application option loader
+        process_action(MUOS_APL_LOAD, "");
+
         // Process content association and governor actions
-        process_content_action(MUOS_ASS_LOAD, "assign");
-        process_content_action(MUOS_GOV_LOAD, "governor");
+        process_action(MUOS_ASS_LOAD, "assign");
+        process_action(MUOS_GOV_LOAD, "governor");
 
         if (file_exist(MUOS_ACT_LOAD)) {
             if (refresh_kiosk) {
