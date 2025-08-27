@@ -104,6 +104,7 @@ static const LookupName lookup_table[] = {
         {"ncombat", "닌자 컴뱃"},
         {"ncombath", "닌자 컴뱃"},
         {"ncommand", "닌자 코만도"},
+        {"ncommandk", "닌자 코만도 (한글)"},
         {"ncv1", "남코 클래식 콜렉션 Vol.1"},
         {"ncv1j", "남코 클래식 콜렉션 Vol.1 (일본판,v1.00)"},
         {"ncv1j2", "남코 클래식 콜렉션 Vol.1 (일본판,v1.03)"},
