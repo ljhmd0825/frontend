@@ -1,4 +1,4 @@
-﻿#include <string.h>
+#include <string.h>
 #include "../common/common.h"
 #include "lookup.h"
 
@@ -8,7 +8,9 @@ typedef struct {
 } LookupName;
 
 static const LookupName lookup_table[] = {
-        {"500gp", "500 GP (5GP3 Ver. C)"},
+        {"5clown", "파이브 클라운"},
+        {"5clowna", "파이브 클라운 (영어,세트2)"},
+        {"5clownsp", "파이브 클라운 (스페인어 핵)"},
 };
 
 const char *lookup_5(const char *name) {
