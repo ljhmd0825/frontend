@@ -148,17 +148,14 @@ static void image_refresh(char *image_type) {
             }
         } else {
             if (items[current_item_index].content_type == FOLDER) {
-                char *catalogue_name = get_catalogue_name_from_rom_path(sys_dir, items[current_item_index].name);
-                if (!load_image_catalogue("Folder", file_name, catalogue_name,
-                                          mux_dimension, image_type,
-                                          image, sizeof(image)))
-                    load_image_catalogue("Folder", file_name, "default", mux_dimension,
-                                         image_type,
-                                         image, sizeof(image));
+                if (strcasecmp(image_type, "box") || !grid_mode_enabled || (grid_mode_enabled && !config.VISUAL.BOX_ART_HIDE)) {
+                    char *catalogue_name = get_catalogue_name_from_rom_path(sys_dir, items[current_item_index].name);
+                    load_image_catalogue("Folder", file_name, catalogue_name, "default", 
+                                        mux_dimension, image_type, image, sizeof(image));
+                }
             } else {
-                load_image_catalogue(core_artwork, file_name, "default", mux_dimension,
-                                     image_type,
-                                     image, sizeof(image));
+                load_image_catalogue(core_artwork, file_name, "", "default", mux_dimension,
+                                     image_type, image, sizeof(image));
             }
             if (!strcasecmp(image_type, "splash") && !file_exist(image)) {
                 load_splash_image_fallback(mux_dimension, image, sizeof(image));
@@ -236,7 +233,7 @@ static void add_directory_and_file_names(const char *base_dir, char ***dir_names
     DIR *dir = opendir(base_dir);
 
     if (!dir) {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
         return;
     }
 
@@ -428,10 +425,8 @@ static void init_navigation_group_grid(void) {
         char *catalogue_name = get_catalogue_name_from_rom_path(sys_dir, items[i].name);
 
         char grid_image[MAX_BUFFER_SIZE];
-        if (!load_image_catalogue("Folder", strip_ext(items[i].name), catalogue_name, mux_dimension, "grid",
-                                  grid_image, sizeof(grid_image)))
-            load_image_catalogue("Folder", strip_ext(items[i].name), "default", mux_dimension, "grid",
-                                 grid_image, sizeof(grid_image));
+        load_image_catalogue("Folder", strip_ext(items[i].name), catalogue_name, "default", mux_dimension, "grid",
+                                grid_image, sizeof(grid_image));
 
         char glyph_name_focused[MAX_BUFFER_SIZE];
         snprintf(glyph_name_focused, sizeof(glyph_name_focused), "%s_focused", strip_ext(items[i].name));
@@ -439,10 +434,8 @@ static void init_navigation_group_grid(void) {
         snprintf(catalogue_name_focused, sizeof(catalogue_name_focused), "%s_focused", catalogue_name);
 
         char grid_image_focused[MAX_BUFFER_SIZE];
-        if (!load_image_catalogue("Folder", glyph_name_focused, catalogue_name_focused, mux_dimension, "grid",
-                                  grid_image_focused, sizeof(grid_image_focused)))
-            load_image_catalogue("Folder", glyph_name_focused, "default_focused", mux_dimension, "grid",
-                                 grid_image_focused, sizeof(grid_image_focused));
+        load_image_catalogue("Folder", glyph_name_focused, catalogue_name_focused, "default_focused", mux_dimension, "grid",
+                                grid_image_focused, sizeof(grid_image_focused));
 
         create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
                          grid_image, grid_image_focused, items[i].display_name);

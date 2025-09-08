@@ -60,7 +60,7 @@ static void image_refresh(char *image_type) {
                      STORAGE_THEME, image_type);
         }
     } else {
-        load_image_catalogue(h_core_artwork, h_file_name, "default", mux_dimension, image_type,
+        load_image_catalogue(h_core_artwork, h_file_name, "", "default", mux_dimension, image_type,
                              image, sizeof(image));
         if (!strcasecmp(image_type, "splash") && !file_exist(image)) {
             load_splash_image_fallback(mux_dimension, image, sizeof(image));
@@ -131,7 +131,7 @@ static void add_file_names(const char *base_dir, char ***file_names, char ***las
     struct dirent *entry;
     DIR *dir = opendir(base_dir);
     if (!dir) {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
         return;
     }
 
