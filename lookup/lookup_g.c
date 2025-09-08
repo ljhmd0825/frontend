@@ -540,7 +540,7 @@ static const LookupName lookup_table[] = {
         {"grdnstrmk", "전신 - 가디언 스톰 (한국판)"},
         {"grdnstrmv", "전신 - 가디언 스톰 (수직)"},
         {"greatgun", "그레이트 건즈"},
-        {"greatgur", "황금성 (일본판)"},
+        {"greatgur", "황금성 (해적판?)"},
         {"greenber", "그린베레"},
         {"grescue", "갤럭시 레스큐"},
         {"gridiron", "그리다이언 파이트"},

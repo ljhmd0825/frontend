@@ -182,6 +182,7 @@ static const LookupName lookup_table[] = {
         {"bcstrya", "B.C. 스토리 (세트2)"},
         {"bdrdown", "보더 다운 (개정판A)(GDL-0023A)"},
         {"bdream97", "호접몽 97"},
+        {"bdudes", "배드 듀드스 - 버거 에디션"},
         {"beachspi", "비치 스파이커"},
         {"beaminv", "빔 인베이더"},
         {"beast", "쉐도우 오브 더 비스트"},

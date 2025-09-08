@@ -86,6 +86,7 @@ static const LookupName lookup_table[] = {
         {"intact89", "인터렉트 컴플리트 비디오 게임 89합"},
         {"intcup94", "해트트릭 히어로 94_인터네셔널 컵 94 (버전2.2O)"},
         {"intg5410", "인터렉트 컴플리트 비디오 게임 111합 42곡"},
+        {"inthehunt", "인 더 헌트"},
         {"inthunt", "인 더 헌트 (세계판)"},
         {"inthuntu", "인 더 헌트 (미국판)"},
         {"intlaser", "인터네셔널 팀 레이져 (시험판)"},
