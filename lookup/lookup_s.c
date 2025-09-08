@@ -1352,7 +1352,7 @@ static const LookupName lookup_table[] = {
         {"spinlbrkup", "스파이널 브레이커즈 (미국판,시험판)"},
         {"spinlbru", "스파이널 브레이커즈 (미국판)"},
         {"spinmast", "스핀 마스터/ 미라클 어드벤처"},
-        {"spinmast", "스핀 마스터/ 미라클 어드벤처 (한글)"},
+        {"spinmastk", "스핀 마스터/ 미라클 어드벤처 (한글)"},
         {"spinner", "스피너"},
         {"spitboss", "슈퍼 피트 보스"},
         {"spk100", "슈퍼 포커"},
