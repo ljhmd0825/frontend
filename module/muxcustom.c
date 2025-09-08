@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxcustom.h"
 
-#define UI_COUNT 17
+#define UI_COUNT 18
 
 #define CUSTOM(NAME, UDATA) static int NAME##_original;
 CUSTOM_ELEMENTS
@@ -58,6 +58,7 @@ static void show_help(lv_obj_t *element_focused) {
             {ui_lblBoxArtImage_custom,     lang.MUXCUSTOM.HELP.BOX_ART},
             {ui_lblBoxArtAlign_custom,     lang.MUXCUSTOM.HELP.BOX_ALIGN},
             {ui_lblLaunchSplash_custom,    lang.MUXCUSTOM.HELP.SPLASH},
+            {ui_lblBoxArtHide_custom,      lang.MUXCUSTOM.HELP.BOX_HIDE},
             {ui_lblFont_custom,            lang.MUXCUSTOM.HELP.FONT},
             {ui_lblSound_custom,           lang.MUXCUSTOM.HELP.SOUND},
             {ui_lblChime_custom,           lang.MUXCUSTOM.HELP.CHIME},
@@ -81,7 +82,7 @@ static int populate_theme_alternates(void) {
             size_t len = strlen(filename);
 
             if ((len > 4 && strcmp(str_tolower(filename + len - 4), ".ini") == 0) ||
-                (len > 7 && strcmp(str_tolower(filename + len - 7), ".muxzip") == 0)) {
+                (len > 7 && strcmp(str_tolower(filename + len - 7), ".muxalt") == 0)) {
                 char *name_without_ext = strip_ext(filename);
                 if (!item_exists(items, item_count, name_without_ext)) {
                     add_item(&items, &item_count, name_without_ext, name_without_ext, "", ITEM);
@@ -177,6 +178,7 @@ static void init_navigation_group(void) {
     INIT_OPTION_ITEM(-1, custom, BoxArtImage, lang.MUXCUSTOM.BOX_ART.TITLE, "boxart", boxart_image, 5);
     INIT_OPTION_ITEM(-1, custom, BoxArtAlign, lang.MUXCUSTOM.BOX_ART.ALIGN.TITLE, "align", boxart_align, 9);
     INIT_OPTION_ITEM(-1, custom, LaunchSplash, lang.MUXCUSTOM.SPLASH, "splash", disabled_enabled, 2);
+    INIT_OPTION_ITEM(-1, custom, BoxArtHide, lang.MUXCUSTOM.BOX_ART.HIDE_GRID_MODE, "boxarthide", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, custom, Font, lang.MUXCUSTOM.FONT.TITLE, "font", font_options, 2);
     INIT_OPTION_ITEM(-1, custom, Sound, lang.MUXCUSTOM.SOUND.TITLE, "sound", sound_options, 3);
     INIT_OPTION_ITEM(-1, custom, Chime, lang.MUXCUSTOM.CHIME, "chime", disabled_enabled, 2);
@@ -286,6 +288,7 @@ static void restore_custom_options(void) {
     lv_dropdown_set_selected(ui_droBoxArtAlign_custom, config.VISUAL.BOX_ART_ALIGN - 1);
     lv_dropdown_set_selected(ui_droAnimation_custom, config.VISUAL.BACKGROUNDANIMATION);
     lv_dropdown_set_selected(ui_droLaunchSplash_custom, config.VISUAL.LAUNCHSPLASH);
+    lv_dropdown_set_selected(ui_droBoxArtHide_custom, config.VISUAL.BOX_ART_HIDE);
     lv_dropdown_set_selected(ui_droBlackFade_custom, config.VISUAL.BLACKFADE);
     lv_dropdown_set_selected(ui_droLaunchSwap_custom, config.VISUAL.LAUNCH_SWAP);
     lv_dropdown_set_selected(ui_droShuffle_custom, config.VISUAL.SHUFFLE);
@@ -306,6 +309,7 @@ static void save_custom_options(void) {
     CHECK_AND_SAVE_STD(custom, BoxArtImage, "visual/boxart", INT, 0);
     CHECK_AND_SAVE_STD(custom, BoxArtAlign, "visual/boxartalign", INT, 1);
     CHECK_AND_SAVE_STD(custom, LaunchSplash, "visual/launchsplash", INT, 0);
+    CHECK_AND_SAVE_STD(custom, BoxArtHide, "visual/boxarthide", INT, 0);
     CHECK_AND_SAVE_STD(custom, Font, "settings/advanced/font", INT, 0);
     CHECK_AND_SAVE_STD(custom, Sound, "settings/general/sound", INT, 0);
     CHECK_AND_SAVE_STD(custom, Chime, "settings/general/chime", INT, 0);
@@ -329,23 +333,27 @@ static void save_custom_options(void) {
             write_text_to_file((STORAGE_THEME "/active.txt"), "w", CHAR, theme_alt);
 
             char theme_alt_archive[MAX_BUFFER_SIZE];
-            snprintf(theme_alt_archive, sizeof(theme_alt_archive), "%s/alternate/%s.muxzip", STORAGE_THEME, theme_alt);
+            snprintf(theme_alt_archive, sizeof(theme_alt_archive), "%s/alternate/%s.muxalt",
+                     STORAGE_THEME, theme_alt);
+
             if (file_exist(theme_alt_archive)) {
+                LOG_INFO(mux_module, "Extracting Alternative Theme: %s", theme_alt_archive)
                 extract_archive(theme_alt_archive, "custom");
-                update_bootlogo();
             }
 
             static char rgb_script[MAX_BUFFER_SIZE];
-            snprintf(rgb_script, sizeof(rgb_script),
-                     "%s/alternate/rgb/%s/rgbconf.sh", STORAGE_THEME, theme_alt);
+            snprintf(rgb_script, sizeof(rgb_script), "%s/alternate/rgb/%s/rgbconf.sh",
+                     STORAGE_THEME, theme_alt);
             if (file_exist(rgb_script)) {
-                if (config.SETTINGS.GENERAL.RGB) {
+                if (device.DEVICE.RGB && config.SETTINGS.GENERAL.RGB) {
                     const char *args[] = {rgb_script, NULL};
                     run_exec(args, A_SIZE(args), 0);
                 }
 
                 static char rgb_script_dest[MAX_BUFFER_SIZE];
-                snprintf(rgb_script_dest, sizeof(rgb_script_dest), "%s/rgb/rgbconf.sh", STORAGE_THEME);
+                snprintf(rgb_script_dest, sizeof(rgb_script_dest), "%s/rgb/rgbconf.sh",
+                         STORAGE_THEME);
+
                 create_directories(strip_dir(rgb_script_dest));
                 write_text_to_file(rgb_script_dest, "w", CHAR, read_all_char_from(rgb_script));
             }
@@ -371,10 +379,10 @@ static void save_custom_options(void) {
     }
 
     if (is_modified > 0) {
+        refresh_config = 1;
+
         const char *args[] = {OPT_PATH "script/mux/tweak.sh", NULL};
         run_exec(args, A_SIZE(args), 0);
-
-        refresh_config = 1;
     }
 }
 

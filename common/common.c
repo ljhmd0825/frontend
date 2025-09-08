@@ -35,6 +35,7 @@
 #include "config.h"
 #include "device.h"
 #include "kiosk.h"
+#include "input/list_nav.h"
 #include "theme.h"
 #include "mini/mini.h"
 
@@ -497,13 +498,13 @@ int read_battery_capacity(void) {
     FILE *file = fopen(device.BATTERY.CAPACITY, "r");
 
     if (file == NULL) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, device.BATTERY.CAPACITY)
         return 0;
     }
 
     int capacity;
     if (fscanf(file, "%d", &capacity) != 1) {
-        perror(lang.SYSTEM.FAIL_FILE_READ);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_READ, device.BATTERY.CAPACITY)
         return 0;
     }
 
@@ -517,13 +518,13 @@ char *read_battery_voltage(void) {
     FILE *file = fopen(device.BATTERY.VOLTAGE, "r");
 
     if (file == NULL) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, device.BATTERY.VOLTAGE)
         return "0.00 V";
     }
 
     int raw_voltage;
     if (fscanf(file, "%d", &raw_voltage) != 1) {
-        perror(lang.SYSTEM.FAIL_FILE_READ);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_READ, device.BATTERY.VOLTAGE)
         fclose(file);
         return "0.00 V";
     }
@@ -532,7 +533,7 @@ char *read_battery_voltage(void) {
 
     char *form_voltage = (char *) malloc(10);
     if (form_voltage == NULL) {
-        perror(lang.SYSTEM.FAIL_ALLOCATE_MEM);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_ALLOCATE_MEM)
         return "0.00 V";
     }
 
@@ -561,7 +562,7 @@ char *read_all_char_from(const char *filename) {
             text[bytesRead] = '\0';
         }
     } else {
-        perror(lang.SYSTEM.FAIL_ALLOCATE_MEM);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_ALLOCATE_MEM)
     }
 
     fclose(file);
@@ -576,13 +577,13 @@ char *read_line_char_from(const char *filename, size_t line_number) {
 
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, filename)
         return "";
     }
 
     char *line = (char *) malloc(MAX_BUFFER_SIZE);
     if (!line) {
-        perror(lang.SYSTEM.FAIL_ALLOCATE_MEM);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_ALLOCATE_MEM)
         fclose(file);
         return "";
     }
@@ -705,7 +706,7 @@ void write_text_to_file(const char *filename, const char *mode, int type, ...) {
     FILE *file = fopen(filename, mode);
 
     if (file == NULL) {
-        perror(lang.SYSTEM.FAIL_FILE_WRITE);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_WRITE, filename)
         return;
     }
 
@@ -846,7 +847,7 @@ void decrease_option_value(lv_obj_t *element) {
 void load_assign(const char *loader, const char *rom, const char *dir, const char *sys, int forced, int app) {
     FILE *file = fopen(loader, "w");
     if (file == NULL) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, loader)
         return;
     }
 
@@ -857,7 +858,7 @@ void load_assign(const char *loader, const char *rom, const char *dir, const cha
 void load_mux(const char *value) {
     FILE *file = fopen(MUOS_ACT_LOAD, "w");
     if (file == NULL) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, MUOS_ACT_LOAD)
         return;
     }
 
@@ -920,7 +921,7 @@ void delete_files_of_type(const char *dir_path, const char *extension, const cha
 
         closedir(dir);
     } else {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
     }
 }
 
@@ -947,7 +948,7 @@ void delete_files_of_name(const char *dir_path, const char *filename) {
         }
         closedir(dir);
     } else {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
     }
 }
 
@@ -1041,31 +1042,56 @@ void load_splash_image_fallback(const char *mux_dimension, char *image, size_t i
     snprintf(image, image_size, "%s/image/splash.png", theme);
 }
 
-int load_image_catalogue(const char *catalogue_name, const char *program, const char *program_fallback,
-                         const char *mux_dimension, const char *image_type, char *image_path, size_t path_size) {
-    const char *paths[] = {
-            "%s/%s/%s/%s%s.png",
-            "%s/%s/%s/%s.png"
+bool is_supported_theme_catalogue(const char *catalogue_name, const char *image_type) {
+    return (strcmp(catalogue_name, "Application") && strcmp(image_type, "box")) ||
+           (strcmp(catalogue_name, "Application") && strcmp(image_type, "grid")) ||
+           (strcmp(catalogue_name, "Collection") && strcmp(image_type, "box")) ||
+           (strcmp(catalogue_name, "Collection") && strcmp(image_type, "grid")) ||
+           (strcmp(catalogue_name, "Folder") && strcmp(image_type, "box")) ||
+           (strcmp(catalogue_name, "Folder") && strcmp(image_type, "grid"));
+}
+
+int load_image_catalogue(const char *catalogue_name, const char *program, const char *program_alt,
+                         const char *program_default, const char *mux_dimension, const char *image_type,
+                         char *image_path, size_t path_size) {
+    enum catalogue_kind {
+        CAT_THEME, CAT_INFO
     };
 
-    const char *programs[] = {program, program_fallback};
-    for (size_t i = 0; i < A_SIZE(paths); ++i) {
-        for (size_t j = 0; j < A_SIZE(programs); ++j) {
-            int written;
+    const char *path_format = "%s/%s/%s/%s%s.png";
+    const bool skip_theme_catalogue =
+            !directory_exist(THEME_CAT_PATH) || !is_supported_theme_catalogue(catalogue_name, image_type);
 
-            switch (i) {
-                case 0:
-                    written = snprintf(image_path, path_size, paths[i], INFO_CAT_PATH, catalogue_name,
-                                       image_type, mux_dimension, programs[j]);
-                    break;
-                case 1:
-                default:
-                    written = snprintf(image_path, path_size, paths[i], INFO_CAT_PATH, catalogue_name,
-                                       image_type, programs[j]);
-            }
+    struct {
+        enum catalogue_kind kind;
+        const char *catalogue_path;
+        const char *dimension;
+        const char *program;
+    } args[] = {
+            {CAT_THEME, THEME_CAT_PATH, mux_dimension, program},
+            {CAT_THEME, THEME_CAT_PATH, mux_dimension, program_alt},
+            {CAT_THEME, THEME_CAT_PATH, "",            program},
+            {CAT_THEME, THEME_CAT_PATH, "",            program_alt},
+            {CAT_INFO,  INFO_CAT_PATH,  mux_dimension, program},
+            {CAT_INFO,  INFO_CAT_PATH,  mux_dimension, program_alt},
+            {CAT_INFO,  INFO_CAT_PATH,  "",            program},
+            {CAT_INFO,  INFO_CAT_PATH,  "",            program_alt},
+            {CAT_THEME, THEME_CAT_PATH, mux_dimension, program_default},
+            {CAT_THEME, THEME_CAT_PATH, "",            program_default},
+            {CAT_INFO,  INFO_CAT_PATH,  mux_dimension, program_default},
+            {CAT_INFO,  INFO_CAT_PATH,  "",            program_default},
+    };
 
-            if (written >= 0 && file_exist(image_path)) return 1;
+    for (size_t i = 0; i < A_SIZE(args); i++) {
+        if ((args[i].kind == CAT_THEME && skip_theme_catalogue) ||
+            args[i].program[0] == '\0') {
+            continue;
         }
+
+        int written;
+        written = snprintf(image_path, path_size, path_format, args[i].catalogue_path, catalogue_name,
+                           image_type, args[i].dimension, args[i].program);
+        if (written >= 0 && file_exist(image_path)) return 1;
     }
 
     return 0;
@@ -1084,7 +1110,7 @@ char *get_wallpaper_path(lv_obj_t *ui_screen, lv_group_t *ui_group, int animated
         const char *element = lv_obj_get_user_data(element_focused);
         switch (wall_type) {
             case APPLICATION:
-                if (load_image_catalogue("Application", element, "default", mux_dimension, "wall",
+                if (load_image_catalogue("Application", element, "", "default", mux_dimension, "wall",
                                          wall_image_path, sizeof(wall_image_path))) {
                     int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
                     if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
@@ -1092,7 +1118,7 @@ char *get_wallpaper_path(lv_obj_t *ui_screen, lv_group_t *ui_group, int animated
                 }
                 break;
             case ARCHIVE:
-                if (load_image_catalogue("Archive", element, "default", mux_dimension, "wall",
+                if (load_image_catalogue("Archive", element, "", "default", mux_dimension, "wall",
                                          wall_image_path, sizeof(wall_image_path))) {
                     int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
                     if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
@@ -1100,7 +1126,7 @@ char *get_wallpaper_path(lv_obj_t *ui_screen, lv_group_t *ui_group, int animated
                 }
                 break;
             case TASK:
-                if (load_image_catalogue("Task", element, "default", mux_dimension, "wall",
+                if (load_image_catalogue("Task", element, "", "default", mux_dimension, "wall",
                                          wall_image_path, sizeof(wall_image_path))) {
                     int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
                     if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
@@ -1177,7 +1203,10 @@ char *load_static_image(lv_obj_t *ui_screen, lv_group_t *ui_group, int wall_type
         const char *element = lv_obj_get_user_data(lv_group_get_focused(ui_group));
         switch (wall_type) {
             case APPLICATION:
-                if (load_image_catalogue("Application", element, "default", mux_dimension, "box",
+                if (grid_mode_enabled && config.VISUAL.BOX_ART_HIDE) {
+                    return "";
+                }
+                if (load_image_catalogue("Application", element, "", "default", mux_dimension, "box",
                                          static_image_path, sizeof(static_image_path))) {
                     int written = snprintf(static_image_embed, sizeof(static_image_embed), "M:%s",
                                            static_image_path);
@@ -1186,7 +1215,7 @@ char *load_static_image(lv_obj_t *ui_screen, lv_group_t *ui_group, int wall_type
                 }
                 break;
             case ARCHIVE:
-                if (load_image_catalogue("Archive", element, "default", mux_dimension, "box",
+                if (load_image_catalogue("Archive", element, "", "default", mux_dimension, "box",
                                          static_image_path, sizeof(static_image_path))) {
                     int written = snprintf(static_image_embed, sizeof(static_image_embed), "M:%s",
                                            static_image_path);
@@ -1195,7 +1224,7 @@ char *load_static_image(lv_obj_t *ui_screen, lv_group_t *ui_group, int wall_type
                 }
                 break;
             case TASK:
-                if (load_image_catalogue("Task", element, "default", mux_dimension, "box",
+                if (load_image_catalogue("Task", element, "", "default", mux_dimension, "box",
                                          static_image_path, sizeof(static_image_path))) {
                     int written = snprintf(static_image_embed, sizeof(static_image_embed), "M:%s",
                                            static_image_path);
@@ -1543,7 +1572,7 @@ void load_skip_patterns(void) {
 
     FILE *file = fopen(skip_ini, "r");
     if (!file) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, skip_ini)
         return;
     }
 
@@ -2002,7 +2031,7 @@ void collect_subdirectories(const char *base_dir, char ***list, int *size, int *
     DIR *dir = opendir(base_dir);
 
     if (!dir) {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
         return;
     }
 
@@ -2351,8 +2380,6 @@ char *get_content_line(char *dir, char *name, char *ext, size_t line) {
                  subdir, strip_ext(name), ext);
     }
 
-    puts(path);
-
     if (file_exist(path)) return read_line_char_from(path, line);
 
     return "";
@@ -2394,7 +2421,7 @@ void set_nav_flags(struct nav_flag *nav_flags, size_t count) {
 
 int16_t validate_int16(int value, const char *field) {
     if (value < INT16_MIN || value > INT16_MAX) {
-        perror(lang.SYSTEM.FAIL_INT16_LENGTH);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_INT16_LENGTH)
         return (value < INT16_MIN) ? INT16_MIN : INT16_MAX;
     }
     return (int16_t) value;
@@ -2411,7 +2438,7 @@ int search_for_config(const char *base_path, const char *file_name, const char *
     DIR *dir = opendir(base_path);
 
     if (!dir) {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
         return 0;
     }
 
@@ -2448,7 +2475,7 @@ void populate_items(const char *base_path, const char ***items, int *item_count)
     DIR *dir = opendir(base_path);
 
     if (!dir) {
-        perror(lang.SYSTEM.FAIL_DIR_OPEN);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_DIR_OPEN)
         return;
     }
 
@@ -2458,7 +2485,7 @@ void populate_items(const char *base_path, const char ***items, int *item_count)
 
         struct stat st;
         if (stat(full_path, &st) == -1) {
-            perror(lang.SYSTEM.FAIL_STAT);
+            LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_STAT)
             continue;
         }
 
@@ -2597,28 +2624,6 @@ int theme_compat(void) {
     return 0;
 }
 
-void update_bootlogo(void) {
-    char bootlogo_image[MAX_BUFFER_SIZE];
-    snprintf(bootlogo_image, sizeof(bootlogo_image), "%s/%simage/bootlogo.bmp", STORAGE_THEME, mux_dimension);
-
-    if (!file_exist(bootlogo_image)) {
-        snprintf(bootlogo_image, sizeof(bootlogo_image), "%s/image/bootlogo.bmp", STORAGE_THEME);
-    }
-
-    if (file_exist(bootlogo_image)) {
-        char bootlogo_dest[MAX_BUFFER_SIZE];
-        snprintf(bootlogo_dest, sizeof(bootlogo_dest), "%s/bootlogo.bmp", device.STORAGE.BOOT.MOUNT);
-
-        const char *args[] = {"cp", bootlogo_image, bootlogo_dest, NULL};
-        run_exec(args, A_SIZE(args), 0);
-
-        if (strcasecmp(device.DEVICE.NAME, "rg28xx-h") == 0) {
-            const char *args[] = {"convert", bootlogo_dest, "-rotate", "270", bootlogo_dest, NULL};
-            run_exec(args, A_SIZE(args), 0);
-        }
-    }
-}
-
 int brightness_to_percent(int val) {
     return (val * 100) / device.SCREEN.BRIGHT;
 }
@@ -2631,13 +2636,13 @@ int volume_to_percent(int val) {
 char **str_parse_file(const char *filename, int *count, enum parse_mode mode) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, filename)
         return NULL;
     }
 
     char **list = malloc(MAX_BUFFER_SIZE * sizeof(char *));
     if (!list) {
-        perror(lang.SYSTEM.FAIL_ALLOCATE_MEM);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_ALLOCATE_MEM)
         fclose(file);
         return NULL;
     }
@@ -2680,7 +2685,7 @@ char **str_parse_file(const char *filename, int *count, enum parse_mode mode) {
     fclose(file);
 
     if (failed) {
-        perror(lang.SYSTEM.FAIL_ALLOCATE_MEM);
+        LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_ALLOCATE_MEM)
         for (int i = 0; i < *count; i++) free(list[i]);
         free(list);
 

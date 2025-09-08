@@ -13,7 +13,7 @@ static void show_help(void) {
 static void write_control_file(char *path, const char *control, char *log) {
     FILE *file = fopen(path, "w");
     if (!file) {
-        perror(lang.SYSTEM.FAIL_FILE_OPEN);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_OPEN, path)
         return;
     }
 
@@ -106,7 +106,6 @@ static void generate_available_controls(const char *default_control) {
 
     while ((cf = readdir(cd))) {
         if (cf->d_type == DT_REG) {
-            puts(cf->d_name);
             char *last_dot = strrchr(cf->d_name, '.');
             if (last_dot && !strcasecmp(last_dot, ".txt")) {
                 *last_dot = '\0';
