@@ -116,51 +116,49 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
+        char APPS[MAX_BUFFER_SIZE];
         char BIOS[MAX_BUFFER_SIZE];
         char CATALOGUE[MAX_BUFFER_SIZE];
-        char FRIENDLY[MAX_BUFFER_SIZE];
-        char RA_CONFIG[MAX_BUFFER_SIZE];
+        char CHEATS[MAX_BUFFER_SIZE];
         char COLLECTION[MAX_BUFFER_SIZE];
+        char CONFIG[MAX_BUFFER_SIZE];
         char HISTORY[MAX_BUFFER_SIZE];
-        char MUSIC[MAX_BUFFER_SIZE];
+        char INIT[MAX_BUFFER_SIZE];
+        char NAME[MAX_BUFFER_SIZE];
+        char NETWORK[MAX_BUFFER_SIZE];
+        char OVERLAYS[MAX_BUFFER_SIZE];
+        char OVERRIDE[MAX_BUFFER_SIZE];
+        char PACKAGE[MAX_BUFFER_SIZE];
         char SAVE[MAX_BUFFER_SIZE];
         char SCREENSHOT[MAX_BUFFER_SIZE];
-        char NET_PROFILE[MAX_BUFFER_SIZE];
+        char SHADERS[MAX_BUFFER_SIZE];
         char SYNCTHING[MAX_BUFFER_SIZE];
-        char USER_INIT[MAX_BUFFER_SIZE];
-        char ACTIVITY_TRACKER[MAX_BUFFER_SIZE];
-        char EXTERNAL[MAX_BUFFER_SIZE];
-        char MUOS_CONFIG[MAX_BUFFER_SIZE];
-        char BACKUP_TARGET[MAX_BUFFER_SIZE];
-        char START_BACKUP[MAX_BUFFER_SIZE];
+        char THEME[MAX_BUFFER_SIZE];
+        char TRACK[MAX_BUFFER_SIZE];
+        char TARGET[MAX_BUFFER_SIZE];
+        char START[MAX_BUFFER_SIZE];
         struct {
-            char THEME[MAX_BUFFER_SIZE];
-            char CATALOGUE[MAX_BUFFER_SIZE];
-            char RA_CONFIG[MAX_BUFFER_SIZE];
-        } PACKAGE;
-        struct {
+            char APPS[MAX_BUFFER_SIZE];
             char BIOS[MAX_BUFFER_SIZE];
             char CATALOGUE[MAX_BUFFER_SIZE];
-            char FRIENDLY[MAX_BUFFER_SIZE];
-            char RA_CONFIG[MAX_BUFFER_SIZE];
+            char CHEATS[MAX_BUFFER_SIZE];
             char COLLECTION[MAX_BUFFER_SIZE];
+            char CONFIG[MAX_BUFFER_SIZE];
             char HISTORY[MAX_BUFFER_SIZE];
-            char MUSIC[MAX_BUFFER_SIZE];
+            char INIT[MAX_BUFFER_SIZE];
+            char NAME[MAX_BUFFER_SIZE];
+            char NETWORK[MAX_BUFFER_SIZE];
+            char OVERLAYS[MAX_BUFFER_SIZE];
+            char OVERRIDE[MAX_BUFFER_SIZE];
+            char PACKAGE[MAX_BUFFER_SIZE];
             char SAVE[MAX_BUFFER_SIZE];
             char SCREENSHOT[MAX_BUFFER_SIZE];
-            char NET_PROFILE[MAX_BUFFER_SIZE];
+            char SHADERS[MAX_BUFFER_SIZE];
             char SYNCTHING[MAX_BUFFER_SIZE];
-            char USER_INIT[MAX_BUFFER_SIZE];
-            char ACTIVITY_TRACKER[MAX_BUFFER_SIZE];
-            char EXTERNAL[MAX_BUFFER_SIZE];
-            char MUOS_CONFIG[MAX_BUFFER_SIZE];
-            char BACKUP_TARGET[MAX_BUFFER_SIZE];
-            char START_BACKUP[MAX_BUFFER_SIZE];
-            struct {
-                char THEME[MAX_BUFFER_SIZE];
-                char CATALOGUE[MAX_BUFFER_SIZE];
-                char RA_CONFIG[MAX_BUFFER_SIZE];
-            } PACKAGE;
+            char THEME[MAX_BUFFER_SIZE];
+            char TRACK[MAX_BUFFER_SIZE];
+            char TARGET[MAX_BUFFER_SIZE];
+            char START[MAX_BUFFER_SIZE];
         } HELP;
     } MUXBACKUP;
 
@@ -440,6 +438,26 @@ struct mux_lang {
             char CREDIT[MAX_BUFFER_SIZE];
         } HELP;
     } MUXINFO;
+
+    struct {
+        char TITLE[MAX_BUFFER_SIZE];
+        char DATETIME[MAX_BUFFER_SIZE];
+        char LANGUAGE[MAX_BUFFER_SIZE];
+        char INSTALL[MAX_BUFFER_SIZE];
+        char SHUTDOWN[MAX_BUFFER_SIZE];
+        struct {
+            char DATETIME[MAX_BUFFER_SIZE];
+            char LANGUAGE[MAX_BUFFER_SIZE];
+            char INSTALL[MAX_BUFFER_SIZE];
+            char SHUTDOWN[MAX_BUFFER_SIZE];
+        } SHORT;
+        struct {
+            char DATETIME[MAX_BUFFER_SIZE];
+            char LANGUAGE[MAX_BUFFER_SIZE];
+            char INSTALL[MAX_BUFFER_SIZE];
+            char SHUTDOWN[MAX_BUFFER_SIZE];
+        } HELP;
+    } MUXINSTALL;
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
@@ -813,39 +831,35 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
+        char APPS[MAX_BUFFER_SIZE];
         char BIOS[MAX_BUFFER_SIZE];
         char CATALOGUE[MAX_BUFFER_SIZE];
-        char FRIENDLY[MAX_BUFFER_SIZE];
         char COLLECTION[MAX_BUFFER_SIZE];
         char HISTORY[MAX_BUFFER_SIZE];
-        char MUSIC[MAX_BUFFER_SIZE];
+        char INIT[MAX_BUFFER_SIZE];
+        char NAME[MAX_BUFFER_SIZE];;
+        char NETWORK[MAX_BUFFER_SIZE];
+        char PACKAGE[MAX_BUFFER_SIZE];
         char SAVE[MAX_BUFFER_SIZE];
         char SCREENSHOT[MAX_BUFFER_SIZE];
-        char NET_PROFILE[MAX_BUFFER_SIZE];
         char SYNCTHING[MAX_BUFFER_SIZE];
-        char USER_INIT[MAX_BUFFER_SIZE];
+        char THEME[MAX_BUFFER_SIZE];
+        char TRACK[MAX_BUFFER_SIZE];
         struct {
-            char THEME[MAX_BUFFER_SIZE];
-            char CATALOGUE[MAX_BUFFER_SIZE];
-            char RA_CONFIG[MAX_BUFFER_SIZE];
-        } PACKAGE;
-        struct {
+            char APPS[MAX_BUFFER_SIZE];
             char BIOS[MAX_BUFFER_SIZE];
             char CATALOGUE[MAX_BUFFER_SIZE];
-            char FRIENDLY[MAX_BUFFER_SIZE];
             char COLLECTION[MAX_BUFFER_SIZE];
             char HISTORY[MAX_BUFFER_SIZE];
-            char MUSIC[MAX_BUFFER_SIZE];
+            char INIT[MAX_BUFFER_SIZE];
+            char NAME[MAX_BUFFER_SIZE];;
+            char NETWORK[MAX_BUFFER_SIZE];
+            char PACKAGE[MAX_BUFFER_SIZE];
             char SAVE[MAX_BUFFER_SIZE];
             char SCREENSHOT[MAX_BUFFER_SIZE];
-            char NET_PROFILE[MAX_BUFFER_SIZE];
             char SYNCTHING[MAX_BUFFER_SIZE];
-            char USER_INIT[MAX_BUFFER_SIZE];
-            struct {
-                char THEME[MAX_BUFFER_SIZE];
-                char CATALOGUE[MAX_BUFFER_SIZE];
-                char RA_CONFIG[MAX_BUFFER_SIZE];
-            } PACKAGE;
+            char THEME[MAX_BUFFER_SIZE];
+            char TRACK[MAX_BUFFER_SIZE];
         } HELP;
     } MUXSTORAGE;
 
@@ -902,6 +916,7 @@ struct mux_lang {
         char TITLE[MAX_BUFFER_SIZE];
         char ANY[MAX_BUFFER_SIZE];
         char QUIT[MAX_BUFFER_SIZE];
+        char QUIT_ALT[MAX_BUFFER_SIZE];
     } MUXTESTER;
 
     struct {

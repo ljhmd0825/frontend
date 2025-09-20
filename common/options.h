@@ -53,7 +53,7 @@
 #define OPT_PATH "/opt/muos/"
 #define RUN_PATH "/run/muos/"
 
-#define INTERNAL_THEME   OPT_PATH "default/MUOS/theme/active"
+#define INTERNAL_THEME   OPT_PATH "share/theme/active"
 #define INTERNAL_OVERLAY OPT_PATH "share/overlay"
 
 #define LAST_PLAY_FILE OPT_PATH "config/boot/last_play"
@@ -95,20 +95,18 @@
 #define MUOS_TASK_PATH "MUOS/task"
 #define MUOS_INFO_PATH "MUOS/info"
 
+#define STORE_LOC_APPS "MUOS/application"
 #define STORE_LOC_BIOS "MUOS/bios"
-#define STORE_LOC_RARC "MUOS/retroarch"
-#define STORE_LOC_MUSC "MUOS/music"
-#define STORE_LOC_SOUN "MUOS/sound"
 #define STORE_LOC_SAVE "MUOS/save"
 #define STORE_LOC_SCRS "MUOS/screenshot"
 #define STORE_LOC_THEM "MUOS/theme"
-#define STORE_LOC_PCAT "MUOS/package/catalogue"
-#define STORE_LOC_PCON "MUOS/package/config"
-#define STORE_LOC_LANG "MUOS/language"
+#define STORE_LOC_PACK "MUOS/package"
+#define STORE_LOC_PCAT STORE_LOC_PACK "/catalogue"
+#define STORE_LOC_PCON STORE_LOC_PACK "/config"
 #define STORE_LOC_NETW "MUOS/network"
 #define STORE_LOC_SYCT "MUOS/syncthing"
 #define STORE_LOC_INIT "MUOS/init"
-#define STORE_LOC_ACTI "MUOS/info/track"
+#define STORE_LOC_TRAK "MUOS/info/track"
 
 #define STORE_LOC_ASIN RUN_SHARE_PATH "info/assign"
 #define STORE_LOC_CLOG MUOS_INFO_PATH "/catalogue"
@@ -125,6 +123,7 @@
 #define MUOS_APL_LOAD "/tmp/apl_go" // Application Content Loader
 #define MUOS_APP_LOAD "/tmp/app_go" // Application Launch
 #define MUOS_ASS_LOAD "/tmp/ass_go" // Core/System Assignment Loader
+#define MUOS_ASS_FROM "/tmp/ass_from" // Core/System Assignment Loader return to module
 #define MUOS_CON_LOAD "/tmp/con_go" // Control Scheme
 #define MUOS_DBI_LOAD "/tmp/dbi_go" // Device Backup Last Index
 #define MUOS_IDX_LOAD "/tmp/idx_go" // Last Known Item Index

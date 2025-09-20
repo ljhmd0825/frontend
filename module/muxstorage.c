@@ -14,98 +14,63 @@ static void list_nav_move(int steps, int direction);
 
 static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
-            {ui_lblBios_storage,             lang.MUXSTORAGE.HELP.BIOS},
-            {ui_lblCatalogue_storage,        lang.MUXSTORAGE.HELP.CATALOGUE},
-            {ui_lblName_storage,             lang.MUXSTORAGE.HELP.FRIENDLY},
-            {ui_lblCollection_storage,       lang.MUXSTORAGE.HELP.COLLECTION},
-            {ui_lblHistory_storage,          lang.MUXSTORAGE.HELP.HISTORY},
-            {ui_lblMusic_storage,            lang.MUXSTORAGE.HELP.MUSIC},
-            {ui_lblSave_storage,             lang.MUXSTORAGE.HELP.SAVE},
-            {ui_lblScreenshot_storage,       lang.MUXSTORAGE.HELP.SCREENSHOT},
-            {ui_lblTheme_storage,            lang.MUXSTORAGE.HELP.PACKAGE.THEME},
-            {ui_lblCataloguePackage_storage, lang.MUXSTORAGE.HELP.PACKAGE.CATALOGUE},
-            {ui_lblConfigPackage_storage,    lang.MUXSTORAGE.HELP.PACKAGE.RA_CONFIG},
-            {ui_lblNetwork_storage,          lang.MUXSTORAGE.HELP.NET_PROFILE},
-            {ui_lblSyncthing_storage,        lang.MUXSTORAGE.HELP.SYNCTHING},
-            {ui_lblUserInit_storage,         lang.MUXSTORAGE.HELP.USER_INIT},
+            {ui_lblApps_storage,       lang.MUXSTORAGE.HELP.APPS},
+            {ui_lblBios_storage,       lang.MUXSTORAGE.HELP.BIOS},
+            {ui_lblCatalogue_storage,  lang.MUXSTORAGE.HELP.CATALOGUE},
+            {ui_lblCollection_storage, lang.MUXSTORAGE.HELP.COLLECTION},
+            {ui_lblHistory_storage,    lang.MUXSTORAGE.HELP.HISTORY},
+            {ui_lblInit_storage,       lang.MUXSTORAGE.HELP.INIT},
+            {ui_lblName_storage,       lang.MUXSTORAGE.HELP.NAME},
+            {ui_lblNetwork_storage,    lang.MUXSTORAGE.HELP.NETWORK},
+            {ui_lblPackage_storage,    lang.MUXSTORAGE.HELP.PACKAGE},
+            {ui_lblSave_storage,       lang.MUXSTORAGE.HELP.SAVE},
+            {ui_lblScreenshot_storage, lang.MUXSTORAGE.HELP.SCREENSHOT},
+            {ui_lblSyncthing_storage,  lang.MUXSTORAGE.HELP.SYNCTHING},
+            {ui_lblTheme_storage,      lang.MUXSTORAGE.HELP.THEME},
+            {ui_lblTrack_storage,      lang.MUXSTORAGE.HELP.TRACK},
     };
 
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
 }
 
+static inline void add_storage(int *sp, const char *suffix, lv_obj_t *label) {
+    storage_path[*sp].path_suffix = suffix;
+    storage_path[*sp].ui_label = label;
+    (*sp)++;
+}
+
 static void update_storage_info(void) {
     int sp = 0;
 
-    /*
-     * Check for SD2 pathing, otherwise it should be on SD1.
-     * If it's not on SD1 then you have bigger problems!
-    */
-    storage_path[sp].path_suffix = STORE_LOC_BIOS;
-    storage_path[sp].ui_label = ui_lblBiosValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_CLOG;
-    storage_path[sp].ui_label = ui_lblCatalogueValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_NAME;
-    storage_path[sp].ui_label = ui_lblNameValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_COLL;
-    storage_path[sp].ui_label = ui_lblCollectionValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_HIST;
-    storage_path[sp].ui_label = ui_lblHistoryValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_MUSC;
-    storage_path[sp].ui_label = ui_lblMusicValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_SAVE;
-    storage_path[sp].ui_label = ui_lblSaveValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_SCRS;
-    storage_path[sp].ui_label = ui_lblScreenshotValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_THEM;
-    storage_path[sp].ui_label = ui_lblThemeValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_PCAT;
-    storage_path[sp].ui_label = ui_lblCataloguePackageValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_PCON;
-    storage_path[sp].ui_label = ui_lblConfigPackageValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_NETW;
-    storage_path[sp].ui_label = ui_lblNetworkValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_SYCT;
-    storage_path[sp].ui_label = ui_lblSyncthingValue_storage;
-    sp++;
-
-    storage_path[sp].path_suffix = STORE_LOC_INIT;
-    storage_path[sp].ui_label = ui_lblUserInitValue_storage;
+    add_storage(&sp, STORE_LOC_APPS, ui_lblAppsValue_storage);
+    add_storage(&sp, STORE_LOC_BIOS, ui_lblBiosValue_storage);
+    add_storage(&sp, STORE_LOC_CLOG, ui_lblCatalogueValue_storage);
+    add_storage(&sp, STORE_LOC_COLL, ui_lblCollectionValue_storage);
+    add_storage(&sp, STORE_LOC_HIST, ui_lblHistoryValue_storage);
+    add_storage(&sp, STORE_LOC_INIT, ui_lblInitValue_storage);
+    add_storage(&sp, STORE_LOC_NAME, ui_lblNameValue_storage);
+    add_storage(&sp, STORE_LOC_NETW, ui_lblNetworkValue_storage);
+    add_storage(&sp, STORE_LOC_PACK, ui_lblPackageValue_storage);
+    add_storage(&sp, STORE_LOC_SAVE, ui_lblSaveValue_storage);
+    add_storage(&sp, STORE_LOC_SCRS, ui_lblScreenshotValue_storage);
+    add_storage(&sp, STORE_LOC_SYCT, ui_lblSyncthingValue_storage);
+    add_storage(&sp, STORE_LOC_THEM, ui_lblThemeValue_storage);
+    add_storage(&sp, STORE_LOC_TRAK, ui_lblTrackValue_storage);
 
     char dir[FILENAME_MAX];
-    for (int i = 0; i < A_SIZE(storage_path); i++) {
+    int on_sd2 = 0;
+
+    for (int i = 0; i < sp; i++) {
         snprintf(dir, sizeof(dir), "%s/%s", device.STORAGE.SDCARD.MOUNT, storage_path[i].path_suffix);
         if (directory_exist(dir)) {
             lv_label_set_text(storage_path[i].ui_label, "SD2");
-            lv_label_set_text(ui_lblNavX, lang.GENERIC.SYNC);
+            on_sd2 = 1;
         } else {
             lv_label_set_text(storage_path[i].ui_label, "SD1");
-            lv_label_set_text(ui_lblNavX, lang.GENERIC.MIGRATE);
         }
     }
+
+    lv_label_set_text(ui_lblNavX, on_sd2 ? lang.GENERIC.SYNC : lang.GENERIC.MIGRATE);
 }
 
 static void init_navigation_group(void) {
@@ -114,20 +79,20 @@ static void init_navigation_group(void) {
     static lv_obj_t *ui_objects_glyph[UI_COUNT];
     static lv_obj_t *ui_objects_panel[UI_COUNT];
 
+    INIT_VALUE_ITEM(-1, storage, Apps, lang.MUXSTORAGE.APPS, "apps", "");
     INIT_VALUE_ITEM(-1, storage, Bios, lang.MUXSTORAGE.BIOS, "bios", "");
     INIT_VALUE_ITEM(-1, storage, Catalogue, lang.MUXSTORAGE.CATALOGUE, "catalogue", "");
-    INIT_VALUE_ITEM(-1, storage, Name, lang.MUXSTORAGE.FRIENDLY, "name", "");
     INIT_VALUE_ITEM(-1, storage, Collection, lang.MUXSTORAGE.COLLECTION, "collection", "");
     INIT_VALUE_ITEM(-1, storage, History, lang.MUXSTORAGE.HISTORY, "history", "");
-    INIT_VALUE_ITEM(-1, storage, Music, lang.MUXSTORAGE.MUSIC, "music", "");
+    INIT_VALUE_ITEM(-1, storage, Init, lang.MUXSTORAGE.INIT, "init", "");
+    INIT_VALUE_ITEM(-1, storage, Name, lang.MUXSTORAGE.NAME, "name", "");
+    INIT_VALUE_ITEM(-1, storage, Network, lang.MUXSTORAGE.NETWORK, "network", "");
+    INIT_VALUE_ITEM(-1, storage, Package, lang.MUXSTORAGE.PACKAGE, "package", "");
     INIT_VALUE_ITEM(-1, storage, Save, lang.MUXSTORAGE.SAVE, "save", "");
     INIT_VALUE_ITEM(-1, storage, Screenshot, lang.MUXSTORAGE.SCREENSHOT, "screenshot", "");
-    INIT_VALUE_ITEM(-1, storage, Theme, lang.MUXSTORAGE.PACKAGE.THEME, "theme", "");
-    INIT_VALUE_ITEM(-1, storage, CataloguePackage, lang.MUXSTORAGE.PACKAGE.CATALOGUE, "pack-catalogue", "");
-    INIT_VALUE_ITEM(-1, storage, ConfigPackage, lang.MUXSTORAGE.PACKAGE.RA_CONFIG, "pack-config", "");
-    INIT_VALUE_ITEM(-1, storage, Network, lang.MUXSTORAGE.NET_PROFILE, "network", "");
     INIT_VALUE_ITEM(-1, storage, Syncthing, lang.MUXSTORAGE.SYNCTHING, "syncthing", "");
-    INIT_VALUE_ITEM(-1, storage, UserInit, lang.MUXSTORAGE.USER_INIT, "userinit", "");
+    INIT_VALUE_ITEM(-1, storage, Theme, lang.MUXSTORAGE.THEME, "theme", "");
+    INIT_VALUE_ITEM(-1, storage, Track, lang.MUXSTORAGE.TRACK, "track", "");
 
     ui_group = lv_group_create();
     ui_group_value = lv_group_create();

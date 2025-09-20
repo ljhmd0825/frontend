@@ -353,8 +353,9 @@ char *get_content_line(char *dir, char *name, char *ext, size_t line);
 
 char *get_application_line(char *dir, char *ext, size_t line);
 
-int load_image_catalogue(const char *catalogue_name, const char *program, const char *program_alt, const char *program_default,
-                         const char *mux_dimension, const char *image_type, char *image_path, size_t path_size);
+int load_image_catalogue(const char *catalogue_name, const char *program, const char *program_alt,
+                         const char *program_default, const char *mux_dimension, const char *image_type,
+                         char *image_path, size_t path_size);
 
 struct screen_dimension get_device_dimensions();
 
@@ -372,6 +373,10 @@ uint32_t fnv1a_hash_file(FILE *fp);
 
 bool get_glyph_path(const char *mux_module, const char *glyph_name,
                     char *glyph_image_embed, size_t glyph_image_embed_size);
+
+void apply_app_glyph(const char *app_name, const char *glyph_name, lv_obj_t *ui_lblItemGlyph);
+
+void get_app_grid_glyph(const char *app_name, const char *glyph_name, const char *fallback_name, char *glyph_image_path, size_t glyph_image_path_size);
 
 void populate_history_items();
 
@@ -400,3 +405,12 @@ void get_storage_info(const char *partition, double *total, double *free, double
 char *get_build_version();
 
 int copy_file(const char *from, const char *to);
+
+int load_content(int add_collection, char *sys_dir, char *file_name);
+
+char *load_content_core(int force, int run_quit, char *sys_dir, char *file_name);
+
+char *build_core(char core_path[MAX_BUFFER_SIZE], int line_core, int line_system,
+                 int line_catalogue, int line_lookup, int line_launch);
+
+void add_to_collection(char *filename, const char *pointer, char *sys_dir);

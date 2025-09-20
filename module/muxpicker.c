@@ -252,7 +252,7 @@ static void handle_a(void) {
                      relative_path, selected_item);
         }
 
-        if (!strcasecmp(picker_type, "/theme")) delete_files_of_type(INTERNAL_THEME, ".ttf", NULL, 1);
+        if (!strcasecmp(picker_type, "/theme")) delete_files_of_type(STORAGE_THEME, ".ttf", NULL, 1);
 
         size_t exec_count;
         const char *args[] = {picker_script, "install", relative_zip_path, NULL};
@@ -459,33 +459,11 @@ int muxpicker_main(char *type, char *ex_dir) {
     if (!strcasecmp(picker_type, "/theme")) {
         // Check if our default `MustardOS.muxthm` exists! If not...
         // Put That Thing Back Where It Came From Or So Help Me!
-        if (TEST_IMAGE) goto debug_pass;
-
-        int do_copy = 0;
         char *mustard_theme = STORAGE_THEME "/../MustardOS.muxthm";
         if (!file_exist(mustard_theme)) {
-            do_copy = 1;
-        } else {
-            // Okay cool, but what if it has been modified? Fuck you replace it!
-
-            char theme_hash[9];
-            FILE *tf = fopen(mustard_theme, "rb");
-            snprintf(theme_hash, sizeof theme_hash, "%08" PRIx32, fnv1a_hash_file(tf));
-            fclose(tf);
-
-            if (strcasecmp(theme_hash, config.THEME.DEFAULT_HASH) != 0) {
-                if (file_exist(mustard_theme)) remove(mustard_theme);
-                do_copy = 1;
-            }
-        }
-
-        if (do_copy) {
             copy_file(INTERNAL_THEME "/../MustardOS.muxthm", mustard_theme);
             sync();
         }
-
-        // Okay we're good?
-        debug_pass:
         picker_extension = "muxthm";
         picker_title = lang.MUXPICKER.THEME;
     } else if (!strcasecmp(picker_type, "package/catalogue")) {
