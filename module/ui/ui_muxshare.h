@@ -49,27 +49,28 @@
     APPCON(Governor, "governor") \
     APPCON(Control,  "control")
 
-#define BACKUP_ELEMENTS                        \
-    BACKUP(Bios,             "bios")           \
-    BACKUP(Catalogue,        "catalogue")      \
-    BACKUP(Name,             "name")           \
-    BACKUP(Config,           "config")         \
-    BACKUP(Collection,       "collection")     \
-    BACKUP(History,          "history")        \
-    BACKUP(Music,            "music")          \
-    BACKUP(Save,             "save")           \
-    BACKUP(Screenshot,       "screenshot")     \
-    BACKUP(Theme,            "theme")          \
-    BACKUP(CataloguePackage, "pack-catalogue") \
-    BACKUP(ConfigPackage,    "pack-config")    \
-    BACKUP(Network,          "network")        \
-    BACKUP(Syncthing,        "syncthing")      \
-    BACKUP(UserInit,         "userinit")       \
-    BACKUP(ActivityTracker,  "activity")       \
-    BACKUP(External,         "external")       \
-    BACKUP(MuosConfig,       "muosconfig")     \
-    BACKUP(BackupTarget,     "backuptarget")   \
-    BACKUP(StartBackup,      "startbackup")
+#define BACKUP_ELEMENTS              \
+    BACKUP(Apps,       "apps")       \
+    BACKUP(Bios,       "bios")       \
+    BACKUP(Catalogue,  "catalogue")  \
+    BACKUP(Cheats,     "cheats")     \
+    BACKUP(Collection, "collection") \
+    BACKUP(Config,     "config")     \
+    BACKUP(History,    "history")    \
+    BACKUP(Init,       "init")       \
+    BACKUP(Name,       "name")       \
+    BACKUP(Network,    "network")    \
+    BACKUP(Overlays,   "overlays")   \
+    BACKUP(Override,   "override")   \
+    BACKUP(Package,    "package")    \
+    BACKUP(Save,       "save")       \
+    BACKUP(Screenshot, "screenshot") \
+    BACKUP(Shaders,    "shaders")    \
+    BACKUP(Syncthing,  "syncthing")  \
+    BACKUP(Theme,      "theme")      \
+    BACKUP(Track,      "track")      \
+    BACKUP(Target,     "target")     \
+    BACKUP(Start,      "start")
 
 #define CONNECT_ELEMENTS                \
     CONNECT(Network,     "network")     \
@@ -153,6 +154,12 @@
     HDMI(Range,      "range")      \
     HDMI(Scan,       "scan")       \
     HDMI(Audio,      "audio")
+
+#define INSTALL_ELEMENTS          \
+    INSTALL(Rtc,      "clock")    \
+    INSTALL(Language, "language") \
+    INSTALL(Shutdown, "shutdown") \
+    INSTALL(Install,  "install")
 
 #define KIOSK_ELEMENTS              \
     KIOSK(Enable,     "enable")     \
@@ -264,21 +271,21 @@
     SPACE(External,  "external")  \
     SPACE(System,    "system")
 
-#define STORAGE_ELEMENTS                        \
-    STORAGE(Bios,             "bios")           \
-    STORAGE(Catalogue,        "catalogue")      \
-    STORAGE(Name,             "name")           \
-    STORAGE(Collection,       "collection")     \
-    STORAGE(History,          "history")        \
-    STORAGE(Music,            "music")          \
-    STORAGE(Save,             "save")           \
-    STORAGE(Screenshot,       "screenshot")     \
-    STORAGE(Theme,            "theme")          \
-    STORAGE(CataloguePackage, "pack-catalogue") \
-    STORAGE(ConfigPackage,    "pack-config")    \
-    STORAGE(Network,          "network")        \
-    STORAGE(Syncthing,        "syncthing")      \
-    STORAGE(UserInit,         "userinit")
+#define STORAGE_ELEMENTS              \
+    STORAGE(Apps,       "apps")       \
+    STORAGE(Bios,       "bios")       \
+    STORAGE(Catalogue,  "catalogue")  \
+    STORAGE(Collection, "collection") \
+    STORAGE(History,    "history")    \
+    STORAGE(Init,       "init")       \
+    STORAGE(Name,       "name")       \
+    STORAGE(Network,    "network")    \
+    STORAGE(Package,    "package")    \
+    STORAGE(Save,       "save")       \
+    STORAGE(Screenshot, "screenshot") \
+    STORAGE(Syncthing,  "syncthing")  \
+    STORAGE(Theme,      "theme")      \
+    STORAGE(Track,      "track")
 
 #define SYSINFO_ELEMENTS          \
     SYSINFO(Version,  "version")  \
