@@ -45,6 +45,7 @@ void load_lang(struct mux_lang *lang) {
 
     // generic common language
     GENERIC_FIELD(lang->GENERIC.BACK, "Back");
+    GENERIC_FIELD(lang->GENERIC.CHECK, "Check");
     GENERIC_FIELD(lang->GENERIC.TOP, "Top");
     GENERIC_FIELD(lang->GENERIC.CLEAR, "Clear");
     GENERIC_FIELD(lang->GENERIC.CLOSE, "Close");
@@ -133,6 +134,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.CONFIG, "RetroArch Configs");
     SPECIFIC_FIELD(lang->MUXBACKUP.HISTORY, "History");
     SPECIFIC_FIELD(lang->MUXBACKUP.INIT, "User Init Scripts");
+    SPECIFIC_FIELD(lang->MUXBACKUP.MUSIC, "Background Music");
     SPECIFIC_FIELD(lang->MUXBACKUP.NAME, "Friendly Name Configs");
     SPECIFIC_FIELD(lang->MUXBACKUP.NETWORK, "Network Profiles");
     SPECIFIC_FIELD(lang->MUXBACKUP.OVERLAYS, "RetroArch Overlays");
@@ -145,6 +147,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.THEME, "Themes");
     SPECIFIC_FIELD(lang->MUXBACKUP.TRACK, "Activity Tracker");
     SPECIFIC_FIELD(lang->MUXBACKUP.TARGET, "Backup Target");
+    SPECIFIC_FIELD(lang->MUXBACKUP.MERGE, "Merge Backups");
     SPECIFIC_FIELD(lang->MUXBACKUP.START, "Start Backup");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.APPS, "Location of installed applications");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.BIOS, "Location of system BIOS files");
@@ -154,6 +157,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.CONFIG, "Location of RetroArch configurations");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.HISTORY, "Location of history");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.INIT, "Location of User Initialisation scripts");
+    SPECIFIC_FIELD(lang->MUXBACKUP.HELP.MUSIC, "Location of background music");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.NAME, "Location of friendly name configurations");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.NETWORK, "Location of Network Profiles");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.OVERLAYS, "Location of the RetroArch overlays");
@@ -166,6 +170,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.THEME, "Location of themes");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.TRACK, "Location of Game Activity Tracker");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.TARGET, "Toggle the target storage device for the backup");
+    SPECIFIC_FIELD(lang->MUXBACKUP.HELP.MERGE, "Merge all backup targets to a single archive");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.START, "Start the backup process for the selected items");
 
     // muxcharge
@@ -205,11 +210,13 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCONNECT.USB, "USB Function");
     SPECIFIC_FIELD(lang->MUXCONNECT.WEB, "Web Services");
     SPECIFIC_FIELD(lang->MUXCONNECT.WIFI, "Wi-Fi Network");
+    SPECIFIC_FIELD(lang->MUXCONNECT.NETADV, "Network Settings");
     SPECIFIC_FIELD(lang->MUXCONNECT.ADB, "Android Debug Bridge");
     SPECIFIC_FIELD(lang->MUXCONNECT.MTP, "Media Transfer Protocol");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.WEB, "Toggle a range of configurable services you can access via an active network");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.USB, "Toggle between ADB and MTP USB functionality");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.WIFI, "Connect to a Wi-Fi network manually or via a saved profile");
+    SPECIFIC_FIELD(lang->MUXCONNECT.HELP.NETADV, "Adjust network connectivity settings");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.BLUETOOTH, "Toggle the visibility of the bluetooth glyph");
 
     // muxcontrol
@@ -221,6 +228,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.TITLE, "CUSTOMISATION");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CATALOGUE, "Catalogue Sets");
     SPECIFIC_FIELD(lang->MUXCUSTOM.CONFIG, "RetroArch Configurations");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.GRID_MODE_CONTENT, "Content Grid Mode");
     SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_DOWN, "Theme Download");
     SPECIFIC_FIELD(lang->MUXCUSTOM.THEME, "Theme Picker");
     SPECIFIC_FIELD(lang->MUXCUSTOM.THEME_RES, "Theme Resolution");
@@ -263,6 +271,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXCUSTOM.CHIME, "Startup Chime");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CATALOGUE, "Load user created artwork catalogue for content");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.CONFIG, "Load user created RetroArch configurations");
+    SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.GRID_MODE_CONTENT, "Allow grid mode for content");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_DOWN, "Download themes from the muOS website");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME, "Change the appearance of the muOS frontend launcher");
     SPECIFIC_FIELD(lang->MUXCUSTOM.HELP.THEME_RES, "Allows for testing different theme resolutions");
@@ -413,6 +422,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXKIOSK.NETWORK, "Wi-Fi Network");
     SPECIFIC_FIELD(lang->MUXKIOSK.STORAGE, "Storage");
     SPECIFIC_FIELD(lang->MUXKIOSK.BACKUP, "Backup");
+    SPECIFIC_FIELD(lang->MUXKIOSK.NETADV, "Network Settings");
     SPECIFIC_FIELD(lang->MUXKIOSK.WEBSERV, "Web Services");
     SPECIFIC_FIELD(lang->MUXKIOSK.CORE, "Content Core");
     SPECIFIC_FIELD(lang->MUXKIOSK.GOVERNOR, "Content Governor");
@@ -452,6 +462,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.NETWORK, "Allow editing of network settings");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.STORAGE, "Allow user to migrate or sync user based content");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.BACKUP, "Allow the use of the user based content backup tool");
+    SPECIFIC_FIELD(lang->MUXKIOSK.HELP.NETADV, "Enable access to network settings");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.WEBSERV, "Enable use of web based features");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.CORE, "Allow selection of content cores");
     SPECIFIC_FIELD(lang->MUXKIOSK.HELP.GOVERNOR, "Allow selection of content governor");
@@ -521,13 +532,20 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXLAUNCH.HELP.SHUTDOWN, "Shut down your device safely");
     SPECIFIC_FIELD(lang->MUXLAUNCH.HELP.REBOOT, "Reboot your device safely");
 
-    // muxnetprofile
-    SPECIFIC_FIELD(lang->MUXNETPROFILE.TITLE, "NETWORK PROFILE");
-    SPECIFIC_FIELD(lang->MUXNETPROFILE.LOAD, "Loading Network Profiles…");
-    SPECIFIC_FIELD(lang->MUXNETPROFILE.NONE, "No Saved Network Profiles Found");
-    SPECIFIC_FIELD(lang->MUXNETPROFILE.HELP, "Quickly switch between different Wi-Fi configurations based on your location or network preferences");
-    SPECIFIC_FIELD(lang->MUXNETPROFILE.INVALID_SSID, "Invalid SSID");
-    SPECIFIC_FIELD(lang->MUXNETPROFILE.INVALID_NETWORK, "Invalid Network Settings");
+    // muxnetadv
+    SPECIFIC_FIELD(lang->MUXNETADV.TITLE, "NETWORK SETTINGS");
+    SPECIFIC_FIELD(lang->MUXNETADV.MONITOR, "Connection Monitor");
+    SPECIFIC_FIELD(lang->MUXNETADV.BOOT, "Start Network on Boot");
+    SPECIFIC_FIELD(lang->MUXNETADV.COMPAT, "Module Compatibility");
+    SPECIFIC_FIELD(lang->MUXNETADV.ASYNCLOAD, "Module Async Load");
+    SPECIFIC_FIELD(lang->MUXNETADV.WAIT, "Module Wait Timer");
+    SPECIFIC_FIELD(lang->MUXNETADV.RETRY, "Module Retry");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.MONITOR, "Enables periodic connectivity checks and triggers reconnection if network loss is detected");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.BOOT, "Enables network connection to be established automatically at boot");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.COMPAT, "Enable device compatibility with network module loading via the Linux kernel\n\nIncreases boot times moderately");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.ASYNCLOAD, "Enable the background handling of compatibility handling\n\nProvides faster boot times with compatibility enabled, disable this only if all else has failed");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.WAIT, "Adjusts the maximum amount of time waiting for the network interface to appear.\n\nWARNING:\nIf you enable Module Compatibility, it is not advisable to increase this setting as it will increase boot times!");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.RETRY, "Adjusts the maximum amount of attempts at loading the network module with Module Compatibility enabled. Increase this setting if you are still unable to connect to wifi.\n\nIncreasing this setting may increase boot times importantly.");
 
     // muxnetinfo
     SPECIFIC_FIELD(lang->MUXNETINFO.TITLE, "NETWORK DETAILS");
@@ -554,6 +572,14 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXNETINFO.ERROR.EDIT, "Cannot edit if network is active!");
     SPECIFIC_FIELD(lang->MUXNETINFO.ERROR.CHANGE, "Cannot change if network is active!");
 
+    // muxnetprofile
+    SPECIFIC_FIELD(lang->MUXNETPROFILE.TITLE, "NETWORK PROFILE");
+    SPECIFIC_FIELD(lang->MUXNETPROFILE.LOAD, "Loading Network Profiles…");
+    SPECIFIC_FIELD(lang->MUXNETPROFILE.NONE, "No Saved Network Profiles Found");
+    SPECIFIC_FIELD(lang->MUXNETPROFILE.HELP, "Quickly switch between different Wi-Fi configurations based on your location or network preferences");
+    SPECIFIC_FIELD(lang->MUXNETPROFILE.INVALID_SSID, "Invalid SSID");
+    SPECIFIC_FIELD(lang->MUXNETPROFILE.INVALID_NETWORK, "Invalid Network Settings");
+
     // muxnetscan
     SPECIFIC_FIELD(lang->MUXNETSCAN.TITLE, "NETWORK SCAN");
     SPECIFIC_FIELD(lang->MUXNETSCAN.SCAN, "Scanning for Wi-Fi Networks…");
@@ -562,8 +588,6 @@ void load_lang(struct mux_lang *lang) {
 
     // muxnetwork
     SPECIFIC_FIELD(lang->MUXNETWORK.TITLE, "WI-FI NETWORK");
-    SPECIFIC_FIELD(lang->MUXNETWORK.MONITOR, "Connection Monitor");
-    SPECIFIC_FIELD(lang->MUXNETWORK.BOOT, "Start Network on Boot");
     SPECIFIC_FIELD(lang->MUXNETWORK.CONNECT, "Connect");
     SPECIFIC_FIELD(lang->MUXNETWORK.DISCONNECT, "Disconnect");
     SPECIFIC_FIELD(lang->MUXNETWORK.CONNECTED, "Connected");
@@ -594,8 +618,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.GATEWAY, "Enter the network gateway address here (Static only)");
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.CIDR, "Enter the device Subnet (CIDR) number here (Static only)");
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.IP, "Enter the device IP address here (Static only)");
-    SPECIFIC_FIELD(lang->MUXNETWORK.HELP.MONITOR, "Enables periodic connectivity checks and triggers reconnection if network loss is detected");
-    SPECIFIC_FIELD(lang->MUXNETWORK.HELP.BOOT, "Enables network connection to be established automatically at boot");
+    SPECIFIC_FIELD(lang->MUXNETWORK.HELP.DNS, "Enter the device DNS address here (Static only)");
     SPECIFIC_FIELD(lang->MUXNETWORK.HELP.CONNECT, "Connect to the network using options entered above");
 
     // muxoption
@@ -675,9 +698,13 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t15m, "Sleep 15m + Shutdown");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t30m, "Sleep 30m + Shutdown");
     SPECIFIC_FIELD(lang->MUXPOWER.SLEEP.t60m, "Sleep 60m + Shutdown");
+    SPECIFIC_FIELD(lang->MUXPOWER.GOV.IDLE, "Idle Governor");
+    SPECIFIC_FIELD(lang->MUXPOWER.GOV.DEFAULT, "Default Governor");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE.SLEEP, "Configure the time the device will sleep when no input is detected");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE.DISPLAY, "Configure the time the screen will dim when no input is detected");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.IDLE.MUTE, "Toggle if the audio is muted when display is dimmed");
+    SPECIFIC_FIELD(lang->MUXPOWER.HELP.GOV.IDLE, "Configure the frontend and device power governor on idle input");
+    SPECIFIC_FIELD(lang->MUXPOWER.HELP.GOV.DEFAULT, "Configure the default frontend and device power governor");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.LOW_BATTERY, "Configure when the red LED will display based on the current capacity percentage");
     SPECIFIC_FIELD(lang->MUXPOWER.HELP.SLEEP_FUNCTION, "Configure how the power button functions on short press");
 
@@ -726,6 +753,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSTORAGE.COLLECTION, "Content Collection");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HISTORY, "History");
     SPECIFIC_FIELD(lang->MUXSTORAGE.INIT, "User Init Scripts");
+    SPECIFIC_FIELD(lang->MUXSTORAGE.MUSIC, "Background Music");
     SPECIFIC_FIELD(lang->MUXSTORAGE.NAME, "Friendly Name System");
     SPECIFIC_FIELD(lang->MUXSTORAGE.NETWORK, "Network Profiles");
     SPECIFIC_FIELD(lang->MUXSTORAGE.PACKAGE, "Custom Packages");
@@ -740,6 +768,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.COLLECTION, "Location of content collection");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.HISTORY, "Location of history");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.INIT, "Location of User Initialisation scripts");
+    SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.MUSIC, "Location of background music");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.NAME, "Location of friendly name configurations");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.NETWORK, "Location of Network Profiles");
     SPECIFIC_FIELD(lang->MUXSTORAGE.HELP.PACKAGE, "Location of custom packages");
@@ -829,6 +858,7 @@ void load_lang(struct mux_lang *lang) {
     // muxtweakadv
     SPECIFIC_FIELD(lang->MUXTWEAKADV.TITLE, "ADVANCED SETTINGS");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SPEED, "Menu Acceleration");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.REPEAT_DELAY, "Menu Repeat Delay");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.THERMAL, "Thermal Zone Control");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.OFFSET, "Battery Offset");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.LOCK, "Passcode Lock");
@@ -864,7 +894,10 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.DISPSUSPEND, "Display Suspend");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SECONDPART, "Secondary Partition");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.USBPART, "External Partition");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.INCBRIGHT, "Brightness Increment");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.INCVOLUME, "Volume Increment");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SPEED, "Adjust the rate of speed when holding navigation keys down");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.REPEAT_DELAY, "Adjust amount of time button must be held before it begins to repeat the button action");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.THERMAL, "Toggle the system ability to automatically shut the device down due high temperature");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.OFFSET, "Change the displayed battery percentage to improve accuracy based on calibration or known deviations in the battery capacity reading");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.LOCK, "Toggle the passcode lock - More information can be found on the muOS website");
@@ -886,6 +919,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.DISPSUSPEND, "Toggle the device display suspend function, however some displays will not like this enabled");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SECONDPART, "Change the partition number requested upon secondary storage mount");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.USBPART, "Change the partition number requested upon external storage mount");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.INCBRIGHT, "Change the level of brightness incrementation when adjusting");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.INCVOLUME, "Change the level of volume incrementation when adjusting");
 
     // muxtweakgen
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.TITLE, "GENERAL SETTINGS");
@@ -896,6 +931,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HDMI, "HDMI Output");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.ADVANCED, "Advanced Settings");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.RGB, "Device RGB Lights");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.HKDPAD, "DPAD Swap Hotkey");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.HKSHOT, "Screenshot Hotkey");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.STARTUP.TITLE, "Device Startup");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.STARTUP.MENU, "Main Menu");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.STARTUP.EXPLORE, "Content Explorer");
@@ -910,6 +947,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.HDMI, "Settings to change the HDMI output of the device");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.ADVANCED, "Settings that should only be changed by those who know what they are doing!");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.RGB, "Toggle the device fancy RGB light system");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.HKDPAD, "Switch between different hotkeys for toggling DPAD swap");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.HKSHOT, "Switch between different hotkeys for taking a screenshot");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.STARTUP, "Change where the device will start up into");
 
     // muxvisual

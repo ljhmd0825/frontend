@@ -20,7 +20,7 @@ static void show_help(lv_obj_t *element_focused) {
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
 }
 
-static void init_navigation_group_grid(lv_obj_t *ui_objects[], char *item_labels[], char *glyph_names[]) {
+static void init_navigation_group_grid(lv_obj_t *ui_objects[], char *item_labels[], char *item_grid_labels[], char *glyph_names[]) {
     init_grid_info(UI_COUNT, theme.GRID.COLUMN_COUNT);
     create_grid_panel(&theme, UI_COUNT);
 
@@ -52,7 +52,7 @@ static void init_navigation_group_grid(lv_obj_t *ui_objects[], char *item_labels
         load_element_image_specifics(STORAGE_THEME, mux_dimension, mux_module, "grid", glyph_name_focused,
                                      "default_focused", "png", grid_img_foc, sizeof(grid_img_foc));
 
-        create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row, grid_img, grid_img_foc, item_labels[i]);
+        create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row, grid_img, grid_img_foc, item_grid_labels[i]);
 
         lv_group_add_obj(ui_group, cell_label);
         lv_group_add_obj(ui_group_glyph, cell_image);
@@ -97,7 +97,7 @@ static void init_navigation_group(void) {
     ui_group_panel = lv_group_create();
 
     if (theme.GRID.ENABLED) {
-        init_navigation_group_grid(ui_objects, item_labels_short, glyph_names);
+        init_navigation_group_grid(ui_objects, item_labels, item_labels_short, glyph_names);
     } else {
         INIT_STATIC_ITEM(-1, launch, Explore, item_labels[0], glyph_names[0], 0);
         INIT_STATIC_ITEM(-1, launch, Collection, item_labels[1], glyph_names[1], 0);
@@ -179,7 +179,7 @@ static void handle_a(void) {
     const char *u_data = lv_obj_get_user_data(element_focused);
 
     for (size_t i = 0; i < A_SIZE(elements); i++) {
-        if (!strcasecmp(u_data, elements[i].glyph_name)) {
+        if (strcasecmp(u_data, elements[i].glyph_name) == 0) {
             if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
@@ -408,7 +408,7 @@ static void init_elements(void) {
     setup_nav((struct nav_bar[]) {
             {ui_lblNavAGlyph, "",                  0},
             {ui_lblNavA,      lang.GENERIC.SELECT, 0},
-            {NULL, NULL,                           0}
+            {NULL,            NULL,                0}
     });
 
 #define LAUNCH(NAME, UDATA) lv_obj_set_user_data(ui_lbl##NAME##_launch, UDATA);
@@ -447,6 +447,8 @@ int muxlaunch_main(void) {
     adjust_wallpaper_element(ui_group, 0, GENERAL);
 
     init_timer(ui_refresh_task, NULL);
+
+    if (file_exist(MUOS_SYS_LOAD)) remove(MUOS_SYS_LOAD);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.GRID.ENABLED && theme.GRID.NAVIGATION_TYPE >= 1 && theme.GRID.NAVIGATION_TYPE <= 5) ||

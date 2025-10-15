@@ -8,6 +8,8 @@
 #define A_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define BIT(n) (UINT64_C(1) << (n))
 #define TS(str) translate_specific(str)
+#define UFI(i) ((void *)(uintptr_t)(i))
+#define IFU(p) ((size_t)(uintptr_t)(p))
 
 extern int msgbox_active;
 extern int block_input;
@@ -145,6 +147,8 @@ int directory_exist(char *dirname);
 const char **build_term_exec(const char **term_cmd, size_t *term_cnt);
 
 void extract_archive(char *filename, char *screen);
+
+void update_bootlogo();
 
 int str_compare(const void *a, const void *b);
 
@@ -345,6 +349,14 @@ int get_grid_column_index(int current_item_index);
 
 int get_grid_row_item_count(int current_item_index);
 
+void update_grid_image_paths(int index);
+
+void update_grid_items(int direction);
+
+void update_grid(int direction);
+
+void gen_grid_item(int index);
+
 void kiosk_denied();
 
 void run_exec(const char *args[], size_t size, int background);
@@ -414,3 +426,7 @@ char *build_core(char core_path[MAX_BUFFER_SIZE], int line_core, int line_system
                  int line_catalogue, int line_lookup, int line_launch);
 
 void add_to_collection(char *filename, const char *pointer, char *sys_dir);
+
+int set_scaling_governor(const char *governor);
+
+void turbo_time(int toggle);

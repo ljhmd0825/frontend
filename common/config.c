@@ -24,8 +24,6 @@ void load_config(struct mux_config *config) {
     CFG_STR_FIELD(config->NETWORK.GATEWAY, CONF_CONFIG_PATH "network/gateway", "192.168.0.1")
     CFG_STR_FIELD(config->NETWORK.SUBNET, CONF_CONFIG_PATH "network/subnet", "24")
     CFG_STR_FIELD(config->NETWORK.DNS, CONF_CONFIG_PATH "network/dns", "1.1.1.1")
-    CFG_INT_FIELD(config->NETWORK.MONITOR, CONF_CONFIG_PATH "network/monitor", 1)
-    CFG_INT_FIELD(config->NETWORK.BOOT, CONF_CONFIG_PATH "network/boot", 1)
 
     CFG_INT_FIELD(config->THEME.FILTER.ALL_THEMES, CONF_CONFIG_PATH "theme/filter/allthemes", 0)
     CFG_INT_FIELD(config->THEME.FILTER.GRID, CONF_CONFIG_PATH "theme/filter/grid", 0)
@@ -56,12 +54,13 @@ void load_config(struct mux_config *config) {
 
     CFG_STR_FIELD(config->EXTRA.DOWNLOAD.DATA, CONF_CONFIG_PATH "extra/download/data", "")
     CFG_STR_FIELD(config->EXTRA.LANGUAGE.DATA, CONF_CONFIG_PATH "extra/language/data", "")
-    
+
     CFG_STR_FIELD(config->THEME.DOWNLOAD.DATA, CONF_CONFIG_PATH "theme/download/data", "")
     CFG_STR_FIELD(config->THEME.DOWNLOAD.PREVIEW, CONF_CONFIG_PATH "theme/download/preview", "")
     CFG_STR_FIELD(config->THEME.DEFAULT_HASH, CONF_CONFIG_PATH "theme/default", "")
 
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.ACCELERATE, CONF_CONFIG_PATH "settings/advanced/accelerate", 96)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.REPEAT_DELAY, CONF_CONFIG_PATH "settings/advanced/repeat_delay", 208)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.SWAP, CONF_CONFIG_PATH "settings/advanced/swap", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.THERMAL, CONF_CONFIG_PATH "settings/advanced/thermal", 1)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.FONT, CONF_CONFIG_PATH "settings/advanced/font", 0)
@@ -83,6 +82,8 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.ZRAMFILE, CONF_CONFIG_PATH "settings/advanced/zramfile", 0)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.LIDSWITCH, CONF_CONFIG_PATH "settings/advanced/lidswitch", 1)
     CFG_INT_FIELD(config->SETTINGS.ADVANCED.DISPSUSPEND, CONF_CONFIG_PATH "settings/advanced/disp_suspend", 0)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.INCBRIGHT, CONF_CONFIG_PATH "settings/advanced/incbright", 16)
+    CFG_INT_FIELD(config->SETTINGS.ADVANCED.INCVOLUME, CONF_CONFIG_PATH "settings/advanced/incvolume", 8)
 
     CFG_INT_FIELD(config->SETTINGS.GENERAL.HIDDEN, CONF_CONFIG_PATH "settings/general/hidden", 0)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.SOUND, CONF_CONFIG_PATH "settings/general/sound", 0)
@@ -92,9 +93,12 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->SETTINGS.GENERAL.BRIGHTNESS, CONF_CONFIG_PATH "settings/general/brightness", 90)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.VOLUME, CONF_CONFIG_PATH "settings/general/volume", 75)
     CFG_INT_FIELD(config->SETTINGS.GENERAL.RGB, CONF_CONFIG_PATH "settings/general/rgb", 1)
+    CFG_INT_FIELD(config->SETTINGS.GENERAL.HKDPAD, CONF_CONFIG_PATH "settings/hotkey/dpad_toggle", 1)
+    CFG_INT_FIELD(config->SETTINGS.GENERAL.HKSHOT, CONF_CONFIG_PATH "settings/hotkey/screenshot", 0)
     CFG_STR_FIELD(config->SETTINGS.GENERAL.STARTUP, CONF_CONFIG_PATH "settings/general/startup", "launcher")
     CFG_STR_FIELD(config->SETTINGS.GENERAL.LANGUAGE, CONF_CONFIG_PATH "settings/general/language", "English")
     CFG_INT_FIELD(config->SETTINGS.GENERAL.THEME_RESOLUTION, CONF_CONFIG_PATH "settings/general/theme_resolution", 0)
+
     switch (config->SETTINGS.GENERAL.THEME_RESOLUTION) {
         case 1:
             config->SETTINGS.GENERAL.THEME_RESOLUTION_WIDTH = 640;
@@ -129,11 +133,20 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->SETTINGS.HDMI.SCAN, CONF_CONFIG_PATH "settings/hdmi/scan", 0)
     CFG_INT_FIELD(config->SETTINGS.HDMI.AUDIO, CONF_CONFIG_PATH "settings/hdmi/audio", 0)
 
+    CFG_INT_FIELD(config->SETTINGS.NETWORK.MONITOR, CONF_CONFIG_PATH "settings/network/monitor", 0)
+    CFG_INT_FIELD(config->SETTINGS.NETWORK.BOOT, CONF_CONFIG_PATH "settings/network/boot", 1)
+    CFG_INT_FIELD(config->SETTINGS.NETWORK.COMPAT, CONF_CONFIG_PATH "settings/network/compat", 0)
+    CFG_INT_FIELD(config->SETTINGS.NETWORK.ASYNCLOAD, CONF_CONFIG_PATH "settings/network/async_load", 1)
+    CFG_INT_FIELD(config->SETTINGS.NETWORK.WAIT, CONF_CONFIG_PATH "settings/network/wait_timer", 5)
+    CFG_INT_FIELD(config->SETTINGS.NETWORK.RETRY, CONF_CONFIG_PATH "settings/network/compat_retry", 1)
+
     CFG_INT_FIELD(config->SETTINGS.POWER.LOW_BATTERY, CONF_CONFIG_PATH "settings/power/low_battery", 0)
     CFG_INT_FIELD(config->SETTINGS.POWER.SHUTDOWN, CONF_CONFIG_PATH "settings/power/shutdown", 0)
     CFG_INT_FIELD(config->SETTINGS.POWER.IDLE.DISPLAY, CONF_CONFIG_PATH "settings/power/idle_display", 0)
     CFG_INT_FIELD(config->SETTINGS.POWER.IDLE.SLEEP, CONF_CONFIG_PATH "settings/power/idle_sleep", 0)
     CFG_INT_FIELD(config->SETTINGS.POWER.IDLE.MUTE, CONF_CONFIG_PATH "settings/power/idle_mute", 1)
+    CFG_STR_FIELD(config->SETTINGS.POWER.GOV.DEFAULT, CONF_DEVICE_PATH "cpu/default", "ondemand")
+    CFG_STR_FIELD(config->SETTINGS.POWER.GOV.IDLE, CONF_CONFIG_PATH "settings/power/gov_idle", "powersave")
 
     CFG_INT_FIELD(config->VISUAL.BATTERY, CONF_CONFIG_PATH "visual/battery", 1)
     CFG_INT_FIELD(config->VISUAL.NETWORK, CONF_CONFIG_PATH "visual/network", 0)
@@ -141,6 +154,7 @@ void load_config(struct mux_config *config) {
     CFG_INT_FIELD(config->VISUAL.CLOCK, CONF_CONFIG_PATH "visual/clock", 1)
     CFG_INT_FIELD(config->VISUAL.OVERLAY_IMAGE, CONF_CONFIG_PATH "visual/overlayimage", 1)
     CFG_INT_FIELD(config->VISUAL.OVERLAY_TRANSPARENCY, CONF_CONFIG_PATH "visual/overlaytransparency", 85)
+    CFG_INT_FIELD(config->VISUAL.GRID_MODE_CONTENT, CONF_CONFIG_PATH "visual/gridmodecontent", 0)
     CFG_INT_FIELD(config->VISUAL.BOX_ART, CONF_CONFIG_PATH "visual/boxart", 0)
     CFG_INT_FIELD(config->VISUAL.BOX_ART_ALIGN, CONF_CONFIG_PATH "visual/boxartalign", 0)
     CFG_INT_FIELD(config->VISUAL.BOX_ART_HIDE, CONF_CONFIG_PATH "visual/boxarthide", 0)

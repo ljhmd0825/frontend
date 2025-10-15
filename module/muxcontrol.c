@@ -3,6 +3,7 @@
 static char rom_name[PATH_MAX];
 static char rom_dir[PATH_MAX];
 static char rom_system[PATH_MAX];
+static bool is_directory = false;
 
 static int is_app = 0;
 
@@ -107,7 +108,7 @@ static void generate_available_controls(const char *default_control) {
     while ((cf = readdir(cd))) {
         if (cf->d_type == DT_REG) {
             char *last_dot = strrchr(cf->d_name, '.');
-            if (last_dot && !strcasecmp(last_dot, ".txt")) {
+            if (last_dot && strcasecmp(last_dot, ".txt") == 0) {
                 *last_dot = '\0';
                 add_item(&items, &item_count, cf->d_name, cf->d_name, "", ITEM);
             }
@@ -138,10 +139,10 @@ static void generate_available_controls(const char *default_control) {
         lv_obj_t *ui_lblControlItemGlyph = lv_img_create(ui_pnlControl);
 
         const char *glyph =
-                !strcasecmp(raw_name, default_control) ? "system" :
-                !strcasecmp(raw_name, "system") ? "system" :
-                !strcasecmp(raw_name, "retro") ? "retro" :
-                !strcasecmp(raw_name, "modern") ? "modern" :
+                strcasecmp(raw_name, default_control) == 0 ? "system" :
+                strcasecmp(raw_name, "system") == 0 ? "system" :
+                strcasecmp(raw_name, "retro") == 0 ? "retro" :
+                strcasecmp(raw_name, "modern") == 0 ? "modern" :
                 "default";
         apply_theme_list_glyph(&theme, ui_lblControlItemGlyph, mux_module, glyph);
 
@@ -228,7 +229,7 @@ static void list_nav_next(int steps) {
 }
 
 static void handle_a(void) {
-    if (msgbox_active || hold_call) return;
+    if (msgbox_active || hold_call || is_directory) return;
 
     LOG_INFO(mux_module, "Single Control Assignment Triggered")
     play_sound(SND_CONFIRM);
@@ -313,8 +314,10 @@ static void init_elements(void) {
     struct nav_bar nav_items[9];
     int i = 0;
 
-    nav_items[i++] = (struct nav_bar) {ui_lblNavAGlyph, "", 1};
-    nav_items[i++] = (struct nav_bar) {ui_lblNavA, lang.GENERIC.INDIVIDUAL, 1};
+    if (!is_directory) {
+        nav_items[i++] = (struct nav_bar) {ui_lblNavAGlyph, "", 1};
+        nav_items[i++] = (struct nav_bar) {ui_lblNavA, lang.GENERIC.INDIVIDUAL, 1};
+    }
     nav_items[i++] = (struct nav_bar) {ui_lblNavBGlyph, "", 0};
     nav_items[i++] = (struct nav_bar) {ui_lblNavB, lang.GENERIC.BACK, 0};
 
@@ -348,9 +351,12 @@ static void ui_refresh_task() {
 }
 
 int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app) {
+    snprintf(rom_dir, sizeof(rom_dir), "%s/%s", dir, name);
+    is_directory = directory_exist(rom_dir) && !app;
+    if (!is_directory) snprintf(rom_dir, sizeof(rom_dir), "%s", dir);
+
     snprintf(rom_name, sizeof(rom_name), "%s", name);
-    snprintf(rom_dir, sizeof(rom_name), "%s", dir);
-    snprintf(rom_system, sizeof(rom_name), "%s", sys);
+    snprintf(rom_system, sizeof(rom_system), "%s", sys);
 
     is_app = app;
 
@@ -461,7 +467,7 @@ int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app) 
     load_wallpaper(ui_screen, NULL, ui_pnlWall, ui_imgWall, GENERAL);
     init_fonts();
 
-    if (!strcasecmp(rom_system, "none") && !is_app) {
+    if (strcasecmp(rom_system, "none") == 0 && !is_app) {
         char assign_file[MAX_BUFFER_SIZE];
         snprintf(assign_file, sizeof(assign_file), STORE_LOC_ASIN "/assign.json");
 

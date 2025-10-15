@@ -1,7 +1,6 @@
 #include "muxshare.h"
 
 static char base_dir[PATH_MAX];
-static char sys_dir[PATH_MAX];
 
 static void show_help(void) {
     char *title = items[current_item_index].name;
@@ -29,7 +28,7 @@ static void create_task_items(void) {
             snprintf(filename, sizeof(filename), "%s/%s", sys_dir, tf->d_name);
 
             char *last_dot = strrchr(tf->d_name, '.');
-            if (last_dot && !strcasecmp(last_dot, ".sh")) {
+            if (last_dot && strcasecmp(last_dot, ".sh") == 0) {
                 *last_dot = '\0';
                 add_item(&items, &item_count, tf->d_name, tf->d_name, filename, ITEM);
             }
@@ -187,7 +186,7 @@ static void init_elements(void) {
             {ui_lblNavA,      lang.GENERIC.LAUNCH, 1},
             {ui_lblNavBGlyph, "",                  0},
             {ui_lblNavB,      lang.GENERIC.BACK,   0},
-            {NULL, NULL,                           0}
+            {NULL,            NULL,                0}
     });
 
     overlay_display();
@@ -238,7 +237,7 @@ int muxtask_main(char *ex_dir) {
     char *e_name_line = file_exist(EXPLORE_NAME) ? read_line_char_from(EXPLORE_NAME, 1) : NULL;
     if (e_name_line) {
         for (size_t i = 0; i < item_count; i++) {
-            if (!strcasecmp(items[i].name, e_name_line)) {
+            if (strcasecmp(items[i].name, e_name_line) == 0) {
                 tin_index = (int) i;
                 remove(EXPLORE_NAME);
                 break;

@@ -57,7 +57,7 @@ static void image_refresh(char *image_type) {
     } else {
         load_image_catalogue(h_core_artwork, h_file_name, "", "default", mux_dimension, image_type,
                              image, sizeof(image));
-        if (!strcasecmp(image_type, "splash") && !file_exist(image)) {
+        if (strcasecmp(image_type, "splash") == 0 && !file_exist(image)) {
             load_splash_image_fallback(mux_dimension, image, sizeof(image));
         }
     }
@@ -69,8 +69,8 @@ static void image_refresh(char *image_type) {
             if (file_exist(image)) {
                 struct ImageSettings image_settings = {
                         image, LV_ALIGN_CENTER,
-                        validate_int16((int16_t) (device.MUX.WIDTH * .9) - 60, "width"),
-                        validate_int16((int16_t) (device.MUX.HEIGHT * .9) - 120, "height"),
+                        validate_int16((int16_t)(device.MUX.WIDTH * .9) - 60, "width"),
+                        validate_int16((int16_t)(device.MUX.HEIGHT * .9) - 120, "height"),
                         0, 0, 0, 0
                 };
                 update_image(ui_imgHelpPreviewImage, image_settings);
@@ -269,6 +269,8 @@ static void create_history_items(void) {
     char **file_names = NULL;
     char **last_dirs = NULL;
 
+    turbo_time(1);
+
     lv_label_set_text(ui_lblTitle, lang.MUXHISTORY.TITLE);
     add_file_names(INFO_HIS_PATH, &file_names, &last_dirs);
 
@@ -278,6 +280,8 @@ static void create_history_items(void) {
     }
 
     free(file_names);
+
+    turbo_time(0);
 }
 
 static void remove_from_history(void) {
@@ -330,6 +334,25 @@ static void list_nav_next(int steps) {
     list_nav_move(steps, +1);
 }
 
+static void show_splash() {
+    if (config.VISUAL.LAUNCHSPLASH) {
+        image_refresh("splash");
+        if (splash_valid) {
+            lv_obj_center(ui_imgSplash);
+            lv_obj_move_foreground(ui_imgSplash);
+            lv_obj_move_foreground(overlay_image);
+
+            for (unsigned int i = 0; i <= 255; i += 15) {
+                lv_obj_set_style_img_opa(ui_imgSplash, i, MU_OBJ_MAIN_DEFAULT);
+                lv_task_handler();
+                usleep(128);
+            }
+
+            sleep(1);
+        }
+    }
+}
+
 static void process_load(int from_start) {
     if (!ui_count || hold_call) return;
 
@@ -351,25 +374,34 @@ static void process_load(int from_start) {
     char *item_file_name = get_last_dir(strdup(items[current_item_index].extra_data));
 
     if (load_content(0, item_dir, item_file_name)) {
-        if (config.VISUAL.LAUNCHSPLASH) {
-            image_refresh("splash");
-            if (splash_valid) {
-                lv_obj_center(ui_imgSplash);
-                lv_obj_move_foreground(ui_imgSplash);
-                lv_obj_move_foreground(overlay_image);
+        if (config.SETTINGS.ADVANCED.LOCK) {
+            int result = 0;
 
-                for (unsigned int i = 0; i <= 255; i += 15) {
-                    lv_obj_set_style_img_opa(ui_imgSplash, i, MU_OBJ_MAIN_DEFAULT);
-                    lv_task_handler();
-                    usleep(128);
+            while (result != 1) {
+                result = muxpass_main(PCT_LAUNCH);
+
+                switch (result) {
+                    case 1:
+                        show_splash();
+                        config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
+                        exit_status = 1;
+                        break;
+                    case 2:
+                    default:
+                        if (file_exist(MUOS_ROM_LOAD)) remove(MUOS_ROM_LOAD);
+                        if (file_exist(MUOS_CON_LOAD)) remove(MUOS_CON_LOAD);
+                        if (file_exist(MUOS_GOV_LOAD)) remove(MUOS_GOV_LOAD);
+
+                        write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
+
+                        goto load_end;
                 }
-
-                sleep(1);
             }
+        } else {
+            show_splash();
+            config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
+            exit_status = 1;
         }
-
-        config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
-        exit_status = 1;
     } else {
         write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
         write_text_to_file(OPTION_SKIP, "w", CHAR, "");
@@ -379,6 +411,7 @@ static void process_load(int from_start) {
 
     if (from_start) write_text_to_file(MANUAL_RA_LOAD, "w", INT, 1);
 
+    load_end:
     load_mux("history");
 
     close_input();
@@ -486,7 +519,7 @@ static void init_elements(void) {
             {ui_lblNavY,         lang.GENERIC.COLLECT, 1},
             {ui_lblNavMenuGlyph, "",                   1},
             {ui_lblNavMenu,      lang.GENERIC.INFO,    1},
-            {NULL, NULL,                               0}
+            {NULL,               NULL,                 0}
     });
 
     overlay_display();
@@ -589,7 +622,7 @@ int muxhistory_main(int his_index) {
     update_file_counter(ui_lblCounter_history, file_count);
 
     if (file_exist(ADD_MODE_DONE)) {
-        if (!strcasecmp(read_all_char_from(ADD_MODE_DONE), "DONE")) {
+        if (strcasecmp(read_all_char_from(ADD_MODE_DONE), "DONE") == 0) {
             toast_message(lang.GENERIC.ADD_COLLECT, SHORT);
             refresh_screen(ui_screen);
         }

@@ -200,10 +200,10 @@ void init_timer(void (*ui_refresh_task)(lv_timer_t *), void (*update_system_info
     if (config.VISUAL.BATTERY)
         timer_capacity = lv_timer_create(capacity_task, TIMER_CAPACITY, &bat_par);
 
-    if (device.DEVICE.HAS_BLUETOOTH && config.VISUAL.BLUETOOTH)
+    if (device.BOARD.HAS_BLUETOOTH && config.VISUAL.BLUETOOTH)
         timer_bluetooth = lv_timer_create(bluetooth_task, TIMER_BLUETOOTH, NULL);
 
-    if (device.DEVICE.HAS_NETWORK && config.VISUAL.NETWORK)
+    if (device.BOARD.HAS_NETWORK && config.VISUAL.NETWORK)
         timer_network = lv_timer_create(network_task, TIMER_NETWORK, NULL);
 
     if (update_system_info) timer_update_system_info = lv_timer_create(update_system_info, TIMER_SYSINFO, NULL);
@@ -287,6 +287,6 @@ void bluetooth_task(void) {
 }
 
 void network_task(void) {
-    if (!strcasecmp(mux_module, "muxnetwork")) return;
+    if (strcasecmp(mux_module, "muxnetwork") == 0) return;
     update_network_status(ui_staNetwork, &theme, 0);
 }

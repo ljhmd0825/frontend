@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxcustom.h"
 
-#define UI_COUNT 18
+#define UI_COUNT 19
 
 #define CUSTOM(NAME, UDATA) static int NAME##_original;
 CUSTOM_ELEMENTS
@@ -58,6 +58,7 @@ static void show_help(lv_obj_t *element_focused) {
             {ui_lblBoxArtImage_custom,     lang.MUXCUSTOM.HELP.BOX_ART},
             {ui_lblBoxArtAlign_custom,     lang.MUXCUSTOM.HELP.BOX_ALIGN},
             {ui_lblLaunchSplash_custom,    lang.MUXCUSTOM.HELP.SPLASH},
+            {ui_lblGridModeContent_custom, lang.MUXCUSTOM.HELP.GRID_MODE_CONTENT},
             {ui_lblBoxArtHide_custom,      lang.MUXCUSTOM.HELP.BOX_HIDE},
             {ui_lblFont_custom,            lang.MUXCUSTOM.HELP.FONT},
             {ui_lblSound_custom,           lang.MUXCUSTOM.HELP.SOUND},
@@ -178,6 +179,7 @@ static void init_navigation_group(void) {
     INIT_OPTION_ITEM(-1, custom, BoxArtImage, lang.MUXCUSTOM.BOX_ART.TITLE, "boxart", boxart_image, 5);
     INIT_OPTION_ITEM(-1, custom, BoxArtAlign, lang.MUXCUSTOM.BOX_ART.ALIGN.TITLE, "align", boxart_align, 9);
     INIT_OPTION_ITEM(-1, custom, LaunchSplash, lang.MUXCUSTOM.SPLASH, "splash", disabled_enabled, 2);
+    INIT_OPTION_ITEM(-1, custom, GridModeContent, lang.MUXCUSTOM.GRID_MODE_CONTENT, "gridmodecontent", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, custom, BoxArtHide, lang.MUXCUSTOM.BOX_ART.HIDE_GRID_MODE, "boxarthide", disabled_enabled, 2);
     INIT_OPTION_ITEM(-1, custom, Font, lang.MUXCUSTOM.FONT.TITLE, "font", font_options, 2);
     INIT_OPTION_ITEM(-1, custom, Sound, lang.MUXCUSTOM.SOUND.TITLE, "sound", sound_options, 3);
@@ -292,6 +294,7 @@ static void restore_custom_options(void) {
     lv_dropdown_set_selected(ui_droBlackFade_custom, config.VISUAL.BLACKFADE);
     lv_dropdown_set_selected(ui_droLaunchSwap_custom, config.VISUAL.LAUNCH_SWAP);
     lv_dropdown_set_selected(ui_droShuffle_custom, config.VISUAL.SHUFFLE);
+    lv_dropdown_set_selected(ui_droGridModeContent_custom, config.VISUAL.GRID_MODE_CONTENT);
     lv_dropdown_set_selected(ui_droFont_custom, config.SETTINGS.ADVANCED.FONT);
     lv_dropdown_set_selected(ui_droMusic_custom, config.SETTINGS.GENERAL.BGM);
     lv_dropdown_set_selected(ui_droSound_custom, config.SETTINGS.GENERAL.SOUND);
@@ -309,6 +312,7 @@ static void save_custom_options(void) {
     CHECK_AND_SAVE_STD(custom, BoxArtImage, "visual/boxart", INT, 0);
     CHECK_AND_SAVE_STD(custom, BoxArtAlign, "visual/boxartalign", INT, 1);
     CHECK_AND_SAVE_STD(custom, LaunchSplash, "visual/launchsplash", INT, 0);
+    CHECK_AND_SAVE_STD(custom, GridModeContent, "visual/gridmodecontent", INT, 0);
     CHECK_AND_SAVE_STD(custom, BoxArtHide, "visual/boxarthide", INT, 0);
     CHECK_AND_SAVE_STD(custom, Font, "settings/advanced/font", INT, 0);
     CHECK_AND_SAVE_STD(custom, Sound, "settings/general/sound", INT, 0);
@@ -339,13 +343,21 @@ static void save_custom_options(void) {
             if (file_exist(theme_alt_archive)) {
                 LOG_INFO(mux_module, "Extracting Alternative Theme: %s", theme_alt_archive)
                 extract_archive(theme_alt_archive, "custom");
+            } else {
+                char png_bootlogo[MAX_BUFFER_SIZE];
+                snprintf(png_bootlogo, sizeof(png_bootlogo), "%s/%simage/bootlogo.png",
+                        STORAGE_THEME, mux_dimension);
+                if (!file_exist(png_bootlogo)) {
+                    snprintf(png_bootlogo, sizeof(png_bootlogo), "%s/image/bootlogo.png", STORAGE_THEME);
+                }
+                if (file_exist(png_bootlogo)) update_bootlogo();
             }
 
             static char rgb_script[MAX_BUFFER_SIZE];
             snprintf(rgb_script, sizeof(rgb_script), "%s/alternate/rgb/%s/rgbconf.sh",
                      STORAGE_THEME, theme_alt);
             if (file_exist(rgb_script)) {
-                if (device.DEVICE.RGB && config.SETTINGS.GENERAL.RGB) {
+                if (device.BOARD.RGB && config.SETTINGS.GENERAL.RGB) {
                     const char *args[] = {rgb_script, NULL};
                     run_exec(args, A_SIZE(args), 0);
                 }
@@ -384,6 +396,8 @@ static void save_custom_options(void) {
         const char *args[] = {OPT_PATH "script/mux/tweak.sh", NULL};
         run_exec(args, A_SIZE(args), 0);
     }
+
+    if (file_exist(MUOS_PIK_LOAD)) remove(MUOS_PIK_LOAD);
 }
 
 static void handle_a(void) {
@@ -413,7 +427,7 @@ static void handle_a(void) {
             mux_input_stop();
 
             return;
-        } else if (!strcasecmp(u_data, elements[i].mux_name)) {
+        } else if (strcasecmp(u_data, elements[i].mux_name) == 0) {
             if (is_ksk(*elements[i].kiosk_flag)) {
                 kiosk_denied();
                 return;
@@ -492,7 +506,7 @@ static void init_elements(void) {
             {ui_lblNavA,       lang.GENERIC.SELECT, 0},
             {ui_lblNavBGlyph,  "",                  0},
             {ui_lblNavB,       lang.GENERIC.BACK,   0},
-            {NULL, NULL,                            0}
+            {NULL,             NULL,                0}
     });
 
     check_focus();

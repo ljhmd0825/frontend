@@ -1,13 +1,13 @@
 #pragma once
 
-#define CREATE_OPTION_ITEM(MODULE, NAME) do {                                       \
-        ui_pnl##NAME##_##MODULE = lv_obj_create(ui_pnlContent);                     \
-        ui_lbl##NAME##_##MODULE = lv_label_create(ui_pnl##NAME##_##MODULE);         \
-        lv_label_set_text(ui_lbl##NAME##_##MODULE, "");                             \
-        ui_ico##NAME##_##MODULE = lv_img_create(ui_pnl##NAME##_##MODULE);           \
-        ui_dro##NAME##_##MODULE = lv_dropdown_create(ui_pnl##NAME##_##MODULE);      \
-        lv_dropdown_clear_options(ui_dro##NAME##_##MODULE);                         \
-        lv_obj_set_style_text_opa(ui_dro##NAME##_##MODULE, 0, MU_OBJ_INDI_DEFAULT); \
+#define CREATE_OPTION_ITEM(MODULE, NAME) do {                                                   \
+        ui_pnl##NAME##_##MODULE = lv_obj_create(ui_pnlContent);                                 \
+        ui_lbl##NAME##_##MODULE = lv_label_create(ui_pnl##NAME##_##MODULE);                     \
+        lv_label_set_text(ui_lbl##NAME##_##MODULE, "");                                         \
+        ui_ico##NAME##_##MODULE = lv_img_create(ui_pnl##NAME##_##MODULE);                       \
+        ui_dro##NAME##_##MODULE = lv_dropdown_create(ui_pnl##NAME##_##MODULE);                  \
+        lv_dropdown_clear_options(ui_dro##NAME##_##MODULE);                                     \
+        lv_obj_set_style_text_opa(ui_dro##NAME##_##MODULE, LV_OPA_TRANSP, MU_OBJ_INDI_DEFAULT); \
     } while (0)
 
 #define CREATE_STATIC_ITEM(MODULE, NAME) do {                               \
@@ -42,7 +42,7 @@
     lv_obj_set_style_bg_color(ui_bar##NAME##_##MODULE, lv_color_hex(theme.VERBOSE_BOOT.TEXT), MU_OBJ_MAIN_DEFAULT); \
     lv_obj_set_style_bg_opa(ui_bar##NAME##_##MODULE, 25, MU_OBJ_MAIN_DEFAULT);                                      \
     lv_obj_set_style_bg_color(ui_bar##NAME##_##MODULE, lv_color_hex(theme.VERBOSE_BOOT.TEXT), MU_OBJ_INDI_DEFAULT); \
-    lv_obj_set_style_bg_opa(ui_bar##NAME##_##MODULE, 255, MU_OBJ_INDI_DEFAULT);                                     \
+    lv_obj_set_style_bg_opa(ui_bar##NAME##_##MODULE, LV_OPA_COVER, MU_OBJ_INDI_DEFAULT);                            \
 } while (0)
 
 #define APPCON_ELEMENTS          \
@@ -58,6 +58,7 @@
     BACKUP(Config,     "config")     \
     BACKUP(History,    "history")    \
     BACKUP(Init,       "init")       \
+    BACKUP(Music,      "music")      \
     BACKUP(Name,       "name")       \
     BACKUP(Network,    "network")    \
     BACKUP(Overlays,   "overlays")   \
@@ -70,10 +71,12 @@
     BACKUP(Theme,      "theme")      \
     BACKUP(Track,      "track")      \
     BACKUP(Target,     "target")     \
+    BACKUP(Merge,      "merge")      \
     BACKUP(Start,      "start")
 
 #define CONNECT_ELEMENTS                \
     CONNECT(Network,     "network")     \
+    CONNECT(NetAdv,      "netadv")      \
     CONNECT(Services,    "service")     \
     CONNECT(Bluetooth,   "bluetooth")   \
     CONNECT(UsbFunction, "usbfunction")
@@ -88,23 +91,24 @@
     CONFIG(Storage,   "storage")   \
     CONFIG(Backup,    "backup")
 
-#define CUSTOM_ELEMENTS                    \
-    CUSTOM(Catalogue,       "catalogue")   \
-    CUSTOM(Config,          "config")      \
-    CUSTOM(Theme,           "theme")       \
-    CUSTOM(ThemeResolution, "resolution")  \
-    CUSTOM(ThemeAlternate,  "alternate")   \
-    CUSTOM(Animation,       "animation")   \
-    CUSTOM(Music,           "music")       \
-    CUSTOM(BlackFade,       "blackfade")   \
-    CUSTOM(LaunchSwap,      "launch_swap") \
-    CUSTOM(Shuffle,         "shuffle")     \
-    CUSTOM(BoxArtImage,     "boxart")      \
-    CUSTOM(BoxArtAlign,     "align")       \
-    CUSTOM(LaunchSplash,    "splash")      \
-    CUSTOM(BoxArtHide,      "boxarthide")  \
-    CUSTOM(Font,            "font")        \
-    CUSTOM(Sound,           "sound")       \
+#define CUSTOM_ELEMENTS                        \
+    CUSTOM(Catalogue,       "catalogue")       \
+    CUSTOM(Config,          "config")          \
+    CUSTOM(Theme,           "theme")           \
+    CUSTOM(ThemeResolution, "resolution")      \
+    CUSTOM(ThemeAlternate,  "alternate")       \
+    CUSTOM(Animation,       "animation")       \
+    CUSTOM(Music,           "music")           \
+    CUSTOM(BlackFade,       "blackfade")       \
+    CUSTOM(LaunchSwap,      "launch_swap")     \
+    CUSTOM(Shuffle,         "shuffle")         \
+    CUSTOM(BoxArtImage,     "boxart")          \
+    CUSTOM(BoxArtAlign,     "align")           \
+    CUSTOM(LaunchSplash,    "splash")          \
+    CUSTOM(GridModeContent, "gridmodecontent") \
+    CUSTOM(BoxArtHide,      "boxarthide")      \
+    CUSTOM(Font,            "font")            \
+    CUSTOM(Sound,           "sound")           \
     CUSTOM(Chime,           "chime")
 
 #define THEMEFILTER_ELEMENTS               \
@@ -171,6 +175,7 @@
     KIOSK(Network,    "network")    \
     KIOSK(Storage,    "storage")    \
     KIOSK(Backup,     "backup")     \
+    KIOSK(NetAdv,     "netadv")     \
     KIOSK(WebServ,    "webserv")    \
     KIOSK(Core,       "core")       \
     KIOSK(Governor,   "governor")   \
@@ -212,6 +217,14 @@
     LAUNCH(Reboot,     "reboot")     \
     LAUNCH(Shutdown,   "shutdown")
 
+#define NETADV_ELEMENTS            \
+    NETADV(Monitor,   "monitor")   \
+    NETADV(Boot,      "boot")      \
+    NETADV(Compat,    "compat")    \
+    NETADV(AsyncLoad, "asyncload") \
+    NETADV(Wait,      "wait")      \
+    NETADV(Retry,     "retry")
+
 #define NETINFO_ELEMENTS            \
     NETINFO(Hostname,  "hostname")  \
     NETINFO(Mac,       "mac")       \
@@ -233,8 +246,6 @@
     NETWORK(Subnet,     "subnet")     \
     NETWORK(Gateway,    "gateway")    \
     NETWORK(Dns,        "dns")        \
-    NETWORK(Monitor,    "monitor")    \
-    NETWORK(Boot,       "boot")       \
     NETWORK(Connect,    "connect")
 
 #define OPTION_ELEMENTS          \
@@ -249,16 +260,18 @@
     POWER(Battery,     "battery")      \
     POWER(IdleSleep,   "idle_sleep")   \
     POWER(IdleDisplay, "idle_display") \
-    POWER(IdleMute,    "idle_mute")
+    POWER(IdleMute,    "idle_mute")    \
+    POWER(GovIdle,     "gov_idle")     \
+    POWER(GovDefault,  "gov_default")
 
 #define RTC_ELEMENTS          \
+    RTC(Timezone, "timezone") \
     RTC(Year,     "year")     \
     RTC(Month,    "month")    \
     RTC(Day,      "day")      \
     RTC(Hour,     "hour")     \
     RTC(Minute,   "minute")   \
-    RTC(Notation, "notation") \
-    RTC(Timezone, "timezone")
+    RTC(Notation, "notation")
 
 #define SEARCH_ELEMENTS            \
     SEARCH(Lookup,       "lookup") \
@@ -278,6 +291,7 @@
     STORAGE(Collection, "collection") \
     STORAGE(History,    "history")    \
     STORAGE(Init,       "init")       \
+    STORAGE(Music,      "music")      \
     STORAGE(Name,       "name")       \
     STORAGE(Network,    "network")    \
     STORAGE(Package,    "package")    \
@@ -303,6 +317,7 @@
 
 #define TWEAKADV_ELEMENTS                \
     TWEAKADV(Accelerate,  "accelerate")  \
+    TWEAKADV(RepeatDelay, "repeat")      \
     TWEAKADV(Offset,      "offset")      \
     TWEAKADV(Swap,        "swap")        \
     TWEAKADV(Volume,      "volume")      \
@@ -323,7 +338,9 @@
     TWEAKADV(Swapfile,    "swapfile")    \
     TWEAKADV(Zramfile,    "zramfile")    \
     TWEAKADV(SecondPart,  "secondpart")  \
-    TWEAKADV(UsbPart,     "usbpart")
+    TWEAKADV(UsbPart,     "usbpart")     \
+    TWEAKADV(IncBright,   "incbright")   \
+    TWEAKADV(IncVolume,   "invvolume")
 
 #define TWEAKGEN_ELEMENTS              \
     TWEAKGEN(Rtc,        "clock")      \
@@ -333,6 +350,8 @@
     TWEAKGEN(Volume,     "volume")     \
     TWEAKGEN(Colour,     "colour")     \
     TWEAKGEN(Rgb,        "rgb")        \
+    TWEAKGEN(HkDpad,     "hkdpad")     \
+    TWEAKGEN(HkShot,     "hkshot")     \
     TWEAKGEN(Startup,    "startup")
 
 #define VISUAL_ELEMENTS                                    \

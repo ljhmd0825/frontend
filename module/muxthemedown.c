@@ -48,7 +48,7 @@ static void image_refresh(char *image_type) {
 
     LOG_INFO(mux_module, "Loading '%s' Artwork: %s", image_type, image)
 
-    if (!strcasecmp(image_type, "preview")) {
+    if (strcasecmp(image_type, "preview") == 0) {
         if (strcasecmp(preview_image_previous_path, image) != 0) {
             if (file_exist(image)) {
                 struct ImageSettings image_settings = {
@@ -377,7 +377,7 @@ static void init_elements(void) {
             {ui_lblNavX,      lang.MUXTHEMEDOWN.REFRESH,  0},
             {ui_lblNavYGlyph, "",                         0},
             {ui_lblNavY,      lang.GENERIC.FILTER,        0},
-            {NULL, NULL,                                  0}
+            {NULL,            NULL,                       0}
     });
 
     overlay_display();

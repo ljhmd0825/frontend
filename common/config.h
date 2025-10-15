@@ -30,8 +30,6 @@ struct mux_config {
         char GATEWAY[MAX_BUFFER_SIZE];
         char SUBNET[MAX_BUFFER_SIZE];
         char DNS[MAX_BUFFER_SIZE];
-        int16_t MONITOR;
-        int16_t BOOT;
     } NETWORK;
 
     struct {
@@ -68,6 +66,7 @@ struct mux_config {
     struct {
         struct {
             int16_t ACCELERATE;
+            int16_t REPEAT_DELAY;
             int16_t SWAP;
             int16_t THERMAL;
             int16_t FONT;
@@ -89,6 +88,8 @@ struct mux_config {
             int16_t ZRAMFILE;
             int16_t LIDSWITCH;
             int16_t DISPSUSPEND;
+            int16_t INCBRIGHT;
+            int16_t INCVOLUME;
         } ADVANCED;
         struct {
             int16_t HIDDEN;
@@ -104,6 +105,8 @@ struct mux_config {
             int16_t THEME_RESOLUTION;
             int16_t THEME_RESOLUTION_WIDTH;
             int16_t THEME_RESOLUTION_HEIGHT;
+            int16_t HKDPAD;
+            int16_t HKSHOT;
         } GENERAL;
         struct {
             int16_t RESOLUTION;
@@ -114,6 +117,14 @@ struct mux_config {
             int16_t AUDIO;
         } HDMI;
         struct {
+            int16_t MONITOR;
+            int16_t BOOT;
+            int16_t COMPAT;
+            int16_t ASYNCLOAD;
+            int16_t WAIT;
+            int16_t RETRY;
+        } NETWORK;
+        struct {
             int16_t LOW_BATTERY;
             int16_t SHUTDOWN;
             struct {
@@ -121,6 +132,10 @@ struct mux_config {
                 int16_t SLEEP;
                 int16_t MUTE;
             } IDLE;
+            struct {
+                char DEFAULT[MAX_BUFFER_SIZE];
+                char IDLE[MAX_BUFFER_SIZE];
+            } GOV;
         } POWER;
     } SETTINGS;
 
@@ -131,6 +146,7 @@ struct mux_config {
         int16_t CLOCK;
         int16_t OVERLAY_IMAGE;
         int16_t OVERLAY_TRANSPARENCY;
+        int16_t GRID_MODE_CONTENT;
         int16_t BOX_ART;
         int16_t BOX_ART_ALIGN;
         int16_t BOX_ART_HIDE;

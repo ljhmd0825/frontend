@@ -20,6 +20,7 @@ struct mux_kiosk {
         int16_t NETWORK;
         int16_t STORAGE;
         int16_t WEB_SERVICES;
+        int16_t NET_SETTINGS;
         int16_t BACKUP;
     } CONFIG;
 
@@ -34,7 +35,7 @@ struct mux_kiosk {
         int16_t HISTORY;
     } CONTENT;
 
-    struct {;
+    struct {
         int16_t ADD_CON;
         int16_t NEW_DIR;
         int16_t REMOVE;

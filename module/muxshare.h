@@ -36,7 +36,6 @@
 #include "../common/collection.h"
 #include "../common/passcode.h"
 #include "../common/timezone.h"
-#include "../common/img/missing.h"
 #include "../common/img/nothing.h"
 #include "../common/input/list_nav.h"
 #include "../common/json/json.h"
@@ -71,6 +70,13 @@ extern lv_group_t *ui_group_value;
 extern char box_image_previous_path[MAX_BUFFER_SIZE];
 extern char preview_image_previous_path[MAX_BUFFER_SIZE];
 extern char splash_image_previous_path[MAX_BUFFER_SIZE];
+extern char sys_dir[MAX_BUFFER_SIZE];
+
+enum passcode_type {
+    PCT_BOOT,
+    PCT_CONFIG,
+    PCT_LAUNCH
+};
 
 int is_ksk(int k);
 
@@ -152,6 +158,8 @@ int muxlanguage_main();
 
 int muxlaunch_main();
 
+int muxnetadv_main();
+
 int muxnetinfo_main();
 
 int muxnetprofile_main();
@@ -162,7 +170,7 @@ int muxnetwork_main();
 
 int muxoption_main(int nothing, char *name, char *dir, char *sys, int app);
 
-int muxpass_main(char *p_type);
+int muxpass_main(int auth_type);
 
 int muxpicker_main(char *type, char *ex_dir);
 
@@ -178,7 +186,7 @@ int muxshot_main();
 
 int muxspace_main();
 
-int muxsplash_main(char *splash_image);
+int muxsplash_main(char *splash_image, bool apply_recolour);
 
 int muxstorage_main();
 
@@ -329,6 +337,15 @@ int muxwebserv_main();
             is_modified++;                                                            \
             write_text_to_file((CONF_DEVICE_PATH FILE), "w", TYPE, current + OFFSET); \
         }                                                                             \
+    } while (0)
+
+#define CHECK_AND_SAVE_DEV_VAL(MODULE, NAME, FILE, TYPE, VALUES)                     \
+    do {                                                                             \
+        int current = lv_dropdown_get_selected(ui_dro##NAME##_##MODULE);             \
+        if (current != NAME##_original) {                                            \
+            is_modified++;                                                           \
+            write_text_to_file((CONF_DEVICE_PATH FILE), "w", TYPE, VALUES[current]); \
+        }                                                                            \
     } while (0)
 
 #define CHECK_AND_SAVE_VAL(MODULE, NAME, FILE, TYPE, VALUES)                         \

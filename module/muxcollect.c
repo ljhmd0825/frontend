@@ -4,8 +4,7 @@
 static lv_obj_t *ui_imgSplash;
 static lv_obj_t *ui_viewport_objects[7];
 
-static char *prev_dir = "";
-static char sys_dir[MAX_BUFFER_SIZE];
+static char prev_dir[MAX_BUFFER_SIZE];
 static char new_dir[MAX_BUFFER_SIZE];
 
 static int exit_status = 0;
@@ -85,13 +84,12 @@ static void image_refresh(char *image_type) {
                      STORAGE_THEME, image_type);
         }
     } else {
-        if (strcasecmp(image_type, "box") || items[current_item_index].content_type != FOLDER ||
-            !grid_mode_enabled || !config.VISUAL.BOX_ART_HIDE) {
+        if (strcasecmp(image_type, "box") || !grid_mode_enabled || !config.VISUAL.BOX_ART_HIDE) {
             load_image_catalogue(h_core_artwork, h_file_name, "", "default",
                                  mux_dimension, image_type, image, sizeof(image));
         }
 
-        if (!strcasecmp(image_type, "splash") && !file_exist(image)) {
+        if (strcasecmp(image_type, "splash") == 0 && !file_exist(image)) {
             load_splash_image_fallback(mux_dimension, image, sizeof(image));
         }
     }
@@ -103,8 +101,8 @@ static void image_refresh(char *image_type) {
             if (file_exist(image)) {
                 struct ImageSettings image_settings = {
                         image, LV_ALIGN_CENTER,
-                        validate_int16((int16_t) (device.MUX.WIDTH * .9) - 60, "width"),
-                        validate_int16((int16_t) (device.MUX.HEIGHT * .9) - 120, "height"),
+                        validate_int16((int16_t)(device.MUX.WIDTH * .9) - 60, "width"),
+                        validate_int16((int16_t)(device.MUX.HEIGHT * .9) - 120, "height"),
                         0, 0, 0, 0
                 };
                 update_image(ui_imgHelpPreviewImage, image_settings);
@@ -284,6 +282,8 @@ static void gen_item(int file_count, char **file_names, char **last_dirs) {
 
     sort_items(items, item_count);
 
+    if (grid_mode_enabled) return;
+
     for (size_t i = 0; i < item_count; i++) {
         if (items[i].content_type == ITEM) {
             gen_label(mux_module, "collection", items[i].display_name);
@@ -301,30 +301,9 @@ static void init_navigation_group_grid(void) {
     for (size_t i = 0; i < item_count; i++) {
         if (strcasecmp(items[i].name, prev_dir) == 0) sys_index = (int) i;
 
-        uint8_t col = i % theme.GRID.COLUMN_COUNT;
-        uint8_t row = i / theme.GRID.COLUMN_COUNT;
-
-        lv_obj_t *cell_panel = lv_obj_create(ui_pnlGrid);
-        lv_obj_t *cell_image = lv_img_create(cell_panel);
-        lv_obj_t *cell_label = lv_label_create(cell_panel);
-
-        char grid_image[MAX_BUFFER_SIZE];
-        load_image_catalogue("Collection", strip_ext(items[i].name), "", "default", mux_dimension, "grid",
-                             grid_image, sizeof(grid_image));
-
-        char glyph_name_focused[MAX_BUFFER_SIZE];
-        snprintf(glyph_name_focused, sizeof(glyph_name_focused), "%s_focused", strip_ext(items[i].name));
-
-        char grid_image_focused[MAX_BUFFER_SIZE];
-        load_image_catalogue("Collection", glyph_name_focused, "", "default_focused", mux_dimension, "grid",
-                             grid_image_focused, sizeof(grid_image_focused));
-
-        create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
-                         grid_image, grid_image_focused, items[i].display_name);
-
-        lv_group_add_obj(ui_group, cell_label);
-        lv_group_add_obj(ui_group_glyph, cell_image);
-        lv_group_add_obj(ui_group_panel, cell_panel);
+        if (i < theme.GRID.COLUMN_COUNT * theme.GRID.ROW_COUNT) {
+            gen_grid_item(i);
+        }
     }
 }
 
@@ -337,6 +316,8 @@ static void create_collection_items(void) {
 
     int fn_valid = 0;
     struct json fn_json = {0};
+
+    turbo_time(1);
 
     if (config.VISUAL.FRIENDLYFOLDER) {
         char folder_name_file[MAX_BUFFER_SIZE];
@@ -386,9 +367,12 @@ static void create_collection_items(void) {
         sort_items(items, item_count);
         check_for_disable_grid_file(sys_dir);
 
-        if (!nogrid_file_exists && theme.GRID.ENABLED && dir_count > 0 && file_count == 0) {
-            init_navigation_group_grid();
-        } else {
+        grid_mode_enabled = !nogrid_file_exists && theme.GRID.ENABLED &&
+        (
+            (file_count > 0 && config.VISUAL.GRID_MODE_CONTENT) ||
+            (dir_count > 0 && file_count == 0)
+        );
+        if (!grid_mode_enabled) {
             for (int i = 0; i < dir_count; i++) {
                 gen_label(mux_module, "folder", items[i].display_name);
                 if (strcasecmp(items[i].name, prev_dir) == 0) sys_index = i;
@@ -397,11 +381,17 @@ static void create_collection_items(void) {
 
         gen_item(file_count, file_names, last_dirs);
 
+        if (grid_mode_enabled) {
+            init_navigation_group_grid();
+        }
+
         if (ui_count > 0) lv_obj_update_layout(ui_pnlContent);
 
         free(file_names);
         free(dir_names);
     }
+
+    turbo_time(0);
 }
 
 static void update_footer_glyph(void) {
@@ -415,7 +405,7 @@ static void list_nav_move(int steps, int direction) {
     first_open ? (first_open = 0) : play_sound(SND_NAVIGATE);
 
     for (int step = 0; step < steps; ++step) {
-        apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group));
+        if (!grid_mode_enabled) apply_text_long_dot(&theme, ui_pnlContent, lv_group_get_focused(ui_group));
 
         if (direction < 0) {
             current_item_index = (current_item_index == 0) ? ui_count - 1 : current_item_index - 1;
@@ -426,17 +416,16 @@ static void list_nav_move(int steps, int direction) {
         nav_move(ui_group, direction);
         nav_move(ui_group_glyph, direction);
         nav_move(ui_group_panel, direction);
+        
+        if (grid_mode_enabled) update_grid(direction);
     }
 
-    if (grid_mode_enabled) {
-        update_grid_scroll_position(theme.GRID.COLUMN_COUNT, theme.GRID.ROW_COUNT, theme.GRID.ROW_HEIGHT,
-                                    current_item_index, ui_pnlGrid);
-    } else {
+    if (!grid_mode_enabled) {
         update_scroll_position(theme.MUX.ITEM.COUNT, theme.MUX.ITEM.PANEL, ui_count,
                                current_item_index, ui_pnlContent);
     }
 
-    set_label_long_mode(&theme, lv_group_get_focused(ui_group));
+    if (!grid_mode_enabled) set_label_long_mode(&theme, lv_group_get_focused(ui_group));
     lv_label_set_text(ui_lblGridCurrentItem, items[current_item_index].display_name);
 
     image_refresh("box");
@@ -510,6 +499,25 @@ static void add_collection_item(void) {
     if (file_exist(COLLECTION_DIR)) remove(COLLECTION_DIR);
 }
 
+static void show_splash() {
+    if (config.VISUAL.LAUNCHSPLASH) {
+        image_refresh("splash");
+        if (splash_valid) {
+            lv_obj_center(ui_imgSplash);
+            lv_obj_move_foreground(ui_imgSplash);
+            lv_obj_move_foreground(overlay_image);
+
+            for (unsigned int i = 0; i <= 255; i += 15) {
+                lv_obj_set_style_img_opa(ui_imgSplash, i, MU_OBJ_MAIN_DEFAULT);
+                lv_task_handler();
+                usleep(128);
+            }
+
+            sleep(1);
+        }
+    }
+}
+
 static void process_load(int from_start) {
     if (key_show) {
         handle_keyboard_press();
@@ -532,11 +540,11 @@ static void process_load(int from_start) {
 
     play_sound(SND_CONFIRM);
 
-    int load_message;
+    int load_message = 0;
 
     if (add_mode && !ui_count) {
         add_collection_item();
-        goto acq;
+        goto load_end;
     }
 
     if (items[current_item_index].content_type == FOLDER) {
@@ -548,10 +556,9 @@ static void process_load(int from_start) {
 
         write_text_to_file(COLLECTION_DIR, "w", CHAR, n_dir);
     } else {
-        load_message = 0;
         if (add_mode) {
             add_collection_item();
-            goto acq;
+            goto load_end;
         } else {
             write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
 
@@ -559,25 +566,34 @@ static void process_load(int from_start) {
             char *item_file_name = get_last_dir(strdup(items[current_item_index].extra_data));
 
             if (load_content(0, item_dir, item_file_name)) {
-                if (config.VISUAL.LAUNCHSPLASH) {
-                    image_refresh("splash");
-                    if (splash_valid) {
-                        lv_obj_center(ui_imgSplash);
-                        lv_obj_move_foreground(ui_imgSplash);
-                        lv_obj_move_foreground(overlay_image);
+                if (config.SETTINGS.ADVANCED.LOCK) {
+                    int result = 0;
 
-                        for (unsigned int i = 0; i <= 255; i += 15) {
-                            lv_obj_set_style_img_opa(ui_imgSplash, i, MU_OBJ_MAIN_DEFAULT);
-                            lv_task_handler();
-                            usleep(128);
+                    while (result != 1) {
+                        result = muxpass_main(PCT_LAUNCH);
+
+                        switch (result) {
+                            case 1:
+                                show_splash();
+                                config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
+                                exit_status = 1;
+                                break;
+                            case 2:
+                            default:
+                                if (file_exist(MUOS_ROM_LOAD)) remove(MUOS_ROM_LOAD);
+                                if (file_exist(MUOS_CON_LOAD)) remove(MUOS_CON_LOAD);
+                                if (file_exist(MUOS_GOV_LOAD)) remove(MUOS_GOV_LOAD);
+
+                                write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
+
+                                goto load_end;
                         }
-
-                        sleep(1);
                     }
+                } else {
+                    show_splash();
+                    config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
+                    exit_status = 1;
                 }
-
-                config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
-                exit_status = 1;
             } else {
                 write_text_to_file(MUOS_IDX_LOAD, "w", INT, current_item_index);
                 write_text_to_file(MUOS_ASS_FROM, "w", CHAR, "collection");
@@ -598,7 +614,7 @@ static void process_load(int from_start) {
         usleep(256);
     }
 
-    acq:
+    load_end:
     if (file_exist(ADD_MODE_DONE)) {
         load_mux(read_all_char_from(ADD_MODE_FROM));
     } else {
@@ -732,7 +748,13 @@ static void handle_random_select(void) {
     int dir, target;
     shuffle_index(current_item_index, &dir, &target);
 
-    list_nav_move(target, dir);
+    if (grid_mode_enabled) {
+        current_item_index = target;
+        update_grid_items(1);
+        list_nav_next(0);
+    } else {
+        list_nav_move(target, dir);
+    }
 }
 
 static void handle_up(void) {
@@ -809,7 +831,7 @@ static void init_elements(void) {
             {ui_lblNavY,         lang.GENERIC.NEW,    0},
             {ui_lblNavMenuGlyph, "",                  0},
             {ui_lblNavMenu,      lang.GENERIC.INFO,   0},
-            {NULL, NULL,                              0}
+            {NULL,               NULL,                0}
     });
 
     overlay_display();
@@ -892,12 +914,12 @@ int muxcollect_main(int add, char *dir, int last_index) {
     ui_group_glyph = lv_group_create();
     ui_group_panel = lv_group_create();
 
-    if (file_exist(MUOS_PDI_LOAD)) prev_dir = read_all_char_from(MUOS_PDI_LOAD);
+    snprintf(prev_dir, sizeof(prev_dir), "%s", (file_exist(MUOS_PDI_LOAD)) ? read_all_char_from(MUOS_PDI_LOAD) : "");
 
     create_collection_items();
     init_elements();
 
-    ui_count = dir_count > 0 || file_count > 0 ? (int) lv_group_get_obj_count(ui_group) : 0;
+    ui_count = (int) item_count;
 
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, get_last_dir(sys_dir));
     if (strcasecmp(read_all_char_from(MUOS_PDI_LOAD), "ROMS") == 0) {

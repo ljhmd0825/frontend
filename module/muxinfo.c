@@ -40,7 +40,7 @@ static void init_navigation_group(void) {
         lv_group_add_obj(ui_group_panel, ui_objects_panel[i]);
     }
 
-    if (!device.DEVICE.HAS_NETWORK) HIDE_STATIC_ITEM(info, NetInfo);
+    if (!device.BOARD.HAS_NETWORK) HIDE_STATIC_ITEM(info, NetInfo);
 
     list_nav_move(direct_to_previous(ui_objects, UI_COUNT, &nav_moved), +1);
 }
@@ -145,7 +145,7 @@ static void init_elements(void) {
             {ui_lblNavA,      lang.GENERIC.SELECT, 0},
             {ui_lblNavBGlyph, "",                  0},
             {ui_lblNavB,      lang.GENERIC.BACK,   0},
-            {NULL, NULL,                           0}
+            {NULL,            NULL,                0}
     });
 
 #define INFO(NAME, UDATA) lv_obj_set_user_data(ui_lbl##NAME##_info, UDATA);

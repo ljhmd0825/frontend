@@ -29,6 +29,7 @@ struct mux_lang {
 
     struct {
         char BACK[MAX_BUFFER_SIZE];
+        char CHECK[MAX_BUFFER_SIZE];
         char TOP[MAX_BUFFER_SIZE];
         char CLEAR[MAX_BUFFER_SIZE];
         char CLOSE[MAX_BUFFER_SIZE];
@@ -124,6 +125,7 @@ struct mux_lang {
         char CONFIG[MAX_BUFFER_SIZE];
         char HISTORY[MAX_BUFFER_SIZE];
         char INIT[MAX_BUFFER_SIZE];
+        char MUSIC[MAX_BUFFER_SIZE];;
         char NAME[MAX_BUFFER_SIZE];
         char NETWORK[MAX_BUFFER_SIZE];
         char OVERLAYS[MAX_BUFFER_SIZE];
@@ -136,6 +138,7 @@ struct mux_lang {
         char THEME[MAX_BUFFER_SIZE];
         char TRACK[MAX_BUFFER_SIZE];
         char TARGET[MAX_BUFFER_SIZE];
+        char MERGE[MAX_BUFFER_SIZE];
         char START[MAX_BUFFER_SIZE];
         struct {
             char APPS[MAX_BUFFER_SIZE];
@@ -146,6 +149,7 @@ struct mux_lang {
             char CONFIG[MAX_BUFFER_SIZE];
             char HISTORY[MAX_BUFFER_SIZE];
             char INIT[MAX_BUFFER_SIZE];
+            char MUSIC[MAX_BUFFER_SIZE];;
             char NAME[MAX_BUFFER_SIZE];
             char NETWORK[MAX_BUFFER_SIZE];
             char OVERLAYS[MAX_BUFFER_SIZE];
@@ -158,6 +162,7 @@ struct mux_lang {
             char THEME[MAX_BUFFER_SIZE];
             char TRACK[MAX_BUFFER_SIZE];
             char TARGET[MAX_BUFFER_SIZE];
+            char MERGE[MAX_BUFFER_SIZE];
             char START[MAX_BUFFER_SIZE];
         } HELP;
     } MUXBACKUP;
@@ -204,6 +209,7 @@ struct mux_lang {
     struct {
         char TITLE[MAX_BUFFER_SIZE];
         char BLUETOOTH[MAX_BUFFER_SIZE];
+        char NETADV[MAX_BUFFER_SIZE];
         char WEB[MAX_BUFFER_SIZE];
         char USB[MAX_BUFFER_SIZE];
         char WIFI[MAX_BUFFER_SIZE];
@@ -211,6 +217,7 @@ struct mux_lang {
         char MTP[MAX_BUFFER_SIZE];
         struct {
             char BLUETOOTH[MAX_BUFFER_SIZE];
+            char NETADV[MAX_BUFFER_SIZE];
             char WEB[MAX_BUFFER_SIZE];
             char USB[MAX_BUFFER_SIZE];
             char WIFI[MAX_BUFFER_SIZE];
@@ -226,6 +233,7 @@ struct mux_lang {
     struct {
         char CATALOGUE[MAX_BUFFER_SIZE];
         char CONFIG[MAX_BUFFER_SIZE];
+        char GRID_MODE_CONTENT[MAX_BUFFER_SIZE];
         char THEME_DOWN[MAX_BUFFER_SIZE];
         char THEME[MAX_BUFFER_SIZE];
         char THEME_RES[MAX_BUFFER_SIZE];
@@ -282,6 +290,7 @@ struct mux_lang {
         struct {
             char CATALOGUE[MAX_BUFFER_SIZE];
             char CONFIG[MAX_BUFFER_SIZE];
+            char GRID_MODE_CONTENT[MAX_BUFFER_SIZE];
             char THEME_DOWN[MAX_BUFFER_SIZE];
             char THEME[MAX_BUFFER_SIZE];
             char THEME_RES[MAX_BUFFER_SIZE];
@@ -470,6 +479,7 @@ struct mux_lang {
         char NETWORK[MAX_BUFFER_SIZE];
         char STORAGE[MAX_BUFFER_SIZE];
         char BACKUP[MAX_BUFFER_SIZE];
+        char NETADV[MAX_BUFFER_SIZE];
         char WEBSERV[MAX_BUFFER_SIZE];
         char CORE[MAX_BUFFER_SIZE];
         char GOVERNOR[MAX_BUFFER_SIZE];
@@ -514,6 +524,7 @@ struct mux_lang {
             char NETWORK[MAX_BUFFER_SIZE];
             char STORAGE[MAX_BUFFER_SIZE];
             char BACKUP[MAX_BUFFER_SIZE];
+            char NETADV[MAX_BUFFER_SIZE];
             char WEBSERV[MAX_BUFFER_SIZE];
             char CORE[MAX_BUFFER_SIZE];
             char GOVERNOR[MAX_BUFFER_SIZE];
@@ -599,6 +610,24 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
+        char MONITOR[MAX_BUFFER_SIZE];
+        char BOOT[MAX_BUFFER_SIZE];
+        char COMPAT[MAX_BUFFER_SIZE];
+        char ASYNCLOAD[MAX_BUFFER_SIZE];
+        char WAIT[MAX_BUFFER_SIZE];
+        char RETRY[MAX_BUFFER_SIZE];
+        struct {
+            char MONITOR[MAX_BUFFER_SIZE];
+            char BOOT[MAX_BUFFER_SIZE];
+            char COMPAT[MAX_BUFFER_SIZE];
+            char ASYNCLOAD[MAX_BUFFER_SIZE];
+            char WAIT[MAX_BUFFER_SIZE];
+            char RETRY[MAX_BUFFER_SIZE];
+        } HELP;
+    } MUXNETADV;
+
+    struct {
+        char TITLE[MAX_BUFFER_SIZE];
         char HOSTNAME[MAX_BUFFER_SIZE];
         char MAC[MAX_BUFFER_SIZE];
         char IP[MAX_BUFFER_SIZE];
@@ -645,8 +674,6 @@ struct mux_lang {
 
     struct {
         char TITLE[MAX_BUFFER_SIZE];
-        char MONITOR[MAX_BUFFER_SIZE];
-        char BOOT[MAX_BUFFER_SIZE];
         char CONNECT[MAX_BUFFER_SIZE];
         char DISCONNECT[MAX_BUFFER_SIZE];
         char CONNECTED[MAX_BUFFER_SIZE];
@@ -677,9 +704,8 @@ struct mux_lang {
             char SSID[MAX_BUFFER_SIZE];
             char GATEWAY[MAX_BUFFER_SIZE];
             char CIDR[MAX_BUFFER_SIZE];
+            char DNS[MAX_BUFFER_SIZE];
             char IP[MAX_BUFFER_SIZE];
-            char MONITOR[MAX_BUFFER_SIZE];
-            char BOOT[MAX_BUFFER_SIZE];
             char CONNECT[MAX_BUFFER_SIZE];
         } HELP;
     } MUXNETWORK;
@@ -776,11 +802,19 @@ struct mux_lang {
             char t60m[MAX_BUFFER_SIZE];
         } SLEEP;
         struct {
+            char DEFAULT[MAX_BUFFER_SIZE];
+            char IDLE[MAX_BUFFER_SIZE];
+        } GOV;
+        struct {
             struct {
                 char DISPLAY[MAX_BUFFER_SIZE];
                 char SLEEP[MAX_BUFFER_SIZE];
                 char MUTE[MAX_BUFFER_SIZE];
             } IDLE;
+            struct {
+                char DEFAULT[MAX_BUFFER_SIZE];
+                char IDLE[MAX_BUFFER_SIZE];
+            } GOV;
             char LOW_BATTERY[MAX_BUFFER_SIZE];
             char SLEEP_FUNCTION[MAX_BUFFER_SIZE];
         } HELP;
@@ -837,6 +871,7 @@ struct mux_lang {
         char COLLECTION[MAX_BUFFER_SIZE];
         char HISTORY[MAX_BUFFER_SIZE];
         char INIT[MAX_BUFFER_SIZE];
+        char MUSIC[MAX_BUFFER_SIZE];;
         char NAME[MAX_BUFFER_SIZE];;
         char NETWORK[MAX_BUFFER_SIZE];
         char PACKAGE[MAX_BUFFER_SIZE];
@@ -852,6 +887,7 @@ struct mux_lang {
             char COLLECTION[MAX_BUFFER_SIZE];
             char HISTORY[MAX_BUFFER_SIZE];
             char INIT[MAX_BUFFER_SIZE];
+            char MUSIC[MAX_BUFFER_SIZE];;
             char NAME[MAX_BUFFER_SIZE];;
             char NETWORK[MAX_BUFFER_SIZE];
             char PACKAGE[MAX_BUFFER_SIZE];
@@ -965,6 +1001,7 @@ struct mux_lang {
     struct {
         char TITLE[MAX_BUFFER_SIZE];
         char SPEED[MAX_BUFFER_SIZE];
+        char REPEAT_DELAY[MAX_BUFFER_SIZE];
         char THERMAL[MAX_BUFFER_SIZE];
         char OFFSET[MAX_BUFFER_SIZE];
         char LOCK[MAX_BUFFER_SIZE];
@@ -982,6 +1019,8 @@ struct mux_lang {
         char DISPSUSPEND[MAX_BUFFER_SIZE];
         char SECONDPART[MAX_BUFFER_SIZE];
         char USBPART[MAX_BUFFER_SIZE];
+        char INCBRIGHT[MAX_BUFFER_SIZE];
+        char INCVOLUME[MAX_BUFFER_SIZE];
         struct {
             char TITLE[MAX_BUFFER_SIZE];
             char RETRO[MAX_BUFFER_SIZE];
@@ -1010,6 +1049,7 @@ struct mux_lang {
         } RUMBLE;
         struct {
             char SPEED[MAX_BUFFER_SIZE];
+            char REPEAT_DELAY[MAX_BUFFER_SIZE];
             char THERMAL[MAX_BUFFER_SIZE];
             char OFFSET[MAX_BUFFER_SIZE];
             char LOCK[MAX_BUFFER_SIZE];
@@ -1031,6 +1071,8 @@ struct mux_lang {
             char DISPSUSPEND[MAX_BUFFER_SIZE];
             char SECONDPART[MAX_BUFFER_SIZE];
             char USBPART[MAX_BUFFER_SIZE];
+            char INCBRIGHT[MAX_BUFFER_SIZE];
+            char INCVOLUME[MAX_BUFFER_SIZE];
         } HELP;
     } MUXTWEAKADV;
 
@@ -1043,6 +1085,8 @@ struct mux_lang {
         char HDMI[MAX_BUFFER_SIZE];
         char ADVANCED[MAX_BUFFER_SIZE];
         char RGB[MAX_BUFFER_SIZE];
+        char HKDPAD[MAX_BUFFER_SIZE];
+        char HKSHOT[MAX_BUFFER_SIZE];
         struct {
             char TITLE[MAX_BUFFER_SIZE];
             char MENU[MAX_BUFFER_SIZE];
@@ -1062,6 +1106,8 @@ struct mux_lang {
             char HDMI[MAX_BUFFER_SIZE];
             char ADVANCED[MAX_BUFFER_SIZE];
             char RGB[MAX_BUFFER_SIZE];
+            char HKDPAD[MAX_BUFFER_SIZE];
+            char HKSHOT[MAX_BUFFER_SIZE];
         } HELP;
     } MUXTWEAKGEN;
 

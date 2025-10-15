@@ -19,7 +19,7 @@ static void populate_languages(void) {
     while ((entry = readdir(dir))) {
         if (entry->d_type == DT_REG) {
             size_t len = strlen(entry->d_name);
-            if (len > 5 && !strcasecmp(entry->d_name + len - 5, ".json")) {
+            if (len > 5 && strcasecmp(entry->d_name + len - 5, ".json") == 0) {
                 entry->d_name[len - 5] = '\0';
                 add_item(&items, &item_count, entry->d_name, TS(entry->d_name), "", ITEM);
             }
@@ -179,14 +179,14 @@ static void init_elements(void) {
             {ui_lblNavA,      lang.GENERIC.SELECT, 1},
             {ui_lblNavBGlyph, "",                  0},
             {ui_lblNavB,      lang.GENERIC.BACK,   0},
-            {NULL, NULL,                           0}
+            {NULL,            NULL,                0}
     });
 
-    if (device.DEVICE.HAS_NETWORK && is_network_connected()) {
+    if (device.BOARD.HAS_NETWORK && is_network_connected()) {
         setup_nav((struct nav_bar[]) {
                 {ui_lblNavXGlyph, "",                       0},
                 {ui_lblNavX,      lang.MUXLANGUAGE.REFRESH, 0},
-                {NULL, NULL,                                0}
+                {NULL,            NULL,                     0}
         });
     }
 

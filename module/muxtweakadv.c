@@ -1,7 +1,7 @@
 #include "muxshare.h"
 #include "ui/ui_muxtweakadv.h"
 
-#define UI_COUNT 22
+#define UI_COUNT 25
 
 #define TWEAKADV(NAME, UDATA) static int NAME##_original;
 TWEAKADV_ELEMENTS
@@ -10,6 +10,7 @@ TWEAKADV_ELEMENTS
 static void show_help(lv_obj_t *element_focused) {
     struct help_msg help_messages[] = {
             {ui_lblAccelerate_tweakadv,  lang.MUXTWEAKADV.HELP.SPEED},
+            {ui_lblRepeatDelay_tweakadv, lang.MUXTWEAKADV.HELP.REPEAT_DELAY},
             {ui_lblOffset_tweakadv,      lang.MUXTWEAKADV.HELP.OFFSET},
             {ui_lblSwap_tweakadv,        lang.MUXTWEAKADV.HELP.SWAP},
             {ui_lblVolume_tweakadv,      lang.MUXTWEAKADV.HELP.VOLUME},
@@ -31,6 +32,8 @@ static void show_help(lv_obj_t *element_focused) {
             {ui_lblZramfile_tweakadv,    lang.MUXTWEAKADV.HELP.ZRAMFILE},
             {ui_lblSecondPart_tweakadv,  lang.MUXTWEAKADV.HELP.SECONDPART},
             {ui_lblUsbPart_tweakadv,     lang.MUXTWEAKADV.HELP.USBPART},
+            {ui_lblIncBright_tweakadv,   lang.MUXTWEAKADV.HELP.INCBRIGHT},
+            {ui_lblIncVolume_tweakadv,   lang.MUXTWEAKADV.HELP.INCVOLUME},
     };
 
     gen_help(element_focused, help_messages, A_SIZE(help_messages));
@@ -44,14 +47,14 @@ static void init_dropdown_settings(void) {
 
 static void restore_tweak_options(void) {
     lv_dropdown_set_selected(ui_droVolume_tweakadv,
-                             !strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "silent") ? 1 :
-                             !strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "soft") ? 2 :
-                             !strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "loud") ? 3 : 0);
+                             strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "silent") == 0 ? 1 :
+                             strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "soft") == 0 ? 2 :
+                             strcasecmp(config.SETTINGS.ADVANCED.VOLUME, "loud") == 0 ? 3 : 0);
 
     lv_dropdown_set_selected(ui_droBrightness_tweakadv,
-                             !strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "low") ? 1 :
-                             !strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "medium") ? 2 :
-                             !strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "high") ? 3 : 0);
+                             strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "low") == 0 ? 1 :
+                             strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "medium") == 0 ? 2 :
+                             strcasecmp(config.SETTINGS.ADVANCED.BRIGHTNESS, "high") == 0 ? 3 : 0);
 
     lv_dropdown_set_selected(ui_droSwap_tweakadv, config.SETTINGS.ADVANCED.SWAP);
     lv_dropdown_set_selected(ui_droOffset_tweakadv, config.SETTINGS.ADVANCED.OFFSET);
@@ -70,8 +73,11 @@ static void restore_tweak_options(void) {
     lv_dropdown_set_selected(ui_droDispSuspend_tweakadv, config.SETTINGS.ADVANCED.DISPSUSPEND);
     lv_dropdown_set_selected(ui_droSecondPart_tweakadv, device.STORAGE.SDCARD.PARTITION - 1);
     lv_dropdown_set_selected(ui_droUsbPart_tweakadv, device.STORAGE.USB.PARTITION - 1);
+    lv_dropdown_set_selected(ui_droIncBright_tweakadv, config.SETTINGS.ADVANCED.INCBRIGHT - 1);
+    lv_dropdown_set_selected(ui_droIncVolume_tweakadv, config.SETTINGS.ADVANCED.INCVOLUME - 1);
 
     map_drop_down_to_index(ui_droAccelerate_tweakadv, config.SETTINGS.ADVANCED.ACCELERATE, accelerate_values, 17, 6);
+    map_drop_down_to_index(ui_droRepeatDelay_tweakadv, config.SETTINGS.ADVANCED.REPEAT_DELAY, repeat_delay_values, 33, 13);
     map_drop_down_to_index(ui_droSwapfile_tweakadv, config.SETTINGS.ADVANCED.SWAPFILE, zram_swap_values, 11, 0);
     map_drop_down_to_index(ui_droZramfile_tweakadv, config.SETTINGS.ADVANCED.ZRAMFILE, zram_swap_values, 11, 0);
 }
@@ -111,10 +117,27 @@ static void save_tweak_options(void) {
         }
     } while (0);
 
+    do {
+        int bright_current = lv_dropdown_get_selected(ui_droIncBright_tweakadv);
+        if (bright_current != IncBright_original) {
+            is_modified++;
+            write_text_to_file((CONF_CONFIG_PATH "settings/advanced/incbright"), "w", INT, bright_current + 1);
+        }
+    } while (0);
+
+    do {
+        int volume_current = lv_dropdown_get_selected(ui_droIncVolume_tweakadv);
+        if (volume_current != IncVolume_original) {
+            is_modified++;
+            write_text_to_file((CONF_CONFIG_PATH "settings/advanced/incvolume"), "w", INT, volume_current + 1);
+        }
+    } while (0);
+
     CHECK_AND_SAVE_VAL(tweakadv, Volume, "settings/advanced/volume", CHAR, volume_values);
     CHECK_AND_SAVE_VAL(tweakadv, Brightness, "settings/advanced/brightness", CHAR, brightness_values);
 
     CHECK_AND_SAVE_MAP(tweakadv, Accelerate, "settings/advanced/accelerate", accelerate_values, 17, 6);
+    CHECK_AND_SAVE_MAP(tweakadv, RepeatDelay, "settings/advanced/repeat_delay", repeat_delay_values, 33, 13);
     CHECK_AND_SAVE_MAP(tweakadv, Swapfile, "settings/advanced/swapfile", zram_swap_values, 11, 0);
     CHECK_AND_SAVE_MAP(tweakadv, Zramfile, "settings/advanced/zramfile", zram_swap_values, 11, 0);
 
@@ -165,6 +188,7 @@ static void init_navigation_group(void) {
     };
 
     INIT_OPTION_ITEM(-1, tweakadv, Accelerate, lang.MUXTWEAKADV.SPEED, "accelerate", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakadv, RepeatDelay, lang.MUXTWEAKADV.REPEAT_DELAY, "repeat", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakadv, Offset, lang.MUXTWEAKADV.OFFSET, "offset", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakadv, Swap, lang.MUXTWEAKADV.SWAP.TITLE, "swap", swap_options, 2);
     INIT_OPTION_ITEM(-1, tweakadv, Volume, lang.MUXTWEAKADV.VOLUME.TITLE, "volume", volume_options, 4);
@@ -186,10 +210,16 @@ static void init_navigation_group(void) {
     INIT_OPTION_ITEM(-1, tweakadv, Zramfile, lang.MUXTWEAKADV.ZRAMFILE, "zramfile", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakadv, SecondPart, lang.MUXTWEAKADV.SECONDPART, "secondpart", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakadv, UsbPart, lang.MUXTWEAKADV.USBPART, "usbpart", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakadv, IncBright, lang.MUXTWEAKADV.INCBRIGHT, "incbright", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakadv, IncVolume, lang.MUXTWEAKADV.INCVOLUME, "incvolume", NULL, 0);
 
     char *accelerate_values = generate_number_string(16, 256, 16, lang.GENERIC.DISABLED, NULL, NULL, 0);
     apply_theme_list_drop_down(&theme, ui_droAccelerate_tweakadv, accelerate_values);
     free(accelerate_values);
+
+    char *repeat_delay_values = generate_number_string(16, 512, 16, lang.GENERIC.DISABLED, NULL, NULL, 0);
+    apply_theme_list_drop_down(&theme, ui_droRepeatDelay_tweakadv, repeat_delay_values);
+    free(repeat_delay_values);
 
     char *offset_values = generate_number_string(-50, 50, 1, NULL, NULL, NULL, 0);
     apply_theme_list_drop_down(&theme, ui_droOffset_tweakadv, offset_values);
@@ -208,6 +238,11 @@ static void init_navigation_group(void) {
     apply_theme_list_drop_down(&theme, ui_droUsbPart_tweakadv, partition_values);
     free(partition_values);
 
+    char *increment_values = generate_number_string(1, 16, 1, NULL, NULL, NULL, 0);
+    apply_theme_list_drop_down(&theme, ui_droIncBright_tweakadv, increment_values);
+    apply_theme_list_drop_down(&theme, ui_droIncVolume_tweakadv, increment_values);
+    free(increment_values);
+
     ui_group = lv_group_create();
     ui_group_value = lv_group_create();
     ui_group_glyph = lv_group_create();
@@ -220,8 +255,8 @@ static void init_navigation_group(void) {
         lv_group_add_obj(ui_group_panel, ui_objects_panel[i]);
     }
 
-    if (!device.DEVICE.HAS_NETWORK) HIDE_OPTION_ITEM(tweakadv, RetroWait);
-    if (!device.DEVICE.HAS_LID) HIDE_OPTION_ITEM(tweakadv, LidSwitch);
+    if (!device.BOARD.HAS_NETWORK) HIDE_OPTION_ITEM(tweakadv, RetroWait);
+    if (!device.BOARD.HAS_LID) HIDE_OPTION_ITEM(tweakadv, LidSwitch);
 
     // Removal of random theme because it is causing a number of issues
     HIDE_OPTION_ITEM(tweakadv, Theme);
@@ -323,7 +358,7 @@ static void init_elements(void) {
             {ui_lblNavLR,      lang.GENERIC.CHANGE, 0},
             {ui_lblNavBGlyph,  "",                  0},
             {ui_lblNavB,       lang.GENERIC.BACK,   0},
-            {NULL, NULL,                            0}
+            {NULL,             NULL,                0}
     });
 
 #define TWEAKADV(NAME, UDATA) lv_obj_set_user_data(ui_lbl##NAME##_tweakadv, UDATA);
