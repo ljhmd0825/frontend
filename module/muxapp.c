@@ -88,44 +88,47 @@ static void init_navigation_group_grid(void) {
 
     for (size_t i = 0; i < item_count; i++) {
         char resolved_base[MAX_BUFFER_SIZE];
-        get_app_base(resolved_base, items[i].extra_data);
+        get_app_base(resolved_base, items[i].name);
 
         char app_launcher[MAX_BUFFER_SIZE];
         snprintf(app_launcher, sizeof(app_launcher), "%s/%s/" APP_LAUNCHER,
-                resolved_base, items[i].extra_data);
+                resolved_base, items[i].name);
 
         const char *glyph_name = NULL;
 
-        mux_apps *mux_app = get_mux_app(items[i].extra_data);
+        mux_apps *mux_app = get_mux_app(items[i].name);
         if (mux_app && mux_app->icon) {
             glyph_name = mux_app->icon;
         } else {
             char app_launcher_icon[MAX_BUFFER_SIZE];
             snprintf(app_launcher_icon, sizeof(app_launcher_icon), "%s/%s/" APP_LAUNCHER,
-                    resolved_base, items[i].extra_data);
+                    resolved_base, items[i].name);
             glyph_name = get_script_value(app_launcher_icon, "ICON", "app");
         }
         items[i].glyph_icon = strdup(glyph_name);
-        
-        if (i < theme.GRID.COLUMN_COUNT * theme.GRID.ROW_COUNT) {
-            update_grid_image_paths(i);
 
-            uint8_t col = i % theme.GRID.COLUMN_COUNT;
-            uint8_t row = i / theme.GRID.COLUMN_COUNT;
+        if (!is_carousel_grid_mode()) {
+            if (i < theme.GRID.COLUMN_COUNT * theme.GRID.ROW_COUNT) {
+                update_grid_image_paths(i);
 
-            lv_obj_t *cell_panel = lv_obj_create(ui_pnlGrid);
-            lv_obj_set_user_data(cell_panel, UFI(i));
-            lv_obj_t *cell_image = lv_img_create(cell_panel);
-            lv_obj_t *cell_label = lv_label_create(cell_panel);
+                uint8_t col = i % theme.GRID.COLUMN_COUNT;
+                uint8_t row = i / theme.GRID.COLUMN_COUNT;
 
-            create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
-                            items[i].grid_image, items[i].grid_image_focused, items[i].display_name);
+                lv_obj_t *cell_panel = lv_obj_create(ui_pnlGrid);
+                lv_obj_set_user_data(cell_panel, UFI(i));
+                lv_obj_t *cell_image = lv_img_create(cell_panel);
+                lv_obj_t *cell_label = lv_label_create(cell_panel);
 
-            lv_group_add_obj(ui_group, cell_label);
-            lv_group_add_obj(ui_group_glyph, cell_image);
-            lv_group_add_obj(ui_group_panel, cell_panel);
+                create_grid_item(&theme, cell_panel, cell_label, cell_image, col, row,
+                                items[i].grid_image, items[i].grid_image_focused, items[i].display_name);
+
+                lv_group_add_obj(ui_group, cell_label);
+                lv_group_add_obj(ui_group_glyph, cell_image);
+                lv_group_add_obj(ui_group_panel, cell_panel);
+            }
         }
     }
+    if (is_carousel_grid_mode()) create_carousel_grid();
 }
 
 static int append_mux_app(char ***arr, size_t *count, const char *name) {
@@ -207,6 +210,9 @@ static void create_app_items(void) {
         char resolved_base[MAX_BUFFER_SIZE];
         get_app_base(resolved_base, dir_names[i]);
 
+        char app_folder[MAX_BUFFER_SIZE];
+        snprintf(app_folder, sizeof(app_folder), "%s/%s", resolved_base, dir_names[i]);
+
         char app_launcher[MAX_BUFFER_SIZE];
         snprintf(app_launcher, sizeof(app_launcher), "%s/%s/" APP_LAUNCHER,
                  resolved_base, dir_names[i]);
@@ -225,7 +231,7 @@ static void create_app_items(void) {
         char app_store[MAX_BUFFER_SIZE];
         snprintf(app_store, sizeof(app_store), "%s", grid_label);
 
-        add_item(&items, &item_count, dir_names[i], TS(app_store), dir_names[i], ITEM);
+        add_item(&items, &item_count, dir_names[i], TS(app_store), app_folder, ITEM);
 
         free(dir_names[i]);
     }
@@ -265,7 +271,7 @@ static void create_app_items(void) {
 
                     apply_theme_list_glyph(&theme, ui_lblAppItemGlyph, mux_module, glyph_name);
                     if (lv_img_get_src(ui_lblAppItemGlyph) == NULL) {
-                        apply_app_glyph(items[i].name, glyph_name, ui_lblAppItemGlyph);
+                        apply_app_glyph(items[i].extra_data, glyph_name, ui_lblAppItemGlyph);
                     }
                 }
 
@@ -299,9 +305,11 @@ static void list_nav_move(int steps, int direction) {
             current_item_index = (current_item_index == ui_count - 1) ? 0 : current_item_index + 1;
         }
 
-        nav_move(ui_group, direction);
-        nav_move(ui_group_glyph, direction);
-        nav_move(ui_group_panel, direction);
+        if (!is_carousel_grid_mode()) {
+            nav_move(ui_group, direction);
+            nav_move(ui_group_glyph, direction);
+            nav_move(ui_group_panel, direction);
+        }
 
         if (grid_mode_enabled) update_grid(direction);
     }
@@ -368,7 +376,7 @@ static void handle_a(void) {
             write_text_to_file(MUOS_CON_LOAD, "w", CHAR, assigned_con);
         } else {
             snprintf(app_dir, sizeof(app_dir), "%s",
-                     items[current_item_index].extra_data);
+                     items[current_item_index].name);
         }
 
         write_text_to_file(MUOS_APP_LOAD, "w", CHAR, app_dir);
