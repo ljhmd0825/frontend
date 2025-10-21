@@ -715,6 +715,7 @@ static const LookupName lookup_table[] = {
         {"crshrace2a", "리썰 크래쉬 레이스 (세트2)"},
         {"crswd2bl", "크로스드 소드 2"},
         {"crsword", "크로스드 소드"},
+        {"crsword", "크로스드 소드 (한글)"},
         {"crszone", "크라이시스 존 (세계판,CSZO4 버전B)"},
         {"crszonev2b", "크라이시스 존 (World, CSZO2 Ver. B)"},
         {"crszonev3a", "크라이시스 존 (미국판,CSZO3 버전A)"},

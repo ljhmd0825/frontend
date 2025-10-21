@@ -92,6 +92,7 @@ static const LookupName lookup_table[] = {
         {"fatfury1", "아랑전설 - 숙명의 싸움"},
         {"fatfury2", "아랑전설 2 - 새로운 싸움"},
         {"fatfury2a", "아랑전설 2 - 새로운 싸움 (NGM-047)"},
+        {"fatfury2k", "아랑전설 2 - 새로운 싸움 (한글)"},
         {"fatfury3", "아랑전설 3 - 아득한 싸움"},
         {"fatfury3a", "아랑전설 3 - 아득한 싸움 (NGM-069)(NGH-069)(대체 세트)"},
         {"fax", "팩스"},
