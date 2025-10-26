@@ -148,7 +148,7 @@ void extract_archive(char *filename, char *screen) {
 
     if (exec) {
         config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
-        run_exec(exec, exec_count, 0);
+        run_exec(exec, exec_count, 0, 1, NULL);
     }
     free(exec);
 }
@@ -160,7 +160,7 @@ void update_bootlogo() {
 
     if (exec) {
         config.VISUAL.BLACKFADE ? fade_to_black(ui_screen) : unload_image_animation();
-        run_exec(exec, exec_count, 0);
+        run_exec(exec, exec_count, 0, 1, NULL);
     }
     free(exec);
 }
@@ -2444,7 +2444,7 @@ static void update_grid_item(lv_obj_t *ui_pnlItem, int index) {
             lv_group_focus_obj(ui_pnlItem);
             lv_group_focus_obj(ui_lblItem);
             lv_group_focus_obj(cell_image);
-        } 
+        }
     }
 }
 
@@ -2575,16 +2575,14 @@ void kiosk_denied(void) {
     }
 }
 
-void run_exec(const char *args[], size_t size, int background) {
+void run_exec(const char *args[], size_t size, int background, int turbo, const char *log_file) {
     const char *san[size];
 
-    turbo_time(1);
+    if (turbo) turbo_time(1, 0);
 
     size_t j = 0;
     for (size_t i = 0; i < size; ++i) {
-        if (args[i]) {
-            san[j++] = args[i];
-        }
+        if (args[i]) san[j++] = args[i];
     }
     san[j] = NULL;
 
@@ -2600,13 +2598,46 @@ void run_exec(const char *args[], size_t size, int background) {
 
     pid_t pid = fork();
     if (pid == 0) {
-        execvp(san[0], (char *const *) san);
+        if (background) {
+            // If we run in the background lets disconnect from the parent...
+            setsid();
+
+            // Perform a second fork to ensure the background process is reaped by init,
+            // preventing zombie processes from hanging around after completion...
+            pid_t pid2 = fork();
+            if (pid2 < 0) _exit(EXIT_FAILURE);
+            if (pid2 > 0) _exit(EXIT_SUCCESS);
+
+            // Secondary child continues here, now fully detached from the parent
+            int fd;
+            if (log_file && *log_file) {
+                fd = open(log_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+                if (fd < 0) fd = open("/dev/null", O_RDWR);
+            } else {
+                fd = open("/dev/null", O_RDWR);
+            }
+
+            if (fd != -1) {
+                dup2(fd, STDIN_FILENO);
+                dup2(fd, STDOUT_FILENO);
+                dup2(fd, STDERR_FILENO);
+
+                if (fd > 2) close(fd);
+            }
+        }
+
+        execvp(san[0], (char *const *)san);
         _exit(EXIT_FAILURE);
     } else if (pid > 0 && !background) {
+        // Foreground process, block until child finishes execution
+        waitpid(pid, NULL, 0);
+    } else if (pid > 0 && background) {
+        // Parent process does not wait for background process
+        // Destroy the intermediate child immediately to avoid zombies... oh no
         waitpid(pid, NULL, 0);
     }
 
-    turbo_time(0);
+    if (turbo) turbo_time(0, 0);
 }
 
 char *get_content_line(char *dir, char *name, char *ext, size_t line) {
@@ -3240,7 +3271,7 @@ void add_to_collection(char *filename, const char *pointer, char *sys_dir) {
     mux_input_stop();
 }
 
-int set_scaling_governor(const char *governor) {
+int set_scaling_governor(const char *governor,  int show_done) {
     if (!governor) return -1;
 
     FILE *fp = fopen(device.CPU.GOVERNOR, "w");
@@ -3255,12 +3286,88 @@ int set_scaling_governor(const char *governor) {
         return -1;
     }
 
-    LOG_SUCCESS(mux_module, "Governor switched to '%s' successfully", governor);
+    if (show_done) LOG_SUCCESS(mux_module, "Governor switched to '%s' successfully", governor)
 
     fclose(fp);
     return 0;
 }
 
-void turbo_time(int toggle) {
-    set_scaling_governor(toggle ? "performance" : device.CPU.DEFAULT);
+void turbo_time(int toggle, int show_done) {
+    set_scaling_governor(toggle ? "performance" : device.CPU.DEFAULT, show_done);
+}
+
+int bc64(uint64_t n) {
+    int count = 0;
+    while (n) {
+        n &= (n - 1);
+        ++count;
+    }
+    return count;
+}
+
+char **split_command(const char *cmd, size_t *argc_out) {
+#define FREE_ARGV                                        \
+    do {                                                 \
+        for (size_t i = 0; i < argc; i++) free(argv[i]); \
+        free(argv);                                      \
+        return NULL;                                     \
+    } while (0)
+
+    if (!cmd || !*cmd) return NULL;
+
+    size_t argc = 0;
+    size_t cap = 8;
+
+    char **argv = malloc(cap * sizeof(char *));
+    if (!argv) return NULL;
+
+    const char *p = cmd;
+
+    while (*p) {
+        while (*p == ' ' || *p == '\t') p++;
+        if (!*p) break;
+
+        char buf[MAX_BUFFER_SIZE];
+        size_t len = 0;
+        bool in_quote = false;
+        char quote_char = 0;
+
+        while (*p && (in_quote || (*p != ' ' && *p != '\t'))) {
+            if (*p == '\\') {
+                p++;
+                if (*p) buf[len++] = *p++;
+            } else if (!in_quote && (*p == '\'' || *p == '"')) {
+                in_quote = true;
+                quote_char = *p++;
+            } else if (in_quote && *p == quote_char) {
+                in_quote = false;
+                p++;
+            } else {
+                buf[len++] = *p++;
+            }
+        }
+
+        buf[len] = '\0';
+        char *arg = malloc(len + 1);
+
+        if (!arg) FREE_ARGV;
+        memcpy(arg, buf, len + 1);
+
+        if (argc + 1 >= cap) {
+            size_t new_cap = cap * 2;
+
+            char **tmp = realloc(argv, new_cap * sizeof(char *));
+            if (!tmp) FREE_ARGV;
+
+            argv = tmp;
+            cap = new_cap;
+        }
+
+        argv[argc++] = arg;
+    }
+
+    argv[argc] = NULL;
+    if (argc_out) *argc_out = argc;
+
+    return argv;
 }
