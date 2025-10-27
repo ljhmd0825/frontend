@@ -90,6 +90,7 @@ static const LookupName lookup_table[] = {
         {"fatfurspb", "아랑전설 스페셜 (SNES 해적판 타이머)"},
         {"fatfurwa", "아랑전설 - 와일드 앰비션"},
         {"fatfury1", "아랑전설 - 숙명의 싸움"},
+        {"fatfury1k", "아랑전설 - 숙명의 싸움 (한글)"},
         {"fatfury2", "아랑전설 2 - 새로운 싸움"},
         {"fatfury2a", "아랑전설 2 - 새로운 싸움 (NGM-047)"},
         {"fatfury2k", "아랑전설 2 - 새로운 싸움 (한글)"},
