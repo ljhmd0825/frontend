@@ -133,6 +133,7 @@ static const LookupName lookup_table[] = {
         {"neocstlv", "네오 캐슬배니아 (HB,데모)"},
         {"neocu98k", "네오지오컵 98-승리로 향하는 길 (한글)"},
         {"neocup98", "네오지오컵 98-승리로 향하는 길"},
+        {"neocup98k", "네오지오컵 98-승리로 향하는 길 (한글)"},
         {"neodemo", "카오스 데모 (네오지오)"},
         {"neodrift", "네오 드리프트 아웃 - 뉴 테크놀러지"},
         {"neogalag", "갤러그 데모 (HB)"},

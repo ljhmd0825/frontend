@@ -355,6 +355,7 @@ static const LookupName lookup_table[] = {
         {"flipjack", "플리퍼 잭"},
         {"flipmaze", "플립 메이즈"},
         {"flipshot", "배틀 플립 샷"},
+        {"flipshotk", "배틀 플립 샷 (한글)"},
         {"flipshtk", "배틀 플립 샷 (한글)"},
         {"flipull", "플로팅/ 플리플 (일본판)"},
         {"flkatck", "MX5000/ 플렉 어택 (일본판)"},
