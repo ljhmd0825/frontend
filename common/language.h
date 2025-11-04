@@ -39,7 +39,10 @@ struct mux_lang {
         char DOWNLOAD[MAX_BUFFER_SIZE];
         char ENABLED[MAX_BUFFER_SIZE];
         char EXTRACT[MAX_BUFFER_SIZE];
+        char TOGGLE_ALL[MAX_BUFFER_SIZE];
+        char EXCLUDED[MAX_BUFFER_SIZE];
         char FILTER[MAX_BUFFER_SIZE];
+        char INCLUDED[MAX_BUFFER_SIZE];
         char INDIVIDUAL[MAX_BUFFER_SIZE];
         char INFO[MAX_BUFFER_SIZE];
         char INSTALL[MAX_BUFFER_SIZE];
@@ -78,6 +81,10 @@ struct mux_lang {
         char ALLOWED[MAX_BUFFER_SIZE];
         char RESTRICTED[MAX_BUFFER_SIZE];
         char REFRESH[MAX_BUFFER_SIZE];
+        char ONLINE[MAX_BUFFER_SIZE];
+        char OFFLINE[MAX_BUFFER_SIZE];
+        char HIDDEN[MAX_BUFFER_SIZE];
+        char VISIBLE[MAX_BUFFER_SIZE];
     } GENERIC;
 
     struct {
@@ -612,6 +619,7 @@ struct mux_lang {
         char TITLE[MAX_BUFFER_SIZE];
         char MONITOR[MAX_BUFFER_SIZE];
         char BOOT[MAX_BUFFER_SIZE];
+        char WAKE[MAX_BUFFER_SIZE];
         char COMPAT[MAX_BUFFER_SIZE];
         char ASYNCLOAD[MAX_BUFFER_SIZE];
         char WAIT[MAX_BUFFER_SIZE];
@@ -619,6 +627,7 @@ struct mux_lang {
         struct {
             char MONITOR[MAX_BUFFER_SIZE];
             char BOOT[MAX_BUFFER_SIZE];
+            char WAKE[MAX_BUFFER_SIZE];
             char COMPAT[MAX_BUFFER_SIZE];
             char ASYNCLOAD[MAX_BUFFER_SIZE];
             char WAIT[MAX_BUFFER_SIZE];
@@ -913,6 +922,7 @@ struct mux_lang {
         char TEMP[MAX_BUFFER_SIZE];
         char CAPACITY[MAX_BUFFER_SIZE];
         char VOLTAGE[MAX_BUFFER_SIZE];
+        char CHARGER[MAX_BUFFER_SIZE];
         char REFRESH[MAX_BUFFER_SIZE];
         struct {
             char INFO[MAX_BUFFER_SIZE];
@@ -930,6 +940,7 @@ struct mux_lang {
             char SERVICE[MAX_BUFFER_SIZE];
             char CAPACITY[MAX_BUFFER_SIZE];
             char VOLTAGE[MAX_BUFFER_SIZE];
+            char CHARGER[MAX_BUFFER_SIZE];
             char REFRESH[MAX_BUFFER_SIZE];
             struct {
                 char INFO[MAX_BUFFER_SIZE];
@@ -1127,6 +1138,8 @@ struct mux_lang {
         char COUNT_FOLDER[MAX_BUFFER_SIZE];
         char COUNT_FILE[MAX_BUFFER_SIZE];
         char HIDDEN[MAX_BUFFER_SIZE];
+        char HIDE_COLLECT[MAX_BUFFER_SIZE];
+        char HISTORY_ICON[MAX_BUFFER_SIZE];
         struct {
             char IMAGE[MAX_BUFFER_SIZE];
             char TRANSPARENCY[MAX_BUFFER_SIZE];
@@ -1176,6 +1189,8 @@ struct mux_lang {
             char COUNT_FILE[MAX_BUFFER_SIZE];
             char NAME[MAX_BUFFER_SIZE];
             char HIDDEN[MAX_BUFFER_SIZE];
+            char HIDE_COLLECT[MAX_BUFFER_SIZE];
+            char HISTORY_ICON[MAX_BUFFER_SIZE];
             char OVERLAY_IMAGE[MAX_BUFFER_SIZE];
             char OVERLAY_TRANSPARENCY[MAX_BUFFER_SIZE];
         } HELP;

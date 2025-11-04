@@ -54,8 +54,11 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.DISABLED, "Disabled");
     GENERIC_FIELD(lang->GENERIC.DOWNLOAD, "Download");
     GENERIC_FIELD(lang->GENERIC.ENABLED, "Enabled");
+    GENERIC_FIELD(lang->GENERIC.TOGGLE_ALL, "Toggle All");
+    GENERIC_FIELD(lang->GENERIC.EXCLUDED, "Excluded");
     GENERIC_FIELD(lang->GENERIC.EXTRACT, "Extract");
     GENERIC_FIELD(lang->GENERIC.FILTER, "Filter");
+    GENERIC_FIELD(lang->GENERIC.INCLUDED, "Included");
     GENERIC_FIELD(lang->GENERIC.INDIVIDUAL, "Individual");
     GENERIC_FIELD(lang->GENERIC.INFO, "Info");
     GENERIC_FIELD(lang->GENERIC.INSTALL, "Install");
@@ -94,6 +97,10 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.ALLOWED, "Allowed");
     GENERIC_FIELD(lang->GENERIC.RESTRICTED, "Restricted");
     GENERIC_FIELD(lang->GENERIC.REFRESH, "Refreshing…");
+    GENERIC_FIELD(lang->GENERIC.ONLINE, "Online");
+    GENERIC_FIELD(lang->GENERIC.OFFLINE, "Offline");
+    GENERIC_FIELD(lang->GENERIC.HIDDEN, "Hidden");
+    GENERIC_FIELD(lang->GENERIC.VISIBLE, "Visible");
 
     // muxapp
     SPECIFIC_FIELD(lang->MUXAPP.TITLE, "APPLICATIONS");
@@ -536,12 +543,14 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXNETADV.TITLE, "NETWORK SETTINGS");
     SPECIFIC_FIELD(lang->MUXNETADV.MONITOR, "Connection Monitor");
     SPECIFIC_FIELD(lang->MUXNETADV.BOOT, "Start Network on Boot");
+    SPECIFIC_FIELD(lang->MUXNETADV.WAKE, "Start Network on Wake");
     SPECIFIC_FIELD(lang->MUXNETADV.COMPAT, "Module Compatibility");
     SPECIFIC_FIELD(lang->MUXNETADV.ASYNCLOAD, "Module Async Load");
     SPECIFIC_FIELD(lang->MUXNETADV.WAIT, "Module Wait Timer");
     SPECIFIC_FIELD(lang->MUXNETADV.RETRY, "Module Retry");
     SPECIFIC_FIELD(lang->MUXNETADV.HELP.MONITOR, "Enables periodic connectivity checks and triggers reconnection if network loss is detected");
     SPECIFIC_FIELD(lang->MUXNETADV.HELP.BOOT, "Enables network connection to be established automatically at boot");
+    SPECIFIC_FIELD(lang->MUXNETADV.HELP.WAKE, "Enables network connection to be re-established automatically upon suspend wake");
     SPECIFIC_FIELD(lang->MUXNETADV.HELP.COMPAT, "Enable device compatibility with network module loading via the Linux kernel\n\nIncreases boot times moderately");
     SPECIFIC_FIELD(lang->MUXNETADV.HELP.ASYNCLOAD, "Enable the background handling of compatibility handling\n\nProvides faster boot times with compatibility enabled, disable this only if all else has failed");
     SPECIFIC_FIELD(lang->MUXNETADV.HELP.WAIT, "Adjusts the maximum amount of time waiting for the network interface to appear.\n\nWARNING:\nIf you enable Module Compatibility, it is not advisable to increase this setting as it will increase boot times!");
@@ -790,6 +799,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSYSINFO.TEMP, "Temperature");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CAPACITY, "Battery Capacity");
     SPECIFIC_FIELD(lang->MUXSYSINFO.VOLTAGE, "Battery Voltage");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.CHARGER, "Charger");
     SPECIFIC_FIELD(lang->MUXSYSINFO.REFRESH, "Refresh Frontend");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.INFO, "CPU Information");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.SPEED, "CPU Speed");
@@ -803,6 +813,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.TEMP, "The current detected temperature of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CAPACITY, "The current detected battery capacity");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.VOLTAGE, "The current detected battery voltage");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CHARGER, "Detection of the charger cable");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.REFRESH, "Refresh the current frontend configuration values if changed elsewhere");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU.INFO, "The detected CPU type of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU.SPEED, "The current CPU frequency of the device");
@@ -963,7 +974,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXVISUAL.REFORMAT, "Display Title Reformatting");
     SPECIFIC_FIELD(lang->MUXVISUAL.ROOT, "Title Include Root Drive");
     SPECIFIC_FIELD(lang->MUXVISUAL.COUNT, "Folder Item Count");
-    SPECIFIC_FIELD(lang->MUXVISUAL.EMPTY, "Display Empty Folder");
+    SPECIFIC_FIELD(lang->MUXVISUAL.EMPTY, "Empty Folders");
     SPECIFIC_FIELD(lang->MUXVISUAL.COUNT_FOLDER, "Menu Counter Folder");
     SPECIFIC_FIELD(lang->MUXVISUAL.COUNT_FILE, "Menu Counter File");
     SPECIFIC_FIELD(lang->MUXVISUAL.NAME.TITLE, "Content Name Scheme");
@@ -972,6 +983,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXVISUAL.NAME.REM_PA, "Remove ( )");
     SPECIFIC_FIELD(lang->MUXVISUAL.NAME.REM_SQPA, "Remove [ ] and ( )");
     SPECIFIC_FIELD(lang->MUXVISUAL.HIDDEN, "Show Hidden Content");
+    SPECIFIC_FIELD(lang->MUXVISUAL.HIDE_COLLECT, "Collection Visibility");
+    SPECIFIC_FIELD(lang->MUXVISUAL.HISTORY_ICON, "History Glyph");
     SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.IMAGE, "Overlay Image");
     SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.TRANSPARENCY, "Overlay Transparency");
     SPECIFIC_FIELD(lang->MUXVISUAL.OVERLAY.THEME, "Theme Provided");
@@ -1003,6 +1016,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.COUNT_FILE, "Toggle the visibility of currently selected file along with total in Explore Content");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.NAME, "Remove extra information from content labels - This does NOT rename your files it only changes how it is displayed");
     SPECIFIC_FIELD(lang->MUXVISUAL.HELP.HIDDEN, "Toggle hidden content displayed in Explore Content - Place a '.' or '_' character at the start of a file or folder name to hide it");
+    SPECIFIC_FIELD(lang->MUXVISUAL.HELP.HIDE_COLLECT, "Toggle the visibility of content within Explore Content that has been added to collections");
+    SPECIFIC_FIELD(lang->MUXVISUAL.HELP.HISTORY_ICON, "Toggle the history glyph next to already played content within Explore Content");
 
     // muxwebserv
     SPECIFIC_FIELD(lang->MUXWEBSERV.TITLE, "WEB SERVICES");
