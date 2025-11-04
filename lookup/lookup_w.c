@@ -241,6 +241,7 @@ static const LookupName lookup_table[] = {
         {"wizzquiza", "위즈 퀴즈 (버전4)"},
         {"wjammerk", "윈드잼머스/ 플라잉 파워 디스크 (한글)"},
         {"wjammers", "윈드잼머스/ 플라잉 파워 디스크"},
+        {"wjammersk", "윈드잼머스/ 플라잉 파워 디스크 (한글)"},
         {"wlcc", "만리장성 (중국판,V638C)"},
         {"wldarrow", "와일드 애로우"},
         {"wldcourt", "월드 코트 (일본판)"},
