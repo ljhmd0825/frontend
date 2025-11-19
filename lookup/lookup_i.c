@@ -49,7 +49,7 @@ const LookupName lookup_i_table[] = {
     { "ikarijpb", "이까리 (일본판,조이스틱 핵 복제품)" },
     { "ikarinc", "이까리 (미국판 이어하기 안됨)" },
     { "ikariram", "람보 3" },
-    { "ikaruga", "이카루가" },
+    { "ikaruga", "이카루가 (GDL-0010)" },
     { "ikki", "잇키 (일본판)" },
     { "illvelo", "일매틱 인벨로프 (일본판)" },
     { "ilpag", "어릿 광대" },

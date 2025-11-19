@@ -481,6 +481,7 @@ const LookupName lookup_c_table[] = {
     { "clubkcyco", "클럽 카트 포 사이크래프트 (GDS-0029)" },
     { "clubkprz", "클럽 카트 프라이즈" },
     { "clubkpzb", "클럽 카트 프라이즈 버전 B" },
+    { "clubkpzbp", "클럽 카트 프라이즈 버전 B (시험판)" },
     { "clubkrt", "클럽 카트 - 유러피언 세션 (개정판D)" },
     { "clubkrta", "클럽 카트 - 유러피언 세션 (개정판A)" },
     { "clubkrtc", "클럽 카트 - 유러피언 세션 (개정판C)" },

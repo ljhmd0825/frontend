@@ -33,7 +33,7 @@ const LookupName lookup_n_table[] = {
     { "nbaatw", "NBA 올 더 웨이" },
     { "nbaatwa", "NBA 올 더 웨이 (버전EAA)" },
     { "nbagold", "스포츠스테이션: NBA 쇼타임 NBA온 NBC 골드에디션/ NFL 블리츠 2000 골드에디션" },
-    { "nbahangt", "NBA 행타임 (개정판 L1.3)" },
+    { "nbahangt", "NBA 행타임 (개정판L1.3)" },
     { "nbahangtl11", "NBA 행타임 (개정판L1.1)" },
     { "nbahangtl12", "NBA 행타임 (개정판L1.2)" },
     { "nbahangtm11", "NBA 행타임 (개정판M1.1)" },
