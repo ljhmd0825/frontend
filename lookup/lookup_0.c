@@ -3,7 +3,7 @@
 #include "lookup.h"
 
 const LookupName lookup_0_table[] = {
-        {"005", "005"},
+    { "005", "005" },
 };
 
 const size_t lookup_0_count = A_SIZE(lookup_0_table);
