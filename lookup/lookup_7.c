@@ -3,18 +3,16 @@
 #include "lookup.h"
 
 const LookupName lookup_7_table[] = {
-    { "720", "720 도" },
-    { "720b", "720 도 (세트2)" },
-    { "720g", "720 도 (독일판,개정판2)" },
-    { "720gr1", "720 도 (독일판,개정판1)" },
-    { "720r1", "720 도 (개정판1)" },
-    { "720r2", "720 도 (개정판2)" },
-    { "720r3", "720 도 (개정판3)" },
-    { "7jigen", "7차원의 요정들" },
-    { "7mezzo", "7 e 메조" },
-    { "7ordi", "7 오디 (한국판)" },
-    { "7smash", "7 스매쉬" },
-    { "7toitsu", "마작 학원/ 치토이츠" },
+        {"720",     "720 Degrees (rev 4)"},
+        {"720b",    "720 Degrees (set 2)"},
+        {"720g",    "720 Degrees (German, rev 2)"},
+        {"720gr1",  "720 Degrees (German, rev 1)"},
+        {"720r1",   "720 Degrees (rev 1)"},
+        {"720r2",   "720 Degrees (rev 2)"},
+        {"720r3",   "720 Degrees (rev 3)"},
+        {"7jigen",  "7jigen no Youseitachi - Mahjong 7 Dimensions (Japan)"},
+        {"7mezzo",  "7 e Mezzo"},
+        {"7toitsu", "Chi-Toitsu"},
 };
 
 const size_t lookup_7_count = A_SIZE(lookup_7_table);

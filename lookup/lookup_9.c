@@ -3,19 +3,17 @@
 #include "lookup.h"
 
 const LookupName lookup_9_table[] = {
-    { "98best44", "98 네오프리 베스트 44" },
-    { "99lstwar", "리펄스/ 99 더 라스트 워 (세트1)" },
-    { "99lstwara", "리펄스/ 99 더 라스트 워 (세트2)" },
-    { "99lstwarb", "리펄스/ 99 더 라스트 워" },
-    { "99lstwark", "리펄스/ 99 더 라스트 워 (큐고)" },
-    { "99lstwra", "리펄스/ 99 더 라스트 워 (대체)" },
-    { "99lstwrk", "리펄스/ 99 더 라스트 워 (큐고)" },
-    { "9ballsh2", "나인볼 셧아웃 (세트2)" },
-    { "9ballsh3", "나인볼 셧아웃 (세트3)" },
-    { "9ballsht", "나인볼 셧아웃" },
-    { "9ballsht2", "나인볼 셧아웃 (세트2)" },
-    { "9ballsht3", "나인볼 셧아웃 (세트3)" },
-    { "9ballshtc", "나인볼 셧아웃 챔피언십" },
+        {"99lstwar",  "'99: The Last War"},
+        {"99lstwara", "'99: The Last War (set 2)"},
+        {"99lstwarb", "'99: The Last War (bootleg)"},
+        {"99lstwark", "'99: The Last War (Kyugo)"},
+        {"99lstwra",  "'99: The Last War (alternate)"},
+        {"9ballsh2",  "9-Ball Shootout (set 2)"},
+        {"9ballsh3",  "9-Ball Shootout (set 3)"},
+        {"9ballsht",  "9-Ball Shootout (set 1)"},
+        {"9ballsht2", "9-Ball Shootout (set 2)"},
+        {"9ballsht3", "9-Ball Shootout (set 3)"},
+        {"9ballshtc", "9-Ball Shootout Championship"},
 };
 
 const size_t lookup_9_count = A_SIZE(lookup_9_table);

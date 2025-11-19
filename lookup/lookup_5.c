@@ -3,10 +3,7 @@
 #include "lookup.h"
 
 const LookupName lookup_5_table[] = {
-    { "500gp", "500 GP" },
-    { "5clown", "파이브 클라운" },
-    { "5clowna", "파이브 클라운 (영어,세트2)" },
-    { "5clownsp", "파이브 클라운 (스페인어 핵)" },
+        {"500gp", "500 GP (5GP3 Ver. C)"},
 };
 
 const size_t lookup_5_count = A_SIZE(lookup_5_table);
