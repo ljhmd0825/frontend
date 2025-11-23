@@ -206,16 +206,7 @@ static int save_power_options(void) {
         CHECK_AND_SAVE_DEV_VAL(power, GovDefault, "cpu/default", CHAR, gov_values_lower);
     }
 
-    if (is_modified > 0) {
-        toast_message(lang.GENERIC.SAVING, FOREVER);
-        refresh_screen(ui_screen);
-
-        const char *args[] = {(OPT_PATH "script/mux/tweak.sh"), NULL};
-        run_exec(args, A_SIZE(args), 0, 0, NULL, NULL);
-
-        refresh_config = 1;
-        refresh_device = 1;
-    }
+    if (is_modified > 0) run_tweak_script();
 
     free_governor_values();
     play_sound(SND_BACK);
@@ -298,13 +289,13 @@ static void list_nav_next(int steps) {
 static void handle_option_prev(void) {
     if (msgbox_active) return;
 
-    decrease_option_value(lv_group_get_focused(ui_group_value));
+    decrease_option_value(lv_group_get_focused(ui_group_value), 1);
 }
 
 static void handle_option_next(void) {
     if (msgbox_active) return;
 
-    increase_option_value(lv_group_get_focused(ui_group_value));
+    increase_option_value(lv_group_get_focused(ui_group_value), 1);
 }
 
 static void handle_a(void) {

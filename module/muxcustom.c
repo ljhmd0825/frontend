@@ -282,13 +282,13 @@ static void list_nav_next(int steps) {
 static void handle_option_prev(void) {
     if (msgbox_active) return;
 
-    decrease_option_value(lv_group_get_focused(ui_group_value));
+    decrease_option_value(lv_group_get_focused(ui_group_value), 1);
 }
 
 static void handle_option_next(void) {
     if (msgbox_active) return;
 
-    increase_option_value(lv_group_get_focused(ui_group_value));
+    increase_option_value(lv_group_get_focused(ui_group_value), 1);
 }
 
 static void restore_custom_options(void) {
@@ -404,12 +404,7 @@ static void save_custom_options(char *next_screen) {
         init_fe_snd(&fe_snd, idx_sound, idx_sound);
     }
 
-    if (is_modified > 0) {
-        refresh_config = 1;
-
-        const char *args[] = {OPT_PATH "script/mux/tweak.sh", NULL};
-        run_exec(args, A_SIZE(args), 0, 1, NULL, NULL);
-    }
+    if (is_modified > 0) run_tweak_script();
 
     if (file_exist(MUOS_PIK_LOAD)) remove(MUOS_PIK_LOAD);
 }
