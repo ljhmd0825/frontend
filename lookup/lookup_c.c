@@ -519,7 +519,7 @@ const LookupName lookup_c_table[] = {
     { "cmissnx", "미션-X (DECO 카세트,미국판)" },
     { "cmkenosp", "코인마스터 케노" },
     { "cmkenospa", "코인마스터 케노 (Y2K,스페인어,2000-12-02)" },
-    { "cmmb162", "멀티피드" },
+    { "cmmb162", "센티피드/ 밀리피드/ 미사일 커맨드/ 레츠고 보울링" },
     { "cmpacman", "슈퍼 팩맨 + 체리마스터" },
     { "cmpacmana", "슈퍼 팩맨 + 체리마스터" },
     { "cmpacmanb", "슈퍼 팩맨 + 체리마스터" },

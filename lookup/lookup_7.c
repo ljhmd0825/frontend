@@ -13,7 +13,7 @@ const LookupName lookup_7_table[] = {
     { "7jigen", "7차원의 요정들" },
     { "7mezzo", "7 e 메조" },
     { "7ordi", "7 오디 (한국판)" },
-    { "7smash", "7 스매쉬" },
+    { "7smash", "7 스매시" },
     { "7toitsu", "마작 학원/ 치토이츠" },
 };
 

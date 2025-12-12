@@ -8,7 +8,6 @@ const LookupName lookup_x_table[] = {
     { "x5jokers", "엑스 파이브 조커즈" },
     { "x80wc", "X80 - 워 커맨드" },
     { "xday2", "엑스데이 2 (일본판)" },
-    { "xeno", "제노 크라이시스" },
     { "xenocrisis", "제노 크라이시스 (HB)" },
     { "xenophob", "제노포브" },
     { "xevi3dg", "제비우스 3D/G" },

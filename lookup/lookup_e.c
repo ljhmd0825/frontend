@@ -181,7 +181,7 @@ const LookupName lookup_e_table[] = {
     { "excitebk", "익사이트 바이크" },
     { "excitebkj", "익사이트 바이크" },
     { "excitebko", "익사이트 바이크" },
-    { "excthour", "매트매니아/ 익사이팅 아워" },
+    { "excthour", "매트 매니아/ 익사이팅 아워" },
     { "exctleag", "익사이트 리그" },
     { "exctleagd", "익사이트 리그 (암호해제)" },
     { "exctscc2", "익사이팅 사커 2" },
