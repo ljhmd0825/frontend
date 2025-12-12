@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <fnmatch.h>
+#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/statvfs.h>
@@ -1529,7 +1530,8 @@ void load_font_text_from_file(const char *filepath, lv_obj_t *element) {
 void load_font_text(lv_obj_t *screen) {
     lv_font_t * language_font = get_language_font();
 
-    if (config.SETTINGS.ADVANCED.FONT) {
+    // Always load the default font for the supporter credits module!
+    if (strcasecmp(get_process_name(), "muxcredits") != 0 && config.SETTINGS.ADVANCED.FONT) {
         char theme_font_text_default[MAX_BUFFER_SIZE];
         char theme_font_text[MAX_BUFFER_SIZE];
 
@@ -3603,4 +3605,15 @@ int scan_directory_list(const char *dirs[], const char *exts[], char ***results,
     *result_count = count;
 
     return 0;
+}
+
+void set_process_name(const char *module) {
+    prctl(PR_SET_NAME, module, 0, 0, 0);
+}
+
+const char *get_process_name(void) {
+    static char module[16]; // Apparently process names can only be 16 char?
+    prctl(PR_GET_NAME, module);
+    module[15] = '\0';
+    return module;
 }
