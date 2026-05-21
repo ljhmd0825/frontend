@@ -1,0 +1,48 @@
+name: Build muOS Frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'andromeda'
+        type: string
+      device:
+        description: 'Target device'
+        required: true
+        default: 'ARM64_A53'
+        type: choice
+        options:
+          - ARM64_A53
+          - ARM64_A53_CRYPTO
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t muos-build .
+
+      - name: Build frontend
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace/frontend \
+            -e DEVICE=${{ github.event.inputs.device }} \
+            muos-build \
+            /bin/sh /workspace/frontend/build.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-bin-${{ github.event.inputs.device }}-${{ github.sha }}
+          path: bin/
