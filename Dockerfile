@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     make \
     wget \
+    file \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /muos-sdk && \
