@@ -6,4 +6,5 @@ BUILD=${BUILD:-test}
 
 cd /workspace/frontend
 
+git checkout e57abbb2
 make DEVICE="$DEVICE" BUILD="$BUILD"
