@@ -47,3 +47,4 @@ ENV SDL_CONFIG=$SYSROOT/usr/bin/sdl-config
 ENV FREETYPE_CONFIG=$SYSROOT/usr/bin/freetype-config
 
 WORKDIR /workspace
+RUN git config --global --add safe.directory '*'
