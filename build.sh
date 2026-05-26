@@ -2,7 +2,7 @@
 set -e
 
 DEVICE=${DEVICE:-ARM64_A53}
-BUILD=${BUILD:-test}
+BUILD=${BUILD:-release}
 
 cd /workspace/frontend
 
