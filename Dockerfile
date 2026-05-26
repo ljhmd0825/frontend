@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     make \
     wget \
     file \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /muos-sdk && \
@@ -46,3 +47,4 @@ ENV SDL_CONFIG=$SYSROOT/usr/bin/sdl-config
 ENV FREETYPE_CONFIG=$SYSROOT/usr/bin/freetype-config
 
 WORKDIR /workspace
+RUN git config --global --add safe.directory '*'
