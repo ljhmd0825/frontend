@@ -702,6 +702,7 @@ const LookupName lookup_t_table[] = {
     { "trally", "트래쉬 랠리" },
     { "tranqgun", "트랜퀄라이저 건" },
     { "transfrm", "트랜스포머" },
+    { "trapeze", "공중그네 / 트램폴린" },
     { "travrusa", "트래버스 USA/ 지피 레이스" },
     { "travrusab", "트래버스 USA" },
     { "travrusab2", "트래버스 USA" },

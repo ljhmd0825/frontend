@@ -1370,6 +1370,7 @@ const LookupName lookup_m_table[] = {
     { "mwskinso", "스킨스 게임" },
     { "mwskinst", "스킨스 게임 토너먼트 에디션" },
     { "mx5000", "MX5000" },
+    { "mx5000r", "MX5000 (버전R)" },
     { "mxsqy", "명성삼결일" },
     { "myangel", "육아 퀴즈 마이 엔젤 (일본판)" },
     { "myangel2", "육아 퀴즈 마이 엔젤 2 (일본판)" },
