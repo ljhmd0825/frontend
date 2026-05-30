@@ -1233,6 +1233,7 @@ int load_image_catalogue(const char *catalogue_name, const char *program, const 
     };
 
     const char *path_format = "%s/%s/%s/%s%s.png";
+    const char *qoi_format  = "%s/%s/%s/%s%s.qoi";  // ← 추가
     const bool skip_theme_catalogue =
             !dir_exist(config.THEME.THEME_CAT_PATH) || !is_supported_theme_catalogue(catalogue_name, image_type);
 
@@ -1263,6 +1264,10 @@ int load_image_catalogue(const char *catalogue_name, const char *program, const 
         }
 
         int written;
+        written = snprintf(image_path, path_size, qoi_format, args[i].catalogue_path, catalogue_name,
+                       image_type, args[i].dimension, args[i].program);
+        if (written >= 0 && file_exist(image_path)) return 1;
+
         written = snprintf(image_path, path_size, path_format, args[i].catalogue_path, catalogue_name,
                            image_type, args[i].dimension, args[i].program);
         if (written >= 0 && file_exist(image_path)) return 1;
