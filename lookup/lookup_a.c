@@ -551,6 +551,7 @@ const LookupName lookup_a_table[] = {
     { "astrob2", "아스트로 블라스터 (버전2)" },
     { "astrob2a", "아스트로 블라스터 (버전2a)" },
     { "astrob2b", "아스트로 블라스터 (버전2b)" },
+    { "astrob2h", "아스트로 블라스터 (버전2 핵)" },
     { "astrobf", "아스트로 블라스터 (프랑스판)" },
     { "astrobg", "아스트로 블라스터 (독일판)" },
     { "astrof", "아스트로 파이터" },
