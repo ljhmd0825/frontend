@@ -20,6 +20,7 @@
 #include "battery.h"
 #include "board.h"
 #include "theme.h"
+#include "svg.h"
 
 static uint64_t start_ms = 0;
 static struct dt_task_param dt_par;
@@ -159,6 +160,7 @@ void init_display(void) {
     }
 
     lv_init();
+    svg_init();
     sdl_init();
 
     static lv_disp_drv_t disp_drv;
@@ -237,7 +239,6 @@ void init_input(mux_input_options *opts, int def_combo) {
     board_init(device.BOARD.NAME);
 
     opts->max_idle_ms = IDLE_MS;
-    opts->swap_btn = config.SETTINGS.ADVANCED.SWAP;
     opts->nav = get_sticknav_mask(config.SETTINGS.ADVANCED.STICKNAV);
     opts->remap_to_dpad = true;
 
@@ -380,7 +381,18 @@ void timer_destroy_all(void) {
     timer_action(2);
 }
 
+static char last_theme_name[MAX_BUFFER_SIZE] = "";
+
 void init_fonts(void) {
+    if (strcmp(last_theme_name, config.THEME.ACTIVE) != 0) {
+        snprintf(last_theme_name, sizeof(last_theme_name), "%s", config.THEME.ACTIVE);
+        if (theme_has_font()) {
+            config.SETTINGS.ADVANCED.FONT = 1;
+        } else if (config.SETTINGS.ADVANCED.FONT == 1) {
+            config.SETTINGS.ADVANCED.FONT = 2;
+        }
+    }
+
     int font_context = font_context_changed();
     if (font_context) font_cache_clear();
 

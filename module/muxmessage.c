@@ -1,7 +1,6 @@
 #include "muxshare.h"
 #include "ui/ui_muxmessage.h"
 #include "../common/inotify.h"
-#include "../common/display.h"
 
 #define FINISH_FILE   "/tmp/msg_finish"
 #define PROGRESS_FILE "/tmp/msg_progress"
@@ -78,7 +77,7 @@ static void load_messages(const char *filename) {
     while (fgets(line, sizeof(line), file)) {
         size_t len = strlen(line);
         if (len > 0 && line[len - 1] == '\n') line[len - 1] = '\0';
-        messages[index++] = strdup(line);
+        messages[index++] = mux_strdup(line);
     }
 
     message_count = count;
@@ -95,11 +94,11 @@ int main(int argc, char *argv[]) {
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0 && i + 1 < argc) {
-            delay = safe_atoi(argv[++i]);
+            delay = safe_atoi(argv[++i], 0);
         } else if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
             live_file = argv[++i];
         } else if (progress == -1) {
-            progress = safe_atoi(argv[i]);
+            progress = safe_atoi(argv[i], 0);
         } else if (!default_message) {
             default_message = argv[i];
         } else {
@@ -135,7 +134,7 @@ int main(int argc, char *argv[]) {
         char lv_wall[MAX_BUFFER_SIZE];
         snprintf(lv_wall, sizeof(lv_wall), "M:%s", init_wall);
 
-        lv_img_set_src(ui_imgWall, strdup(lv_wall));
+        lv_img_set_src(ui_imgWall, lv_wall);
     } else {
         load_wallpaper(ui_scrMessage, NULL, ui_pnlWall, ui_imgWall, WALL_GENERAL);
     }

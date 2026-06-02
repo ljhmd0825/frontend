@@ -5,6 +5,9 @@
 #include "mini/mini.h"
 #include "options.h"
 #include <pthread.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 
 #define A_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define E_SIZE(LIST) A_SIZE(((int[]){ LIST }))
@@ -37,6 +40,7 @@ extern int nav_volume;
 extern int current_brightness;
 extern int current_volume;
 extern int is_blank;
+extern int config_auth;
 
 extern int idle_state_exists;
 extern int safe_quit_exists;
@@ -311,6 +315,8 @@ char *get_ini_string(mini_t *ini_config, const char *section, const char *key, c
 
 void write_text_to_file(const char *filename, const char *mode, int type, ...);
 
+void write_text_to_file_atomic(const char *filename, int type, ...);
+
 void create_directories(const char *path, int parent_only);
 
 void show_info_box(const char *title, const char *content, int is_content);
@@ -393,6 +399,10 @@ char *translate_help(char *key);
 
 char *translate_specific(char *key);
 
+void fill_generic(const char *key, char *field, size_t size);
+
+void fill_specific(const char *key, char *field, size_t size);
+
 void add_drop_down_options(lv_obj_t *ui_lblItemDropDown, char *options[], int count);
 
 char *generate_number_string(int min, int max, int increment, const char *prefix, const char *infix,
@@ -434,7 +444,7 @@ void init_fe_snd(int *fe_snd, int snd_type, int re_init);
 
 void init_fe_bgm(int *fe_bgm, int bgm_type, int re_init);
 
-int safe_atoi(const char *str);
+int cfg_read_int(const char *path, int fallback);
 
 void init_grid_info(int item_count, int column_count);
 
@@ -569,3 +579,30 @@ int get_index_on_delete(int current_index, int post_delete_count);
 char *get_storage_label(const char *path);
 
 const char *resolve_info_path(const char *rel);
+
+static inline void *mux_malloc(size_t n) {
+    void *p = malloc(n);
+    if (!p && n) {
+        fprintf(stderr, "mux_malloc: OOM (%zu bytes)\n", n);
+        abort();
+    }
+    return p;
+}
+
+static inline char *mux_strdup(const char *s) {
+    char *p = strdup(s);
+    if (!p) {
+        fprintf(stderr, "mux_strdup: OOM\n");
+        abort();
+    }
+    return p;
+}
+
+static inline int safe_atoi(const char *s, int fallback) {
+    if (!s || !*s) return fallback;
+    char *end;
+    errno = 0;
+    long v = strtol(s, &end, 10);
+    if (errno || end == s || *end != '\0' || v < INT_MIN || v > INT_MAX) return fallback;
+    return (int) v;
+}

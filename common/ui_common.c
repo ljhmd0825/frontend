@@ -776,19 +776,19 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     ui_lblNavLRGlyph = create_footer_glyph(ui_pnlFooter, theme, "lr", theme->NAV.LR, 1);
     ui_lblNavLR = create_footer_text(ui_pnlFooter, theme, theme->NAV.LR.TEXT, theme->NAV.LR.TEXT_ALPHA, 1);
 
-    ui_lblNavAGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.ADVANCED.SWAP) ? "b" : "a", theme->NAV.A, 1);
+    ui_lblNavAGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.REMAP.LAYOUT) ? "b" : "a", theme->NAV.A, 1);
     ui_lblNavA = create_footer_text(ui_pnlFooter, theme, theme->NAV.A.TEXT, theme->NAV.A.TEXT_ALPHA, 1);
 
-    ui_lblNavBGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.ADVANCED.SWAP) ? "a" : "b", theme->NAV.B, 1);
+    ui_lblNavBGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.REMAP.LAYOUT) ? "a" : "b", theme->NAV.B, 1);
     ui_lblNavB = create_footer_text(ui_pnlFooter, theme, theme->NAV.B.TEXT, theme->NAV.B.TEXT_ALPHA, 1);
 
     ui_lblNavCGlyph = create_footer_glyph(ui_pnlFooter, theme, "c", theme->NAV.C, 1);
     ui_lblNavC = create_footer_text(ui_pnlFooter, theme, theme->NAV.C.TEXT, theme->NAV.C.TEXT_ALPHA, 1);
 
-    ui_lblNavXGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.ADVANCED.SWAP) ? "y" : "x", theme->NAV.X, 1);
+    ui_lblNavXGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.REMAP.LAYOUT) ? "y" : "x", theme->NAV.X, 1);
     ui_lblNavX = create_footer_text(ui_pnlFooter, theme, theme->NAV.X.TEXT, theme->NAV.X.TEXT_ALPHA, 1);
 
-    ui_lblNavYGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.ADVANCED.SWAP) ? "x" : "y", theme->NAV.Y, 1);
+    ui_lblNavYGlyph = create_footer_glyph(ui_pnlFooter, theme, (config.SETTINGS.REMAP.LAYOUT) ? "x" : "y", theme->NAV.Y, 1);
     ui_lblNavY = create_footer_text(ui_pnlFooter, theme, theme->NAV.Y.TEXT, theme->NAV.Y.TEXT_ALPHA, 1);
 
     ui_lblNavZGlyph = create_footer_glyph(ui_pnlFooter, theme, "z", theme->NAV.Z, 1);
@@ -928,12 +928,12 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     ui_lblHelpNavUD = create_footer_text(ui_pnlHelpExtra, theme, theme->NAV.UD.TEXT, theme->NAV.UD.TEXT_ALPHA, 0);
     lv_label_set_text(ui_lblHelpNavUD, lang->GENERIC.SCROLL);
 
-    ui_lblPreviewHeaderGlyph = create_footer_glyph(ui_pnlHelpExtra, theme, (config.SETTINGS.ADVANCED.SWAP) ? "b" : "a", theme->NAV.A, 0);
+    ui_lblPreviewHeaderGlyph = create_footer_glyph(ui_pnlHelpExtra, theme, (config.SETTINGS.REMAP.LAYOUT) ? "b" : "a", theme->NAV.A, 0);
 
     ui_lblPreviewHeader = create_footer_text(ui_pnlHelpExtra, theme, theme->NAV.A.TEXT, theme->NAV.A.TEXT_ALPHA, 0);
     lv_label_set_text(ui_lblPreviewHeader, lang->GENERIC.SWITCH_IMAGE);
 
-    ui_lblHelpNavBGlyph = create_footer_glyph(ui_pnlHelpExtra, theme, (config.SETTINGS.ADVANCED.SWAP) ? "a" : "b", theme->NAV.B, 0);
+    ui_lblHelpNavBGlyph = create_footer_glyph(ui_pnlHelpExtra, theme, (config.SETTINGS.REMAP.LAYOUT) ? "a" : "b", theme->NAV.B, 0);
 
     ui_lblHelpNavB = create_footer_text(ui_pnlHelpExtra, theme, theme->NAV.B.TEXT, theme->NAV.B.TEXT_ALPHA, 0);
     lv_label_set_text(ui_lblHelpNavB, lang->GENERIC.CLOSE);
@@ -998,12 +998,12 @@ void init_ui_common_screen(struct theme_config *theme, struct mux_device *device
     lv_obj_set_style_bg_opa(ui_pnlHelpPreviewInfo, LV_OPA_TRANSP, MU_OBJ_MAIN_DEFAULT);
     lv_obj_set_style_border_side(ui_pnlHelpPreviewInfo, LV_BORDER_SIDE_TOP, MU_OBJ_MAIN_DEFAULT);
 
-    ui_lblHelpPreviewInfoGlyph = create_footer_glyph(ui_pnlHelpPreviewInfo, theme, (config.SETTINGS.ADVANCED.SWAP) ? "b" : "a", theme->NAV.A, 0);
+    ui_lblHelpPreviewInfoGlyph = create_footer_glyph(ui_pnlHelpPreviewInfo, theme, (config.SETTINGS.REMAP.LAYOUT) ? "b" : "a", theme->NAV.A, 0);
 
     ui_lblHelpPreviewInfoMessage = create_footer_text(ui_pnlHelpPreviewInfo, theme, theme->NAV.A.TEXT, theme->NAV.A.TEXT_ALPHA, 0);
     lv_label_set_text(ui_lblHelpPreviewInfoMessage, lang->GENERIC.SWITCH_INFO);
 
-    ui_lblHelpPreviewNavBGlyph = create_footer_glyph(ui_pnlHelpPreviewInfo, theme, (config.SETTINGS.ADVANCED.SWAP) ? "a" : "b", theme->NAV.B, 0);
+    ui_lblHelpPreviewNavBGlyph = create_footer_glyph(ui_pnlHelpPreviewInfo, theme, (config.SETTINGS.REMAP.LAYOUT) ? "a" : "b", theme->NAV.B, 0);
 
     ui_lblHelpPreviewNavB = create_footer_text(ui_pnlHelpPreviewInfo, theme, theme->NAV.B.TEXT, theme->NAV.B.TEXT_ALPHA, 0);
     lv_label_set_text(ui_lblHelpPreviewNavB, lang->GENERIC.CLOSE);
@@ -1404,12 +1404,26 @@ int load_glyph_icon(const char *mux_dim, const char *glyph_folder,
                     const char *glyph_name, char *image_path, size_t image_size) {
     if (!glyph_folder || !glyph_name || !image_path || image_size == 0) return 0;
 
-    if (snprintf(image_path, image_size, "%s/%sglyph/%s/%s.png", theme_base, mux_dim, glyph_folder, glyph_name) > 0 && file_exist(image_path)) return 1;
-    if (snprintf(image_path, image_size, "%s/glyph/%s/%s.png", theme_base, glyph_folder, glyph_name) > 0 && file_exist(image_path)) return 1;
+#define TRY_GLYPH(fmt, ...)                                                                                \
+    do {                                                                                                   \
+        snprintf(image_path, image_size, fmt, ##__VA_ARGS__);                                              \
+        LOG_DEBUG(mux_module, "Glyph path check: %s", image_path);                                         \
+        if (file_exist(image_path)) { LOG_DEBUG(mux_module, "Glyph found at: %s", image_path); return 1; } \
+    } while (0)
 
-    if (snprintf(image_path, image_size, "%s/%sglyph/%s/%s.png", INTERNAL_THEME, mux_dim, glyph_folder, glyph_name) > 0 && file_exist(image_path)) return 1;
-    if (snprintf(image_path, image_size, "%s/glyph/%s/%s.png", INTERNAL_THEME, glyph_folder, glyph_name) > 0 && file_exist(image_path)) return 1;
+    TRY_GLYPH("%s/%sglyph/%s/%s.svg", theme_base, mux_dim, glyph_folder, glyph_name);
+    TRY_GLYPH("%s/glyph/%s/%s.svg", theme_base, glyph_folder, glyph_name);
+    TRY_GLYPH("%s/%sglyph/%s/%s.svg", INTERNAL_THEME, mux_dim, glyph_folder, glyph_name);
+    TRY_GLYPH("%s/glyph/%s/%s.svg", INTERNAL_THEME, glyph_folder, glyph_name);
 
+    TRY_GLYPH("%s/%sglyph/%s/%s.png", theme_base, mux_dim, glyph_folder, glyph_name);
+    TRY_GLYPH("%s/glyph/%s/%s.png", theme_base, glyph_folder, glyph_name);
+    TRY_GLYPH("%s/%sglyph/%s/%s.png", INTERNAL_THEME, mux_dim, glyph_folder, glyph_name);
+    TRY_GLYPH("%s/glyph/%s/%s.png", INTERNAL_THEME, glyph_folder, glyph_name);
+
+#undef TRY_GLYPH
+
+    LOG_DEBUG(mux_module, "Glyph not found: %s/%s", glyph_folder, glyph_name);
     image_path[0] = '\0';
     return 0;
 }
@@ -1569,7 +1583,12 @@ int adjust_wallpaper_element(lv_group_t *ui_group, int starter_image, int wall_t
     if (config.BOOT.FACTORY_RESET) {
         char init_wall[MAX_BUFFER_SIZE];
         snprintf(init_wall, sizeof(init_wall), "M:%s/%simage/wall/default.png", theme_base, mux_dim);
-        lv_img_set_src(ui_imgWall, init_wall);
+        lv_img_header_t wall_hdr;
+        if (lv_img_decoder_get_info(init_wall, &wall_hdr) == LV_RES_OK) {
+            lv_img_set_src(ui_imgWall, init_wall);
+        } else {
+            lv_img_set_src(ui_imgWall, &ui_img_blank);
+        }
     } else {
         load_wallpaper(ui_screen, ui_group, ui_pnlWall, ui_imgWall, wall_type);
     }
@@ -1609,7 +1628,15 @@ int adjust_wallpaper_element(lv_group_t *ui_group, int starter_image, int wall_t
                 break;
         }
 
-        lv_img_set_src(ui_imgBox, static_image);
+        size_t slen = strlen(static_image);
+        if (slen > 4 && strcmp(static_image + slen - 4, ".svg") == 0) {
+            char svg_path[MAX_BUFFER_SIZE];
+            snprintf(svg_path, sizeof(svg_path), "%s?%dx%d", static_image, lv_obj_get_width(ui_imgBox), lv_obj_get_height(ui_imgBox));
+
+            lv_img_set_src(ui_imgBox, svg_path);
+        } else {
+            lv_img_set_src(ui_imgBox, static_image);
+        }
         return 1;
     }
 
@@ -1820,9 +1847,17 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
         lv_obj_align(cell_image, LV_ALIGN_TOP_MID, 0, theme->GRID.CELL.IMAGE_PADDING_TOP);
     }
 
+    int grid_hint_w = (theme->GRID.CELL.WIDTH * 3) / 4;
+    int grid_hint_h = (theme->GRID.CELL.HEIGHT * 3) / 4;
+
     if (item_image_path && *item_image_path && file_exist(item_image_path)) {
         char grid_image[MAX_BUFFER_SIZE];
-        snprintf(grid_image, sizeof(grid_image), "M:%s", item_image_path);
+        size_t path_len = strlen(item_image_path);
+        if (path_len > 4 && strcmp(item_image_path + path_len - 4, ".svg") == 0) {
+            snprintf(grid_image, sizeof(grid_image), "M:%s?%dx%d", item_image_path, grid_hint_w, grid_hint_h);
+        } else {
+            snprintf(grid_image, sizeof(grid_image), "M:%s", item_image_path);
+        }
         lv_img_set_src(cell_image, grid_image);
     } else {
         lv_img_set_src(cell_image, &ui_img_blank);
@@ -1834,7 +1869,12 @@ void create_grid_item(struct theme_config *theme, lv_obj_t *cell_pnl, lv_obj_t *
 
     if (item_image_focused_path && *item_image_focused_path && file_exist(item_image_focused_path)) {
         char grid_image_focused[MAX_BUFFER_SIZE];
-        snprintf(grid_image_focused, sizeof(grid_image_focused), "M:%s", item_image_focused_path);
+        size_t path_len = strlen(item_image_focused_path);
+        if (path_len > 4 && strcmp(item_image_focused_path + path_len - 4, ".svg") == 0) {
+            snprintf(grid_image_focused, sizeof(grid_image_focused), "M:%s?%dx%d", item_image_focused_path, grid_hint_w, grid_hint_h);
+        } else {
+            snprintf(grid_image_focused, sizeof(grid_image_focused), "M:%s", item_image_focused_path);
+        }
         lv_img_set_src(cell_image_focused, grid_image_focused);
     } else {
         lv_img_set_src(cell_image_focused, &ui_img_blank);

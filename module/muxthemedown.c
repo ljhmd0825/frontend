@@ -17,7 +17,21 @@ static int schedule_theme_update = 0;
 static int pending_download_switch = 0;
 
 static int theme_extract_done = 0;
+static int theme_extract_error = 0;
 static char theme_extract_zip_done[PATH_MAX];
+
+static mux_dialogue msg_dlg;
+static int msg_mode = 0;
+
+static void show_message_dialog(void) {
+    msg_mode = 1;
+    dialogue_show(&msg_dlg);
+}
+
+static void hide_message_dialog(void) {
+    msg_mode = 0;
+    dialogue_hide(&msg_dlg);
+}
 
 static void show_help(void) {
     char text_path[MAX_BUFFER_SIZE];
@@ -25,9 +39,11 @@ static void show_help(void) {
 
     char credits[MAX_BUFFER_SIZE];
     if (file_exist(text_path)) {
-        strcpy(credits, read_all_char_from(text_path));
+        char *raw = read_all_char_from(text_path);
+        snprintf(credits, sizeof(credits), "%s", raw ? raw : "");
+        free(raw);
     } else {
-        strcpy(credits, lang.MUXPICKER.NONE.CREDIT);
+        snprintf(credits, sizeof(credits), "%s", lang.MUXPICKER.NONE.CREDIT);
     }
 
     show_info_box(TRS(lv_label_get_text(lv_group_get_focused(ui_group))), TRS(credits), 0);
@@ -230,12 +246,13 @@ static void refresh_current_list_item() {
 }
 
 static void theme_extraction_finished(char *theme_path) {
-    LOG_INFO(mux_module, "Extraction Finished: %s", theme_path);
-
     if (theme_path && *theme_path) {
+        LOG_INFO(mux_module, "Extraction Finished: %s", theme_path);
         snprintf(theme_extract_zip_done, sizeof(theme_extract_zip_done), "%s", theme_path);
     } else {
+        LOG_ERROR(mux_module, "Extraction blocked: archive contained unsafe file paths");
         theme_extract_zip_done[0] = '\0';
+        theme_extract_error = 1;
     }
 
     theme_extract_done = 1;
@@ -299,7 +316,7 @@ static void update_theme_data(void) {
 }
 
 static void handle_a(void) {
-    if (download_in_progress || msgbox_active || !ui_count || hold_call) return;
+    if (msg_mode || download_in_progress || msgbox_active || !ui_count || hold_call) return;
 
     play_sound(SND_CONFIRM);
 
@@ -325,6 +342,12 @@ static void handle_a(void) {
 }
 
 static void handle_b(void) {
+    if (msg_mode) {
+        play_sound(SND_BACK);
+        hide_message_dialog();
+        return;
+    }
+
     if (theme_extracting) {
         toast_message(lang.MUXTHEMEDOWN.THEME_EXTRACTING, LONG);
         return;
@@ -333,10 +356,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -433,8 +453,13 @@ static void ui_refresh_task() {
 
         if (msgbox_element) lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
 
-        refresh_current_list_item();
-        nav_moved = 1; // Force redraw of screen
+        if (theme_extract_error) {
+            theme_extract_error = 0;
+            show_message_dialog();
+        } else {
+            refresh_current_list_item();
+            nav_moved = 1;
+        }
     }
 
     if (pending_download_switch) {
@@ -464,7 +489,7 @@ static void ui_refresh_task() {
         }
 
         update_file_counter(ui_lblCounter_explore, ui_count);
-        lv_obj_move_foreground(overlay_image);
+        if (overlay_image) lv_obj_move_foreground(overlay_image);
 
         nav_moved = 0;
     }
@@ -518,6 +543,8 @@ int muxthemedown_main(void) {
 
     set_nav_flags(nav_e, A_SIZE(nav_e));
     adjust_panels();
+
+    dialogue_init_message(&msg_dlg, &theme, ui_screen, lang.GENERIC.WARNING, NULL, lang.GENERIC.UNSAFE_ARCHIVE, lang.GENERIC.BACK);
 
     if (ui_count > 0) list_nav_move(theme_down_index, 1);
     theme_down_index = 0;

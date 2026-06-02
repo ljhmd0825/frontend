@@ -7,7 +7,6 @@ enum {
 };
 #undef INFO
 
-static void list_nav_move(int steps, int direction);
 
 static void show_help(void) {
     struct help_msg help_messages[] = {
@@ -38,6 +37,7 @@ static void init_navigation_group(void) {
     INIT_STATIC_ITEM(-1, info, Space, lang.MUXINFO.SPACE, "space", 0);
     INIT_STATIC_ITEM(-1, info, Tester, lang.MUXINFO.TESTER, "tester", 0);
     INIT_STATIC_ITEM(-1, info, SysInfo, lang.MUXINFO.SYSINFO, "sysinfo", 0);
+    INIT_STATIC_ITEM(-1, info, BatInfo, lang.MUXINFO.BATINFO, "batinfo", 0);
     INIT_STATIC_ITEM(-1, info, NetInfo, lang.MUXINFO.NETINFO, "netinfo", 0);
     INIT_STATIC_ITEM(-1, info, Chrony, lang.MUXINFO.CHRONY, "chrony", 0);
     INIT_STATIC_ITEM(-1, info, Credit, lang.MUXINFO.CREDIT, "credit", 0);
@@ -51,22 +51,11 @@ static void init_navigation_group(void) {
     }
 
     // Hide until further notice or future development
-    if (!visible_chrony_opt()) HIDE_STATIC_ITEM(info, Chrony);
+    HIDE_STATIC_ITEM(info, Chrony);
 
-    list_nav_move(direct_to_previous(ui_objects, UI_COUNT, &nav_moved), +1);
+    gen_step_movement(direct_to_previous(ui_objects, UI_COUNT, &nav_moved), +1, 1, 0);
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, true, 0);
-}
-
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
-}
-
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
-}
 
 static void handle_a(void) {
     if (msgbox_active || hold_call) return;
@@ -92,6 +81,7 @@ static void handle_a(void) {
             {"space",      MENU_GENERAL, NULL},
             {"tester",     MENU_GENERAL, NULL},
             {"sysinfo",    MENU_GENERAL, NULL},
+            {"batinfo",    MENU_GENERAL, NULL},
             {"netinfo",    MENU_GENERAL, visible_network_opt},
             {"chrony",     MENU_GENERAL, visible_chrony_opt},
             {"credits",    MENU_CREDITS, NULL},
@@ -144,10 +134,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -223,7 +210,7 @@ int muxinfo_main(void) {
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev, list_nav_cb_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

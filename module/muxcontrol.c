@@ -186,8 +186,7 @@ static void create_control_items(const char *target) {
     }
 
     char default_control[FILENAME_MAX];
-    strncpy(default_control, use_control, sizeof(default_control));
-    default_control[sizeof(default_control) - 1] = '\0';
+    snprintf(default_control, sizeof(default_control), "%s", use_control);
 
     mini_free(global_config);
     mini_free(local_config);
@@ -195,17 +194,6 @@ static void create_control_items(const char *target) {
     generate_available_controls(default_control);
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, true, 0);
-}
-
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
-}
-
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
-}
 
 static void handle_a(void) {
     if (msgbox_active || hold_call || is_dir) return;
@@ -225,10 +213,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -352,33 +337,31 @@ int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app) 
                 LOG_INFO(mux_module, "\tCore Assigned: %s", ass_config);
 
                 char assigned_global[MAX_BUFFER_SIZE];
-                snprintf(assigned_global, sizeof(assigned_global), STORE_LOC_ASIN "/%s/global.ini",
-                         ass_config);
+                snprintf(assigned_global, sizeof(assigned_global), STORE_LOC_ASIN "/%s/global.ini", ass_config);
 
                 LOG_INFO(mux_module, "\tObtaining Core INI: %s", assigned_global);
 
                 mini_t *global_ini = mini_load(assigned_global);
 
                 static char def_control[MAX_BUFFER_SIZE];
-                strcpy(def_control, get_ini_string(global_ini, "global", "control", "none"));
+                snprintf(def_control, sizeof(def_control), "%s", get_ini_string(global_ini, "global", "control", "none"));
 
                 static char def_sys[MAX_BUFFER_SIZE];
-                strcpy(def_sys, get_ini_string(global_ini, "global", "default", "none"));
+                snprintf(def_sys, sizeof(def_sys), "%s", get_ini_string(global_ini, "global", "default", "none"));
 
                 if (strcmp(def_control, "none") != 0) {
                     char default_core[MAX_BUFFER_SIZE];
-                    snprintf(default_core, sizeof(default_core), STORE_LOC_ASIN "/%s/%s.ini",
-                             ass_config, def_sys);
+                    snprintf(default_core, sizeof(default_core), STORE_LOC_ASIN "/%s/%s.ini", ass_config, def_sys);
 
                     static char core_control[MAX_BUFFER_SIZE];
                     mini_t *local_ini = mini_load(default_core);
 
                     char *use_local_control = get_ini_string(local_ini, def_sys, "control", "none");
                     if (strcmp(use_local_control, "none") != 0) {
-                        strcpy(core_control, use_local_control);
+                        snprintf(core_control, sizeof(core_control), "%s", use_local_control);
                         LOG_INFO(mux_module, "\t(LOCAL) Core Control: %s", core_control);
                     } else {
-                        strcpy(core_control, get_ini_string(global_ini, "global", "control", "system"));
+                        snprintf(core_control, sizeof(core_control), "%s", get_ini_string(global_ini, "global", "control", "system"));
                         LOG_INFO(mux_module, "\t(GLOBAL) Core Control: %s", core_control);
                     }
 
@@ -442,7 +425,7 @@ int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app) 
 
     if (ui_count > 0) {
         LOG_SUCCESS(mux_module, "%d Control%s Detected", ui_count, ui_count == 1 ? "" : "s");
-        list_nav_next(0);
+        gen_step_movement(0, +1, 1, 0);
     } else {
         LOG_ERROR(mux_module, "No Controls Detected!");
         lv_label_set_text(ui_lblScreenMessage, lang.MUXCONTROL.NONE);
@@ -475,7 +458,7 @@ int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app) 
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev, list_nav_cb_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

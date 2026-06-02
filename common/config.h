@@ -97,13 +97,11 @@ struct mux_config {
         struct {
             int16_t ACCELERATE;
             int16_t REPEATDELAY;
-            int16_t SWAP;
             int16_t STICKNAV;
             int16_t THERMAL;
             int16_t FONT;
             int16_t VOLUME;
             int16_t BRIGHTNESS;
-            int16_t PASSCODE;
             int16_t LED;
             int16_t RANDOMTHEME;
             int16_t RETROWAIT;
@@ -128,6 +126,9 @@ struct mux_config {
             int16_t AUDIOSWAP;
             int16_t SECONDPART;
             int16_t USBPART;
+            int16_t TRUSTMODIFY;
+            int16_t TRUSTPOWER;
+            int16_t TRUSTREMOVE;
         } ADVANCED;
         struct {
             int16_t TEMPERATURE;
@@ -226,7 +227,11 @@ struct mux_config {
             int16_t HEADER_HEIGHT;
             int16_t FOOTER_HEIGHT;
             int16_t CONTENT_ITEM_COUNT;
+            int16_t GLYPH_SIZE;
         } THEMEOPT;
+        struct {
+            int16_t LAYOUT;
+        } REMAP;
     } SETTINGS;
 
     struct {

@@ -217,15 +217,15 @@ static void parse_index_json(const char *json_data) {
                 if (json_exists(slug) && json_type(slug) == JSON_STRING) {
                     json_string_copy(slug, tag_buf, sizeof(tag_buf));
                 } else {
-                    strcpy(tag_buf, "news");
+                    snprintf(tag_buf, sizeof(tag_buf), "%s", "news");
                 }
             } else if (json_type(t0) == JSON_STRING) {
                 json_string_copy(t0, tag_buf, sizeof(tag_buf));
             } else {
-                strcpy(tag_buf, "news");
+                snprintf(tag_buf, sizeof(tag_buf), "%s", "news");
             }
         } else {
-            strcpy(tag_buf, "news");
+            snprintf(tag_buf, sizeof(tag_buf), "%s", "news");
         }
 
         snprintf(key_buf, sizeof(key_buf), "topic_%d", id);
@@ -415,10 +415,7 @@ static void handle_b(void) {
     if (download_in_progress || hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -528,7 +525,7 @@ static void ui_refresh_task() {
         if (lv_group_get_obj_count(ui_group) > 0) adjust_wallpaper_element(ui_group, 0, WALL_GENERAL);
         adjust_gen_panel();
 
-        lv_obj_move_foreground(overlay_image);
+        if (overlay_image) lv_obj_move_foreground(overlay_image);
 
         lv_obj_invalidate(ui_pnlContent);
         nav_moved = 0;

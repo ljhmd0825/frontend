@@ -23,6 +23,7 @@
 #include "saver/mystify.h"
 #include "saver/maze.h"
 #include "saver/blockfall.h"
+#include "saver/datetime.h"
 
 typedef struct {
     // Just the default base stuff we need
@@ -123,9 +124,7 @@ static void reload_background(const char *active_theme) {
         return;
     }
 
-    strncpy(monitor.theme_name, active_theme, sizeof(monitor.theme_name) - 1);
-    monitor.theme_name[sizeof(monitor.theme_name) - 1] = '\0';
-
+    snprintf(monitor.theme_name, sizeof(monitor.theme_name), "%s", active_theme);
     LOG_INFO("video", "Loaded theme background: %s", back_image);
 }
 
@@ -141,12 +140,14 @@ enum {
     SAVER_TYPE_MYSTIFY = 8,
     SAVER_TYPE_MAZE = 9,
     SAVER_TYPE_BLOCKFALL = 10,
+    SAVER_TYPE_DATETIME = 11,
 };
 
 static int saver_speed_override = 0;
 static int active_saver = -1;
 
 static int saver_active(void) {
+    if (active_saver == SAVER_TYPE_DATETIME) return datetime_active();
     if (active_saver == SAVER_TYPE_BLOCKFALL) return blockfall_active();
     if (active_saver == SAVER_TYPE_MAZE) return maze_active();
     if (active_saver == SAVER_TYPE_MYSTIFY) return mystify_active();
@@ -161,7 +162,8 @@ static int saver_active(void) {
 }
 
 static void saver_update(void) {
-    if (active_saver == SAVER_TYPE_BLOCKFALL) blockfall_update();
+    if (active_saver == SAVER_TYPE_DATETIME) datetime_update();
+    else if (active_saver == SAVER_TYPE_BLOCKFALL) blockfall_update();
     else if (active_saver == SAVER_TYPE_MAZE) maze_update();
     else if (active_saver == SAVER_TYPE_MYSTIFY) mystify_update();
     else if (active_saver == SAVER_TYPE_CONSTELLATION) constellation_update();
@@ -174,7 +176,8 @@ static void saver_update(void) {
 }
 
 static void saver_render(SDL_Renderer *r) {
-    if (active_saver == SAVER_TYPE_BLOCKFALL) blockfall_render(r);
+    if (active_saver == SAVER_TYPE_DATETIME) datetime_render(r);
+    else if (active_saver == SAVER_TYPE_BLOCKFALL) blockfall_render(r);
     else if (active_saver == SAVER_TYPE_MAZE) maze_render(r);
     else if (active_saver == SAVER_TYPE_MYSTIFY) mystify_render(r);
     else if (active_saver == SAVER_TYPE_CONSTELLATION) constellation_render(r);
@@ -187,7 +190,8 @@ static void saver_render(SDL_Renderer *r) {
 }
 
 static void saver_stop(void) {
-    if (active_saver == SAVER_TYPE_BLOCKFALL) blockfall_stop();
+    if (active_saver == SAVER_TYPE_DATETIME) datetime_stop();
+    else if (active_saver == SAVER_TYPE_BLOCKFALL) blockfall_stop();
     else if (active_saver == SAVER_TYPE_MAZE) maze_stop();
     else if (active_saver == SAVER_TYPE_MYSTIFY) mystify_stop();
     else if (active_saver == SAVER_TYPE_CONSTELLATION) constellation_stop();
@@ -220,10 +224,18 @@ static void reload_saver() {
     mystify_shutdown();
     maze_shutdown();
     blockfall_shutdown();
+    datetime_shutdown();
 
     int type = config.SETTINGS.POWER.SAVERTYPE;
 
-    if (type == SAVER_TYPE_BLOCKFALL) {
+    if (type == SAVER_TYPE_DATETIME) {
+        uint32_t tc = theme.LIST_DEFAULT.TEXT;
+        uint8_t dt_r = (uint8_t) ((tc >> 16) & 0xFF);
+        uint8_t dt_g = (uint8_t) ((tc >> 8) & 0xFF);
+        uint8_t dt_b = (uint8_t) (tc & 0xFF);
+        uint8_t dt_a = (theme.LIST_DEFAULT.TEXT_ALPHA < 0) ? 255 : (uint8_t) theme.LIST_DEFAULT.TEXT_ALPHA;
+        datetime_init(monitor.renderer, device.SCREEN.WIDTH, device.SCREEN.HEIGHT, dt_r, dt_g, dt_b, dt_a);
+    } else if (type == SAVER_TYPE_BLOCKFALL) {
         blockfall_init(monitor.renderer, device.SCREEN.WIDTH, device.SCREEN.HEIGHT);
     } else if (type == SAVER_TYPE_MAZE) {
         maze_init(monitor.renderer, device.SCREEN.WIDTH, device.SCREEN.HEIGHT);
@@ -493,6 +505,7 @@ void sdl_cleanup(void) {
     mystify_shutdown();
     maze_shutdown();
     blockfall_shutdown();
+    datetime_shutdown();
 
     if (monitor.texture) SDL_DestroyTexture(monitor.texture);
     if (monitor.renderer) SDL_DestroyRenderer(monitor.renderer);
@@ -738,7 +751,7 @@ void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     SDL_Rect upd = {.x = x1, .y = y1, .w = copy_w, .h = copy_h};
 
     const uint8_t *src_base = (const uint8_t *) color_p;
-    const uint8_t *src_ptr = src_base + ((size_t)(src_y_ofs * src_w + src_x_ofs) * sizeof(lv_color_t));
+    const uint8_t *src_ptr = src_base + ((size_t) (src_y_ofs * src_w + src_x_ofs) * sizeof(lv_color_t));
 
     const int src_pitch = src_w * (int) sizeof(lv_color_t);
     const int dst_pitch = copy_w * (int) sizeof(lv_color_t);

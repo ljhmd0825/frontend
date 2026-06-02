@@ -185,6 +185,8 @@ static char *boot_governor = NULL;
 static char *running_governor = NULL;
 static char *previous_governor = NULL;
 
+static volatile sig_atomic_t pending_signal = 0;
+
 static inline int in_idle_state(void) {
     return idle_state_exists;
 }
@@ -199,8 +201,12 @@ static void del_old_proc(int signo) {
     }
 }
 
-static void cleanup(int signo) {
+static void do_cleanup(int signo) {
     (void) signo;
+
+    static int cleanup_done = 0;
+    if (cleanup_done) return;
+    cleanup_done = 1;
 
     const char *restore_governor = running_governor ? running_governor : boot_governor;
     if (restore_governor) set_scaling_governor(restore_governor, 0);
@@ -240,8 +246,10 @@ static void cleanup(int signo) {
     free(boot_governor);
     free(running_governor);
     free(previous_governor);
+}
 
-    exit(0);
+static void cleanup(int signo) {
+    pending_signal = signo;
 }
 
 static void record_sequence(mux_input_type type) {
@@ -497,7 +505,7 @@ static int open_raw_event_index(int idx, struct pollfd *pfd, const char *label) 
     }
 
     char name[128] = {0};
-    if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) < 0) strcpy(name, "unknown");
+    if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) < 0) snprintf(name, sizeof(name), "%s", "unknown");
 
     LOG_DEBUG("input", "Raw %s device: %s (%s)", label, path, name);
 
@@ -596,6 +604,12 @@ static void handle_input(mux_input_type type, mux_input_action action) {
 }
 
 static void handle_idle(void) {
+    if (pending_signal) {
+        do_cleanup(pending_signal);
+        mux_input_stop();
+        return;
+    }
+
     global_tick = mux_input_tick();
 
     if (vol_fd >= 0) handle_raw_volume();
@@ -832,7 +846,7 @@ static void parse_combos_file(const char *filename) {
         }
 
         size_t len = json_string_length(key) + 1;
-        char *name = malloc(len);
+        char *name = mux_malloc(len);
         json_string_copy(key, name, len);
 
         if (combo_name_exists(name)) {
@@ -873,7 +887,7 @@ static void parse_combos_file(const char *filename) {
 
         if (json_exists(exec_json)) {
             size_t l = json_string_length(exec_json) + 1;
-            c->exec_cmd = malloc(l);
+            c->exec_cmd = mux_malloc(l);
             json_string_copy(exec_json, c->exec_cmd, l);
             c->exec_argv = split_command(c->exec_cmd, &c->exec_argc);
         }
@@ -945,7 +959,7 @@ static void usage(FILE *file) {
 }
 
 static void cleanup_atexit(void) {
-    cleanup(0);
+    do_cleanup(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -1072,6 +1086,7 @@ int main(int argc, char *argv[]) {
     mux_input_task(&input_opts);
 
     SDL_Quit();
-    cleanup(0);
+    do_cleanup(0);
+
     return 0;
 }

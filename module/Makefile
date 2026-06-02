@@ -6,19 +6,18 @@ CFLAGS = $(BASE_CFLAGS) \
          -I../common/mini -I../common/miniz
 
 LDFLAGS = $(COMMON_LIBS) $(LIB_LDFLAGS) $(SHARED_PIC) \
-          -L../bin/lib -lui -llookup -lmuxcom \
-          -lnotosans_big -lnotosans_big_hd
+          -L../bin/lib -lui -llookup -lmuxcom -lplutosvg
 
-MODULES = muxactivity muxapp muxappcon muxarchive muxassign muxbackup muxbtall \
+MODULES = muxactivity muxapp muxappcon muxarchive muxassign muxbackup muxbatinfo muxbtall \
           muxbtcon muxbtdev muxchrony muxcoladjust muxcolfilter muxcollect muxconfig \
           muxconnect muxcontrol muxcustom muxdanger muxdevice muxdownload \
           muxfont muxgov muxhdmi muxhistory muxinfo muxinstall muxkiosk \
           muxlanguage muxlaunch muxnetadv muxnetinfo muxnetprofile muxnetscan \
-          muxnetwork muxnews muxoption muxoverlay muxpass muxpicker muxplore \
+          muxnetwork muxnews muxoption muxoverlay muxpass muxpasscfg muxpicker muxplore \
           muxpower muxraopt muxrgb muxrtc muxsearch muxshader muxshot muxsort \
           muxspace muxsplash muxstorage muxsysinfo muxtag muxtask muxtheme \
           muxthemedown muxthemefilter muxthemeopt muxtester muxtext muxtimezone \
-          muxtweakadv muxtweakgen muxvisual muxwebserv muxshare
+          muxtweakadv muxtweakgen muxvisual muxwebserv muxshare muxremap
 
 MODULE_DIR = .
 

@@ -79,8 +79,7 @@ static void create_core_items(const char *target) {
 
     char default_assign[FILENAME_MAX];
     mini_t *global_config = mini_load(global_assign);
-    strncpy(default_assign, get_ini_string(global_config, "global", "default", "none"), sizeof(default_assign));
-    default_assign[sizeof(default_assign) - 1] = '\0';
+    snprintf(default_assign, sizeof(default_assign), "%s", get_ini_string(global_config, "global", "default", "none"));
     mini_free(global_config);
 
     if (strcmp(default_assign, "none") == 0) return;
@@ -105,12 +104,10 @@ static void create_core_items(const char *target) {
                 mini_t *core_config = mini_load(core_file);
 
                 char assign_name[FILENAME_MAX];
-                strncpy(assign_name, get_ini_string(core_config, af->d_name, "name", "none"), sizeof(assign_name));
-                assign_name[sizeof(assign_name) - 1] = '\0';
+                snprintf(assign_name, sizeof(assign_name), "%s", get_ini_string(core_config, af->d_name, "name", "none"));
 
                 char assign_core[FILENAME_MAX];
-                strncpy(assign_core, get_ini_string(core_config, af->d_name, "core", "none"), sizeof(assign_core));
-                assign_core[sizeof(assign_core) - 1] = '\0';
+                snprintf(assign_core, sizeof(assign_core), "%s", get_ini_string(core_config, af->d_name, "core", "none"));
 
                 mini_free(core_config);
 
@@ -167,17 +164,6 @@ static void create_core_items(const char *target) {
     }
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, true, 0);
-}
-
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
-}
-
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
-}
 
 static void load_return_module() {
     if (file_exist(MUOS_ASS_FROM)) {
@@ -192,10 +178,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -241,36 +224,36 @@ static void handle_core_assignment(const char *log_msg, int assignment_mode) {
     static char core_catalogue[MAX_BUFFER_SIZE];
     char *use_local_catalogue = get_ini_string(local_ini, selected_item, "catalogue", "none");
     if (strcmp(use_local_catalogue, "none") != 0) {
-        strcpy(core_catalogue, use_local_catalogue);
+        snprintf(core_catalogue, sizeof(core_catalogue), "%s", use_local_catalogue);
     } else {
-        strcpy(core_catalogue, get_ini_string(global_ini, "global", "catalogue", "none"));
+        snprintf(core_catalogue, sizeof(core_catalogue), "%s", get_ini_string(global_ini, "global", "catalogue", "none"));
     }
     LOG_INFO(mux_module, "Content Core Catalogue: %s", core_catalogue);
 
     static char core_governor[MAX_BUFFER_SIZE];
     char *use_local_governor = get_ini_string(local_ini, selected_item, "governor", "none");
     if (strcmp(use_local_governor, "none") != 0) {
-        strcpy(core_governor, use_local_governor);
+        snprintf(core_governor, sizeof(core_governor), "%s", use_local_governor);
     } else {
-        strcpy(core_governor, get_ini_string(global_ini, "global", "governor", device.CPU.DEFAULT));
+        snprintf(core_governor, sizeof(core_governor), "%s", get_ini_string(global_ini, "global", "governor", device.CPU.DEFAULT));
     }
     LOG_INFO(mux_module, "Content Core Governor: %s", core_governor);
 
     static char core_control[MAX_BUFFER_SIZE];
     char *use_local_control = get_ini_string(local_ini, selected_item, "control", "none");
     if (strcmp(use_local_control, "none") != 0) {
-        strcpy(core_control, use_local_control);
+        snprintf(core_control, sizeof(core_control), "%s", use_local_control);
     } else {
-        strcpy(core_control, get_ini_string(global_ini, "global", "control", "system"));
+        snprintf(core_control, sizeof(core_control), "%s", get_ini_string(global_ini, "global", "control", "system"));
     }
     LOG_INFO(mux_module, "Content Core Control: %s", core_control);
 
     static char core_retroarch[MAX_BUFFER_SIZE];
     char *use_local_retroarch = get_ini_string(local_ini, selected_item, "retroarch", "false");
     if (strcmp(use_local_retroarch, "false") != 0) {
-        strcpy(core_retroarch, use_local_retroarch);
+        snprintf(core_retroarch, sizeof(core_retroarch), "%s", use_local_retroarch);
     } else {
-        strcpy(core_retroarch, get_ini_string(global_ini, "global", "retroarch", "false"));
+        snprintf(core_retroarch, sizeof(core_retroarch), "%s", get_ini_string(global_ini, "global", "retroarch", "false"));
     }
     LOG_INFO(mux_module, "Content Core RetroArch Config: %s", core_retroarch);
 
@@ -280,7 +263,7 @@ static void handle_core_assignment(const char *log_msg, int assignment_mode) {
     LOG_INFO(mux_module, "Content Core Lookup: %d", core_lookup);
 
     static char core_launch[MAX_BUFFER_SIZE];
-    strcpy(core_launch, get_ini_string(local_ini, selected_item, "core", "none"));
+    snprintf(core_launch, sizeof(core_launch), "%s", get_ini_string(local_ini, selected_item, "core", "none"));
     LOG_INFO(mux_module, "Content Core Launcher: %s", core_launch);
 
     create_core_assignment(selected_item, rom_dir, core_launch, rom_system, core_catalogue, rom_name,
@@ -438,7 +421,7 @@ int muxassign_main(int auto_assign, char *name, char *dir, char *sys, int app) {
         }
 
         if (ui_count > 0 && ass_index > -1 && ass_index <= ui_count && current_item_index < ui_count) {
-            list_nav_move(ass_index, +1);
+            gen_step_movement(ass_index, +1, 1, 0);
         }
     } else {
         LOG_ERROR(mux_module, "No Cores Detected - Check Directory!");
@@ -472,7 +455,7 @@ int muxassign_main(int auto_assign, char *name, char *dir, char *sys, int app) {
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev, list_nav_cb_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

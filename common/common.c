@@ -37,6 +37,8 @@
 #include "mini/mini.h"
 #include "../module/muxshare.h"
 
+static void free_line_if_needed(char *line);
+
 char mux_module[MAX_BUFFER_SIZE];
 char mux_dim[15];
 int msgbox_active;
@@ -46,6 +48,7 @@ int fe_bgm;
 int last_idle = -1;
 struct json translation_generic;
 struct json translation_specific;
+static char *language_json = NULL;
 struct pattern skip_pattern_list = {NULL, 0, 0};
 int skip_patterns_loaded = 0;
 lv_anim_t animation;
@@ -69,6 +72,7 @@ int nav_volume = 90;
 int current_brightness = 0;
 int current_volume = 0;
 int is_blank = 0;
+int config_auth = 0;
 int idle_state_exists = 0;
 int safe_quit_exists = 0;
 int hdmi_refresh_exists = 0;
@@ -252,7 +256,7 @@ char *str_nonew(char *text) {
 }
 
 char *str_tolower(char *text) {
-    char *result = strdup(text);
+    char *result = mux_strdup(text);
     char *ptr = result;
 
     while (*ptr) {
@@ -264,7 +268,7 @@ char *str_tolower(char *text) {
 }
 
 char *str_toupper(char *text) {
-    char *result = strdup(text);
+    char *result = mux_strdup(text);
     char *ptr = result;
 
     while (*ptr) {
@@ -327,7 +331,7 @@ void str_split(char *text, char sep, char *p1, char *p2) {
 
     if (pos) {
         size_t len = pos - text;
-        strncpy(p1, text, len);
+        memcpy(p1, text, len);
         p1[len] = '\0';
         strcpy(p2, pos + 1);
     } else {
@@ -415,7 +419,7 @@ int str_replace_segment(const char *orig, const char *prefix, const char *suffix
     *replacement = (char *) malloc(total_len);
     if (!*replacement) return 0;
 
-    strncpy(*replacement, orig, len_front);
+    memcpy(*replacement, orig, len_front);
     strcpy(*replacement + len_front, with);
     strcpy(*replacement + len_front + len_with, end);
 
@@ -440,7 +444,7 @@ int str_extract(const char *orig, const char *prefix, const char *suffix, char *
     *extraction = (char *) malloc(len_dynamic + 1);
     if (!*extraction) return 0;
 
-    strncpy(*extraction, start, len_dynamic);
+    memcpy(*extraction, start, len_dynamic);
     (*extraction)[len_dynamic] = '\0';
 
     return 1;
@@ -473,8 +477,7 @@ char *str_rem_first_char(char *text, int count) {
     if (count <= 0) return text;
     if (count >= (int) len) return "";
 
-    strncpy(buffer, text + count, sizeof(buffer) - 1);
-    buffer[sizeof(buffer) - 1] = '\0';
+    snprintf(buffer, sizeof(buffer), "%s", text + count);
 
     return buffer;
 }
@@ -485,8 +488,7 @@ char *str_rem_last_char(char *text, int count) {
 
     if (count >= (int) len) return "";
 
-    strncpy(buffer, text, sizeof(buffer) - 1);
-    buffer[sizeof(buffer) - 1] = '\0';
+    snprintf(buffer, sizeof(buffer), "%s", text);
 
     while (count-- > 0 && len > 0) {
         len--;
@@ -574,7 +576,7 @@ char *get_content_name(char *path) {
 }
 
 char *strip_dir(char *text) {
-    char *result = strdup(text);
+    char *result = mux_strdup(text);
     char *last_slash = strrchr(result, '/');
 
     if (last_slash != NULL) *last_slash = '\0';
@@ -583,7 +585,7 @@ char *strip_dir(char *text) {
 }
 
 char *strip_ext(char *text) {
-    char *result = strdup(text);
+    char *result = mux_strdup(text);
     char *ext = strrchr(result, '.');
 
     if (ext != NULL) *ext = '\0';
@@ -594,9 +596,9 @@ char *strip_ext(char *text) {
 char *grab_ext(char *text) {
     char *ext = strrchr(text, '.');
 
-    if (ext != NULL && *(ext + 1) != '\0') return strdup(ext + 1);
+    if (ext != NULL && *(ext + 1) != '\0') return mux_strdup(ext + 1);
 
-    return strdup("");
+    return mux_strdup("");
 }
 
 // Just so nobody is confused in the future...
@@ -657,10 +659,15 @@ char *read_all_char_from(const char *filename) {
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    char *text = malloc(fileSize + 1);
+    if (fileSize < 0) {
+        fclose(file);
+        return strdup("");
+    }
+
+    char *text = malloc((size_t) fileSize + 1);
 
     if (text != NULL) {
-        size_t bytesRead = fread(text, 1, fileSize, file);
+        size_t bytesRead = fread(text, 1, (size_t) fileSize, file);
 
         if (bytesRead > 0 && text[bytesRead - 1] == '\n') {
             text[bytesRead - 1] = '\0';
@@ -669,6 +676,8 @@ char *read_all_char_from(const char *filename) {
         }
     } else {
         LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_ALLOCATE_MEM);
+        fclose(file);
+        return strdup("");
     }
 
     fclose(file);
@@ -727,8 +736,7 @@ int read_all_int_from(const char *filename, size_t buffer) {
     }
 
     fclose(file);
-    long value = strtol(line, NULL, 10);
-    return (value > INT_MAX || value < INT_MIN) ? 0 : (int) value;
+    return safe_atoi(line, 0);
 }
 
 int read_line_int_from(const char *filename, size_t line_number) {
@@ -739,10 +747,8 @@ int read_line_int_from(const char *filename, size_t line_number) {
     for (size_t i = 1; i <= line_number && fgets(line, sizeof(line), file); i++) {
         if (i == line_number) {
             line[strcspn(line, "\n")] = '\0';
-            errno = 0;
-            long value = strtol(line, NULL, 10);
             fclose(file);
-            return (errno == ERANGE) ? 0 : (int) value;
+            return safe_atoi(line, 0);
         }
     }
 
@@ -805,15 +811,13 @@ const char *get_random_hex(void) {
 uint32_t get_ini_hex(mini_t *ini_config, const char *section, const char *key, uint32_t default_value) {
     const char *meta = mini_get_string(ini_config, section, key, "NOT FOUND");
 
-    uint32_t result;
-    if (strcmp(meta, "NOT FOUND") == 0) {
-        result = default_value;
-    } else {
-        result = (uint32_t)
-                strtoul(meta, NULL, 16);
-    }
+    if (strcmp(meta, "NOT FOUND") == 0) return default_value;
 
-    return result;
+    char *end = NULL;
+    errno = 0;
+    unsigned long hex_val = strtoul(meta, &end, 16);
+    if (errno || end == meta || *end != '\0' || hex_val > UINT32_MAX) return default_value;
+    return (uint32_t) hex_val;
 }
 
 uint16_t get_ini_uint(mini_t *ini_config, const char *section, const char *key, uint16_t default_value) {
@@ -866,8 +870,7 @@ char *get_ini_string(mini_t *ini_config, const char *section, const char *key, c
     static char meta[MAX_BUFFER_SIZE];
     const char *result = mini_get_string(ini_config, section, key, default_value);
 
-    strncpy(meta, result, MAX_BUFFER_SIZE - 1);
-    meta[MAX_BUFFER_SIZE - 1] = '\0';
+    snprintf(meta, MAX_BUFFER_SIZE, "%s", result);
 
     return meta;
 }
@@ -885,14 +888,51 @@ void write_text_to_file(const char *filename, const char *mode, int type, ...) {
 
     if (type == CHAR) { // type is general text!
         fprintf(file, "%s", va_arg(args,
-        const char *));
+                                   const char *));
     } else if (type == INT) { // type is a number!
         fprintf(file, "%d", va_arg(args,
-        int));
+                                   int));
     }
 
     va_end(args);
     fclose(file);
+}
+
+void write_text_to_file_atomic(const char *filename, int type, ...) {
+    char tmp[PATH_MAX];
+    int tmp_len = snprintf(tmp, sizeof(tmp), "%s.tmp", filename);
+
+    if (tmp_len < 0 || (size_t) tmp_len >= sizeof(tmp)) {
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_WRITE, filename);
+        return;
+    }
+
+    FILE *f = fopen(tmp, "w");
+    if (!f) {
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_WRITE, filename);
+        return;
+    }
+
+    va_list args;
+    va_start(args, type);
+
+    int ok = 1;
+    if (type == CHAR) {
+        if (fputs(va_arg(args, const char *), f) < 0) ok = 0;
+    } else if (type == INT) {
+        if (fprintf(f, "%d", va_arg(args, int)) < 0) ok = 0;
+    }
+
+    va_end(args);
+
+    if (fflush(f) != 0) ok = 0;
+    if (fsync(fileno(f)) != 0) ok = 0;
+    fclose(f);
+
+    if (!ok || rename(tmp, filename) != 0) {
+        remove(tmp);
+        LOG_ERROR(mux_module, "%s: %s", lang.SYSTEM.FAIL_FILE_WRITE, filename);
+    }
 }
 
 void create_directories(const char *path, int parent_only) {
@@ -1093,6 +1133,7 @@ void delete_files_of_name(const char *dir_path, const char *filename) {
         return;
     }
 
+    int dfd = dirfd(dir);
     struct dirent *entry;
 
     while ((entry = readdir(dir)) != NULL) {
@@ -1103,7 +1144,7 @@ void delete_files_of_name(const char *dir_path, const char *filename) {
 
         if (entry->d_type == DT_DIR || entry->d_type == DT_UNKNOWN) {
             struct stat st;
-            if (stat(full_path, &st) == 0 && S_ISDIR(st.st_mode)) {
+            if (fstatat(dfd, entry->d_name, &st, AT_SYMLINK_NOFOLLOW) == 0 && S_ISDIR(st.st_mode)) {
                 delete_files_of_name(full_path, filename);
                 continue;
             }
@@ -1237,7 +1278,6 @@ int load_image_catalogue(const char *catalogue_name, const char *program, const 
         CAT_THEME, CAT_INFO
     };
 
-    const char *path_format = "%s/%s/%s/%s%s.png";
     const bool skip_theme_catalogue =
             !dir_exist(config.THEME.THEME_CAT_PATH) || !is_supported_theme_catalogue(catalogue_name, image_type);
 
@@ -1261,16 +1301,24 @@ int load_image_catalogue(const char *catalogue_name, const char *program, const 
             {CAT_INFO, INFO_CAT_PATH,                "",      program_default},
     };
 
-    for (size_t i = 0; i < A_SIZE(args); i++) {
-        if ((args[i].kind == CAT_THEME && skip_theme_catalogue) ||
-            args[i].program[0] == '\0') {
-            continue;
-        }
+    const char *path_formats[] = {
+            "%s/%s/%s/%s%s.svg",
+            "%s/%s/%s/%s%s.jpg",
+            "%s/%s/%s/%s%s.png"
+    };
 
-        int written;
-        written = snprintf(image_path, path_size, path_format, args[i].catalogue_path, catalogue_name,
-                           image_type, args[i].dimension, args[i].program);
-        if (written >= 0 && file_exist(image_path)) return 1;
+    for (size_t j = 0; j < A_SIZE(path_formats); ++j) {
+        for (size_t i = 0; i < A_SIZE(args); i++) {
+            if ((args[i].kind == CAT_THEME && skip_theme_catalogue) ||
+                args[i].program[0] == '\0') {
+                continue;
+            }
+
+            int written;
+            written = snprintf(image_path, path_size, path_formats[j], args[i].catalogue_path, catalogue_name, image_type, args[i].dimension, args[i].program);
+
+            if (written >= 0 && file_exist(image_path)) return 1;
+        }
     }
 
     return 0;
@@ -1282,59 +1330,85 @@ char *get_wallpaper_path(lv_obj_t *ui_screen, lv_group_t *ui_group, int animated
     static char wall_image_path[MAX_BUFFER_SIZE];
     static char wall_image_embed[MAX_BUFFER_SIZE];
 
-    const char *wall_extension = random ? "0.png" : (animated == 1 ? "gif" : (animated == 2 ? "0.png" : "png"));
-
+    const char *element = "";
     if (ui_group != NULL && lv_group_get_obj_count(ui_group) > 0) {
         struct _lv_obj_t *e_focused = lv_group_get_focused(ui_group);
-        const char *element = e_focused == NULL ? "" : lv_obj_get_user_data(e_focused);
+        if (e_focused != NULL) {
+            const char *ud = lv_obj_get_user_data(e_focused);
+            if (ud) element = ud;
+        }
+    }
+
+    static const char *cached_theme_base;
+    static int cached_animated = -1, cached_random = -1, cached_wall_type = -1;
+    static char cached_program[MAX_BUFFER_SIZE];
+    static char cached_element[MAX_BUFFER_SIZE];
+
+    if (theme_base == cached_theme_base &&
+        animated == cached_animated &&
+        random == cached_random &&
+        wall_type == cached_wall_type &&
+        strcmp(program, cached_program) == 0 &&
+        strcmp(element, cached_element) == 0) {
+        return wall_image_embed;
+    }
+
+    cached_theme_base = theme_base;
+    cached_animated = animated;
+    cached_random = random;
+    cached_wall_type = wall_type;
+    snprintf(cached_program, sizeof(cached_program), "%s", program);
+    snprintf(cached_element, sizeof(cached_element), "%s", element);
+    wall_image_embed[0] = '\0';
+
+    const char *wall_extension = random ? "0.png" : (animated == 1 ? "gif" : (animated == 2 ? "0.png" : "png"));
+
+#define TRY_EMBED(path_buf)                                                                \
+    do {                                                                                   \
+        int _w = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", (path_buf)); \
+        if (_w < 0 || (size_t)_w >= sizeof(wall_image_embed)) wall_image_embed[0] = '\0';  \
+    } while (0)
+
+    if (ui_group != NULL && lv_group_get_obj_count(ui_group) > 0) {
+        const char *catalogue = NULL;
         switch (wall_type) {
             case WALL_APPLICATION:
-                if (load_image_catalogue("Application", element, "", "default", mux_dim, "wall",
-                                         wall_image_path, sizeof(wall_image_path))) {
-                    int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
-                    if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
-                    return wall_image_embed;
-                }
+                catalogue = "Application";
                 break;
             case WALL_ARCHIVE:
-                if (load_image_catalogue("Archive", element, "", "default", mux_dim, "wall",
-                                         wall_image_path, sizeof(wall_image_path))) {
-                    int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
-                    if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
-                    return wall_image_embed;
-                }
+                catalogue = "Archive";
                 break;
             case WALL_TASK:
-                if (load_image_catalogue("Task", element, "", "default", mux_dim, "wall",
-                                         wall_image_path, sizeof(wall_image_path))) {
-                    int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
-                    if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
-                    return wall_image_embed;
-                }
+                catalogue = "Task";
                 break;
-            case WALL_GENERAL:
             default:
                 break;
         }
-        if (load_element_image_specifics(mux_dim, program, "wall",
-                                         strcmp(program, "muxlaunch") == 0 ? element : "default",
+        if (catalogue && load_image_catalogue(catalogue, element, "", "default", mux_dim, "wall", wall_image_path, sizeof(wall_image_path))) {
+            TRY_EMBED(wall_image_path);
+            return wall_image_embed;
+        }
+
+        if (load_element_image_specifics(mux_dim, program, "wall", strcmp(program, "muxlaunch") == 0 ? element : "default",
                                          "default", wall_extension, wall_image_path, sizeof(wall_image_path))) {
-            int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
-            if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
+            TRY_EMBED(wall_image_path);
             return wall_image_embed;
         }
     }
 
-    if (load_image_specifics(mux_dim, program, "wall",
-                             wall_extension, wall_image_path, sizeof(wall_image_path)) ||
-        load_image_specifics("", program, "wall",
-                             wall_extension, wall_image_path, sizeof(wall_image_path))) {
-        int written = snprintf(wall_image_embed, sizeof(wall_image_embed), "M:%s", wall_image_path);
-        if (written < 0 || (size_t) written >= sizeof(wall_image_embed)) return "";
-        return wall_image_embed;
+    if (load_image_specifics(mux_dim, program, "wall", wall_extension, wall_image_path, sizeof(wall_image_path)) ||
+        load_image_specifics("", program, "wall", wall_extension, wall_image_path, sizeof(wall_image_path))) {
+        TRY_EMBED(wall_image_path);
+    } else if (animated == 0 && !random) {
+        if (load_image_specifics(mux_dim, program, "wall", "svg", wall_image_path, sizeof(wall_image_path)) ||
+            load_image_specifics("", program, "wall", "svg", wall_image_path, sizeof(wall_image_path))) {
+            TRY_EMBED(wall_image_path);
+        }
     }
 
-    return "";
+#undef TRY_EMBED
+
+    return wall_image_embed;
 }
 
 void load_wallpaper(lv_obj_t *ui_screen, lv_group_t *ui_group, lv_obj_t *ui_pnlWall,
@@ -1367,12 +1441,27 @@ void load_wallpaper(lv_obj_t *ui_screen, lv_group_t *ui_group, lv_obj_t *ui_pnlW
                                 set_gradient_visible(0);
                             }
                         } else {
+                            size_t wlen2 = strlen(new_wall);
+                            if (wlen2 > 4 && strcmp(new_wall + wlen2 - 4, ".svg") == 0) {
+                                char svg_wall[MAX_BUFFER_SIZE];
+                                snprintf(svg_wall, sizeof(svg_wall), "%s?%dx%d", new_wall, device.MUX.WIDTH, device.MUX.HEIGHT);
+                                lv_img_set_src(ui_imgWall, svg_wall);
+                            } else {
+                                lv_img_set_src(ui_imgWall, new_wall);
+                            }
+                        }
+                        break;
+                    default: {
+                        size_t wlen = strlen(new_wall);
+                        if (wlen > 4 && strcmp(new_wall + wlen - 4, ".svg") == 0) {
+                            char svg_wall[MAX_BUFFER_SIZE];
+                            snprintf(svg_wall, sizeof(svg_wall), "%s?%dx%d", new_wall, device.MUX.WIDTH, device.MUX.HEIGHT);
+                            lv_img_set_src(ui_imgWall, svg_wall);
+                        } else {
                             lv_img_set_src(ui_imgWall, new_wall);
                         }
                         break;
-                    default:
-                        lv_img_set_src(ui_imgWall, new_wall);
-                        break;
+                    }
                 }
             }
         } else {
@@ -1521,7 +1610,7 @@ void build_image_array(char *base_image_path) {
         return;
     }
 
-    strncpy(base_path, base_image_path, base_len);
+    memcpy(base_path, base_image_path, base_len);
     base_path[base_len] = '\0';
 
     int index = 0;
@@ -1605,7 +1694,10 @@ void unload_image_animation(void) {
                                                ? theme.SYSTEM.BACKGROUND_ALPHA : 0, MU_OBJ_MAIN_DEFAULT);
         }
     }
+
     if (lv_obj_is_valid(wall_img)) lv_obj_del(wall_img);
+    wall_img = NULL;
+
     if (lv_obj_is_valid(img_obj)) lv_anim_del(img_obj, NULL);
 }
 
@@ -1697,7 +1789,7 @@ void load_skip_patterns(void) {
             skip_pattern_list.capacity = newcap;
         }
 
-        skip_pattern_list.patterns[skip_pattern_list.count++] = strdup(line);
+        skip_pattern_list.patterns[skip_pattern_list.count++] = mux_strdup(line);
     }
 
     fclose(file);
@@ -1850,20 +1942,27 @@ void adjust_visual_label(char *text, int method, int rep_dash) {
 void update_image(lv_obj_t *ui_imgobj, struct ImageSettings image_settings) {
     if (file_exist(image_settings.image_path)) {
         char image_path[MAX_BUFFER_SIZE];
-        snprintf(image_path, sizeof(image_path), "M:%s", image_settings.image_path);
+        size_t plen = strlen(image_settings.image_path);
+        int is_svg = plen > 4 && strcmp(image_settings.image_path + plen - 4, ".svg") == 0;
 
-        if (image_settings.max_height > 0 && image_settings.max_width > 0) {
-            lv_img_header_t img_header;
-            lv_img_decoder_get_info(image_path, &img_header);
+        if (is_svg && image_settings.max_width > 0 && image_settings.max_height > 0) {
+            snprintf(image_path, sizeof(image_path), "M:%s?%dx%d", image_settings.image_path, image_settings.max_width, image_settings.max_height);
+        } else {
+            snprintf(image_path, sizeof(image_path), "M:%s", image_settings.image_path);
 
-            float width_ratio = (float) image_settings.max_width / (float) img_header.w;
-            float height_ratio = (float) image_settings.max_height / (float) img_header.h;
-            float zoom_ratio = (width_ratio < height_ratio) ? width_ratio : height_ratio;
+            if (image_settings.max_height > 0 && image_settings.max_width > 0) {
+                lv_img_header_t img_header;
+                lv_img_decoder_get_info(image_path, &img_header);
 
-            int zoom_factor = (int) (zoom_ratio * 256);
+                float width_ratio = (float) image_settings.max_width / (float) img_header.w;
+                float height_ratio = (float) image_settings.max_height / (float) img_header.h;
+                float zoom_ratio = (width_ratio < height_ratio) ? width_ratio : height_ratio;
 
-            lv_img_set_size_mode(ui_imgobj, LV_IMG_SIZE_MODE_REAL);
-            lv_img_set_zoom(ui_imgobj, zoom_factor);
+                int zoom_factor = (int) (zoom_ratio * 256);
+
+                lv_img_set_size_mode(ui_imgobj, LV_IMG_SIZE_MODE_REAL);
+                lv_img_set_zoom(ui_imgobj, zoom_factor);
+            }
         }
 
         lv_obj_set_align(ui_imgobj, image_settings.align);
@@ -1938,10 +2037,18 @@ void load_language_file(const char *module) {
     snprintf(language_file, sizeof(language_file), STORAGE_LANG "/%s.json",
              config.SETTINGS.GENERAL.LANGUAGE);
 
-    if (json_valid(read_all_char_from(language_file))) {
-        translation_specific = json_object_get(json_parse(read_all_char_from(language_file)), module);
-        translation_generic = json_object_get(json_parse(read_all_char_from(language_file)), "generic");
+    char *content = read_all_char_from(language_file);
+    if (!json_valid(content)) {
+        free(content);
+        return;
     }
+
+    free(language_json);
+    language_json = content;
+
+    struct json root = json_parse(language_json);
+    translation_specific = json_object_get(root, module);
+    translation_generic = json_object_get(root, "generic");
 }
 
 char *translate_generic(char *key) {
@@ -1950,7 +2057,7 @@ char *translate_generic(char *key) {
     if (json_exists(translation_generic_json)) {
         char translation[MAX_BUFFER_SIZE];
         json_string_copy(translation_generic_json, translation, sizeof(translation));
-        return strdup(translation);
+        return mux_strdup(translation);
     }
 
     return key;
@@ -1962,10 +2069,28 @@ char *translate_specific(char *key) {
     if (json_exists(translation_specific_json)) {
         char translation[MAX_BUFFER_SIZE];
         json_string_copy(translation_specific_json, translation, sizeof(translation));
-        return strdup(translation);
+        return mux_strdup(translation);
     }
 
     return key;
+}
+
+void fill_generic(const char *key, char *field, size_t size) {
+    struct json j = json_object_get(translation_generic, key);
+    if (json_exists(j)) {
+        json_string_copy(j, field, size);
+    } else {
+        snprintf(field, size, "%s", key);
+    }
+}
+
+void fill_specific(const char *key, char *field, size_t size) {
+    struct json j = json_object_get(translation_specific, key);
+    if (json_exists(j)) {
+        json_string_copy(j, field, size);
+    } else {
+        snprintf(field, size, "%s", key);
+    }
 }
 
 void add_drop_down_options(lv_obj_t *ui_lblItemDropDown, char *options[], int count) {
@@ -2094,8 +2219,8 @@ void hide_progress_bar() {
 static void *extraction_thread(void *arg) {
     extraction_args_t *args = (extraction_args_t *) arg;
 
-    extract_zip_to_dir(args->filename, args->output_path);
-    if (extraction_finish_cb) extraction_finish_cb(args->filename);
+    int rc = extract_zip_to_dir(args->filename, args->output_path);
+    if (extraction_finish_cb) extraction_finish_cb(rc == 0 ? args->filename : NULL);
 
     hide_progress_bar();
 
@@ -2109,10 +2234,10 @@ void extract_zip_to_dir_with_progress(const char *filename, const char *output, 
     extraction_finish_cb = callback;
     show_progress_bar(lang.GENERIC.EXTRACTING_ARCHIVE);
 
-    extraction_args_t *args = malloc(sizeof(*args));
+    extraction_args_t *args = mux_malloc(sizeof(*args));
 
-    args->filename = strdup(filename);
-    args->output_path = strdup(output);
+    args->filename = mux_strdup(filename);
+    args->output_path = mux_strdup(output);
 
     pthread_t tid;
     pthread_create(&tid, NULL, extraction_thread, args);
@@ -2129,16 +2254,39 @@ int extract_zip_to_dir(const char *filename, const char *output) {
         return 0;
     }
 
+    create_directories(output, 0);
+
+    char resolved_output[PATH_MAX];
+    if (!realpath(output, resolved_output)) {
+        LOG_ERROR(mux_module, "Cannot resolve output path: '%s'", output);
+        mz_zip_reader_end(&zip);
+        return 0;
+    }
+    size_t resolved_len = strlen(resolved_output);
+
     mz_uint zip_file_count = mz_zip_reader_get_num_files(&zip);
 
     for (mz_uint i = 0; i < zip_file_count; i++) {
         mz_zip_archive_file_stat file_stat;
         if (!mz_zip_reader_file_stat(&zip, i, &file_stat)) continue;
 
-        const char *filename = file_stat.m_filename;
+        const char *entry_name = file_stat.m_filename;
 
-        char dest_file[MAX_BUFFER_SIZE];
-        snprintf(dest_file, sizeof(dest_file), "%s/%s", output, filename);
+        if (entry_name[0] == '/' || strstr(entry_name, "..")) {
+            LOG_ERROR(mux_module, "Blocked unsafe path in ZIP: '%s'", entry_name);
+            mz_zip_reader_end(&zip);
+            return -1;
+        }
+
+        char dest_file[PATH_MAX];
+        snprintf(dest_file, sizeof(dest_file), "%s/%s", resolved_output, entry_name);
+
+        if (strncmp(dest_file, resolved_output, resolved_len) != 0 ||
+            (dest_file[resolved_len] != '/' && dest_file[resolved_len] != '\0')) {
+            LOG_ERROR(mux_module, "Blocked path escape in ZIP: '%s'", entry_name);
+            mz_zip_reader_end(&zip);
+            return -1;
+        }
 
         if (file_stat.m_is_directory) {
             create_directories(dest_file, 0);
@@ -2502,18 +2650,18 @@ void init_fe_bgm(int *fe_bgm, int bgm_type, int re_init) {
     }
 }
 
-int safe_atoi(const char *str) {
-    if (str == NULL) return 0;
+int cfg_read_int(const char *path, int fallback) {
+    FILE *f = fopen(path, "r");
+    if (!f) return fallback;
 
-    errno = 0;
-    char *str_ptr;
-    long val = strtol(str, &str_ptr, 10);
+    char buf[32];
+    int ok = (fgets(buf, sizeof(buf), f) != NULL);
+    fclose(f);
 
-    if (str_ptr == str) return 0;
-    if (*str_ptr != '\0') return 0;
-    if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (val > INT_MAX || val < INT_MIN)) return 0;
+    if (!ok) return fallback;
+    buf[strcspn(buf, "\n")] = '\0';
 
-    return (int) val;
+    return safe_atoi(buf, fallback);
 }
 
 void init_grid_info(int item_count, int column_count) {
@@ -2617,7 +2765,14 @@ void update_grid_image_paths(int index) {
 static void update_grid_image(lv_obj_t *cell, char *image_path) {
     if (file_exist(image_path)) {
         char grid_image[MAX_BUFFER_SIZE];
-        snprintf(grid_image, sizeof(grid_image), "M:%s", image_path);
+        size_t plen = strlen(image_path);
+        if (plen > 4 && strcmp(image_path + plen - 4, ".svg") == 0) {
+            int hw = (theme.GRID.CELL.WIDTH * 3) / 4;
+            int hh = (theme.GRID.CELL.HEIGHT * 3) / 4;
+            snprintf(grid_image, sizeof(grid_image), "M:%s?%dx%d", image_path, hw, hh);
+        } else {
+            snprintf(grid_image, sizeof(grid_image), "M:%s", image_path);
+        }
         lv_img_set_src(cell, grid_image);
     } else {
         lv_img_set_src(cell, &ui_img_blank);
@@ -2635,12 +2790,11 @@ static void update_grid_item(lv_obj_t *ui_pnlItem, int index) {
         lv_obj_add_flag(ui_lblItem, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(cell_image, LV_OBJ_FLAG_HIDDEN);
     } else {
-        lv_label_set_text(ui_lblItem, items[index].display_name);
-        if (items[index].glyph_icon != NULL) lv_obj_set_user_data(ui_lblItem, items[index].glyph_icon);
+        if (strcmp(lv_label_get_text(ui_lblItem), items[index].display_name) != 0) lv_label_set_text(ui_lblItem, items[index].display_name);
 
-        if (items[index].grid_image == NULL) {
-            update_grid_image_paths(index);
-        }
+        if (items[index].glyph_icon != NULL) lv_obj_set_user_data(ui_lblItem, items[index].glyph_icon);
+        if (items[index].grid_image == NULL) update_grid_image_paths(index);
+
         update_grid_image(cell_image, items[index].grid_image);
         update_grid_image(cell_image_focused, items[index].grid_image_focused);
 
@@ -3028,12 +3182,14 @@ void populate_items(const char *base_path, char ***items, int *item_count) {
         return;
     }
 
+    int dfd = dirfd(dir);
+
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
         snprintf(full_path, sizeof(full_path), "%s/%s", base_path, entry->d_name);
 
         struct stat st;
-        if (stat(full_path, &st) == -1) {
+        if (fstatat(dfd, entry->d_name, &st, AT_SYMLINK_NOFOLLOW) == -1) {
             LOG_ERROR(mux_module, "%s", lang.SYSTEM.FAIL_STAT);
             continue;
         }
@@ -3041,7 +3197,9 @@ void populate_items(const char *base_path, char ***items, int *item_count) {
         if (S_ISREG(st.st_mode)) {
             if (strstr(entry->d_name, ".cfg")) {
                 *items = realloc(*items, ((*item_count) + 1) * sizeof(char *));
-                (*items)[*item_count] = strdup(read_line_char_from(full_path, 1));
+                char *raw = read_line_char_from(full_path, 1);
+                (*items)[*item_count] = strdup(raw);
+                free_line_if_needed(raw);
                 (*item_count)++;
             }
         } else if (S_ISDIR(st.st_mode)) {
@@ -3106,35 +3264,59 @@ uint32_t fnv1a_hash_file(FILE *file) {
 bool get_glyph_path(const char *mux_module, const char *glyph_name,
                     char *glyph_image_embed, size_t glyph_image_embed_size) {
     char glyph_image_path[MAX_BUFFER_SIZE];
-    if ((snprintf(glyph_image_path, sizeof(glyph_image_path), "%s/%sglyph/%s/%s.png",
-                  theme_base, mux_dim, mux_module, glyph_name) >= 0 &&
-         file_exist(glyph_image_path)) ||
-        (snprintf(glyph_image_path, sizeof(glyph_image_path), "%s/glyph/%s/%s.png",
-                  theme_base, mux_module, glyph_name) >= 0 && file_exist(glyph_image_path)) ||
-        (snprintf(glyph_image_path, sizeof(glyph_image_path), "%s/%sglyph/%s/%s.png",
-                  INTERNAL_THEME, mux_dim, mux_module, glyph_name) >= 0 && file_exist(glyph_image_path)) ||
-        (snprintf(glyph_image_path, sizeof(glyph_image_path), "%s/glyph/%s/%s.png",
-                  INTERNAL_THEME, mux_module, glyph_name) >= 0 &&
-         file_exist(glyph_image_path))) {
-        snprintf(glyph_image_embed, glyph_image_embed_size, "M:%s", glyph_image_path);
-        return true;
-    }
 
-    return false;
+#define TRY_GLYPH_PATH(fmt, ...)                                                           \
+    do {                                                                                   \
+        snprintf(glyph_image_path, sizeof(glyph_image_path), fmt, ##__VA_ARGS__);          \
+        LOG_DEBUG(mux_module, "Glyph path check: %s", glyph_image_path);                   \
+        if (file_exist(glyph_image_path)) {                                                \
+            LOG_DEBUG(mux_module, "Glyph found at: %s", glyph_image_path);                 \
+            snprintf(glyph_image_embed, glyph_image_embed_size, "M:%s", glyph_image_path); \
+            return 1;                                                                      \
+        }                                                                                  \
+    } while (0)
+
+    TRY_GLYPH_PATH("%s/%sglyph/%s/%s.svg", theme_base, mux_dim, mux_module, glyph_name);
+    TRY_GLYPH_PATH("%s/glyph/%s/%s.svg", theme_base, mux_module, glyph_name);
+    TRY_GLYPH_PATH("%s/%sglyph/%s/%s.svg", INTERNAL_THEME, mux_dim, mux_module, glyph_name);
+    TRY_GLYPH_PATH("%s/glyph/%s/%s.svg", INTERNAL_THEME, mux_module, glyph_name);
+
+    TRY_GLYPH_PATH("%s/%sglyph/%s/%s.png", theme_base, mux_dim, mux_module, glyph_name);
+    TRY_GLYPH_PATH("%s/glyph/%s/%s.png", theme_base, mux_module, glyph_name);
+    TRY_GLYPH_PATH("%s/%sglyph/%s/%s.png", INTERNAL_THEME, mux_dim, mux_module, glyph_name);
+    TRY_GLYPH_PATH("%s/glyph/%s/%s.png", INTERNAL_THEME, mux_module, glyph_name);
+
+#undef TRY_GLYPH_PATH
+
+    LOG_DEBUG(mux_module, "Glyph not found: %s/%s", mux_module, glyph_name);
+    return 0;
 }
 
 void apply_app_glyph(const char *app_folder, const char *glyph_name, lv_obj_t *ui_lblItemGlyph) {
     char glyph_image_path[MAX_BUFFER_SIZE];
-    if ((snprintf(glyph_image_path, sizeof(glyph_image_path), "%s/glyph/%s%s.png", app_folder, mux_dim,
-                  glyph_name) >= 0 &&
-         file_exist(glyph_image_path)) ||
-        (snprintf(glyph_image_path, sizeof(glyph_image_path), "%s/glyph/%s.png", app_folder, glyph_name) >= 0 &&
-         file_exist(glyph_image_path))
-            ) {
-        char glyph_image_embed[MAX_BUFFER_SIZE];
-        snprintf(glyph_image_embed, sizeof(glyph_image_embed), "M:%s", glyph_image_path);
-        lv_img_set_src(ui_lblItemGlyph, glyph_image_embed);
-    }
+
+#define TRY_APP_GLYPH(fmt, ...)                                                               \
+    do {                                                                                      \
+        snprintf(glyph_image_path, sizeof(glyph_image_path), fmt, ##__VA_ARGS__);             \
+        LOG_DEBUG(mux_module, "Application glyph path check: %s", glyph_image_path);          \
+        if (file_exist(glyph_image_path)) {                                                   \
+            LOG_DEBUG(mux_module, "Application glyph found at: %s", glyph_image_path);        \
+            char glyph_image_embed[MAX_BUFFER_SIZE];                                          \
+            snprintf(glyph_image_embed, sizeof(glyph_image_embed), "M:%s", glyph_image_path); \
+            lv_img_set_src(ui_lblItemGlyph, glyph_image_embed);                               \
+            return;                                                                           \
+        }                                                                                     \
+    } while (0)
+
+    TRY_APP_GLYPH("%s/glyph/%s%s.svg", app_folder, mux_dim, glyph_name);
+    TRY_APP_GLYPH("%s/glyph/%s.svg", app_folder, glyph_name);
+
+    TRY_APP_GLYPH("%s/glyph/%s%s.png", app_folder, mux_dim, glyph_name);
+    TRY_APP_GLYPH("%s/glyph/%s.png", app_folder, glyph_name);
+
+#undef TRY_APP_GLYPH
+
+    LOG_DEBUG(mux_module, "Application glyph not found: %s/%s", app_folder, glyph_name);
 }
 
 void get_app_grid_glyph(const char *app_folder, const char *glyph_name, const char *fallback_name,
@@ -3142,13 +3324,27 @@ void get_app_grid_glyph(const char *app_folder, const char *glyph_name, const ch
     if (file_exist(glyph_image_path) && strstr(glyph_image_path, fallback_name) == 0) return;
 
     char image_path[MAX_BUFFER_SIZE];
-    if ((snprintf(image_path, sizeof(image_path), "%s/grid/%s%s.png", app_folder, mux_dim, glyph_name) >= 0 &&
-         file_exist(image_path)) ||
-        (snprintf(image_path, sizeof(image_path), "%s/grid/%s.png", app_folder, glyph_name) >= 0 &&
-         file_exist(image_path))
-            ) {
-        snprintf(glyph_image_path, glyph_image_path_size, "%s", image_path);
-    }
+
+#define TRY_GRID_GLYPH(fmt, ...)                                                 \
+    do {                                                                         \
+        snprintf(image_path, sizeof(image_path), fmt, ##__VA_ARGS__);            \
+        LOG_DEBUG(mux_module, "Grid glyph path check: %s", image_path);          \
+        if (file_exist(image_path)) {                                            \
+            LOG_DEBUG(mux_module, "Grid glyph found at: %s", image_path);        \
+            snprintf(glyph_image_path, glyph_image_path_size, "%s", image_path); \
+            return;                                                              \
+        }                                                                        \
+    } while (0)
+
+    TRY_GRID_GLYPH("%s/grid/%s%s.svg", app_folder, mux_dim, glyph_name);
+    TRY_GRID_GLYPH("%s/grid/%s.svg", app_folder, glyph_name);
+
+    TRY_GRID_GLYPH("%s/grid/%s%s.png", app_folder, mux_dim, glyph_name);
+    TRY_GRID_GLYPH("%s/grid/%s.png", app_folder, glyph_name);
+
+#undef TRY_GRID_GLYPH
+
+    LOG_DEBUG(mux_module, "Grid glyph not found: %s/%s", app_folder, glyph_name);
 }
 
 int direct_to_previous(lv_obj_t **ui_objects, size_t ui_count, int *nav_moved) {
@@ -3214,6 +3410,7 @@ const char *get_theme_base(void) {
 }
 
 int brightness_to_percent(int val) {
+    if (device.SCREEN.BRIGHT <= 0) return 0;
     return (val * 100) / device.SCREEN.BRIGHT;
 }
 
@@ -3242,7 +3439,8 @@ char **str_parse_file(const char *filename, int *count, enum parse_mode mode) {
 
     if (mode == PARSE_TOKENS) {
         if (fgets(line, sizeof(line), file)) {
-            char *token = strtok(line, " \t\r\n");
+            char *saveptr;
+            char *token = strtok_r(line, " \t\r\n", &saveptr);
             while (token && *count < MAX_BUFFER_SIZE) {
                 list[*count] = strdup(token);
 
@@ -3252,7 +3450,7 @@ char **str_parse_file(const char *filename, int *count, enum parse_mode mode) {
                 }
 
                 (*count)++;
-                token = strtok(NULL, " \t\r\n");
+                token = strtok_r(NULL, " \t\r\n", &saveptr);
             }
         }
     } else {
@@ -3417,6 +3615,8 @@ int remove_directory_recursive(const char *path) {
         return -1;
     }
 
+    int dfd = dirfd(dp);
+
     while ((entry = readdir(dp)) != NULL) {
         char fullpath[4096];
         struct stat statbuf;
@@ -3429,8 +3629,8 @@ int remove_directory_recursive(const char *path) {
 
         snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
 
-        if (lstat(fullpath, &statbuf) == -1) {
-            perror("lstat");
+        if (fstatat(dfd, entry->d_name, &statbuf, AT_SYMLINK_NOFOLLOW) == -1) {
+            perror("fstatat");
             closedir(dp);
             return -1;
         }
@@ -3462,12 +3662,8 @@ int remove_directory_recursive(const char *path) {
     return 0;
 }
 
-static int line_needs_free(const char *line) {
-    return line && *line;
-}
-
 static void free_line_if_needed(char *line) {
-    if (line_needs_free(line)) free(line);
+    if (line && *line) free(line);
 }
 
 static int path_uses_union(const char *path) {
@@ -3670,10 +3866,7 @@ int load_content(int add_collection, char *file_path) {
                 if (strcmp(old_file, new_history) == 0) continue;
 
                 char *line1 = read_line_char_from(old_file, 1);
-                if (!line1 || !*line1) {
-                    free(line1);
-                    continue;
-                }
+                if (!*line1) continue;
 
                 char resolved_old[PATH_MAX];
                 if (union_resolve_to_real(line1, resolved_old, sizeof(resolved_old)) &&
@@ -3835,25 +4028,18 @@ void rewrite_launch_file(const char *file, const char *new_path) {
     char *line2 = read_line_char_from(file, 2);
     char *line3 = read_line_char_from(file, 3);
 
-    if (!line1 || !line2 || !line3) {
-        free(line1);
-        free(line2);
-        free(line3);
-        return;
-    }
-
-    if (strcmp(line1, new_path) == 0) {
-        free(line1);
-        free(line2);
-        free(line3);
+    if (!*line1 || strcmp(line1, new_path) == 0) {
+        free_line_if_needed(line1);
+        free_line_if_needed(line2);
+        free_line_if_needed(line3);
         return;
     }
 
     FILE *fp = fopen(file, "w");
     if (!fp) {
-        free(line1);
-        free(line2);
-        free(line3);
+        free_line_if_needed(line1);
+        free_line_if_needed(line2);
+        free_line_if_needed(line3);
         return;
     }
 
@@ -3862,8 +4048,8 @@ void rewrite_launch_file(const char *file, const char *new_path) {
     fsync(fileno(fp));
     fclose(fp);
 
-    free(line1);
-    free(line2);
+    free_line_if_needed(line1);
+    free_line_if_needed(line2);
     free(line3);
 }
 

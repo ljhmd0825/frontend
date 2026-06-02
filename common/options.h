@@ -55,6 +55,9 @@
 #define OPT_PATH "/opt/muos/"
 #define RUN_PATH "/run/muos/"
 
+#define CONTROL_MODERN OPT_PATH "share/info/gamecontrollerdb/modern.txt"
+#define CONTROL_RETRO OPT_PATH "share/info/gamecontrollerdb/retro.txt"
+
 #define IDLE_STATE   RUN_PATH "idle_state"
 #define WAKE_CPU_GOV RUN_PATH "wake_cpu_gov"
 
@@ -196,13 +199,12 @@
     do {                                              \
         snprintf(buffer, sizeof(buffer), "%s", PATH); \
         cfg_write_def_int(buffer, DEFAULT);           \
-        FIELD = read_line_int_from(buffer, 1);        \
+        FIELD = cfg_read_int(buffer, DEFAULT);        \
     } while(0)
 
-#define CFG_STR_FIELD(FIELD, PATH, DEFAULT)                                  \
-    do {                                                                     \
-        snprintf(buffer, sizeof(buffer), "%s", PATH);                        \
-        cfg_write_def_char(buffer, DEFAULT);                                 \
-        strncpy(FIELD, read_line_char_from(buffer, 1), MAX_BUFFER_SIZE - 1); \
-        FIELD[MAX_BUFFER_SIZE - 1] = '\0';                                   \
+#define CFG_STR_FIELD(FIELD, PATH, DEFAULT)                                     \
+    do {                                                                        \
+        snprintf(buffer, sizeof(buffer), "%s", PATH);                           \
+        cfg_write_def_char(buffer, DEFAULT);                                    \
+        snprintf(FIELD, MAX_BUFFER_SIZE, "%s", read_line_char_from(buffer, 1)); \
     } while(0)

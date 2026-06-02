@@ -75,25 +75,35 @@
     BACKUP(Merge,      MERGE,      "merge")       \
     BACKUP(Start,      START,      "start")
 
+#define BATINFO_ELEMENTS                                     \
+    BATINFO(Capacity,      CAPACITY,        "capacity")      \
+    BATINFO(Voltage,       VOLTAGE,         "voltage")       \
+    BATINFO(Status,        STATUS,          "status")        \
+    BATINFO(Health,        HEALTH,          "health")        \
+    BATINFO(DesignCap,     DESIGN_CAP,      "designcap")     \
+    BATINFO(LastCharged,   LAST_CHARGED,    "lastcharged")   \
+    BATINFO(TimeOnBattery, TIME_ON_BATTERY, "timeonbattery") \
+    BATINFO(BatteryUsed,   BATTERY_USED,    "batteryused")   \
+    BATINFO(Charger,       CHARGER,         "charger")
+
 #define BTALL_ELEMENTS                             \
-    BTALL(AutoConnect, AUTOCONNECT, "autoconnect") \
-    BTALL(Scan,        SCAN,        "scan")
+    BTALL(AutoConnect, AUTOCONNECT, "autoconnect")
 
 #define BTDEV_INFO_ELEMENTS                                \
     BTDEV_INFO(FriendlyName, FRIENDLYNAME, "friendlyname") \
-    BTDEV_INFO(Type,         TYPE,         "type")         \
     BTDEV_INFO(Battery,      BATTERY,      "battery")      \
-    BTDEV_INFO(Signal,       SIGNAL,       "signal")
+    BTDEV_INFO(Address,      ADDRESS,      "address")
 
 #define BTDEV_ACT_ELEMENTS              \
+    BTDEV_ACT(Type,   TYPE,   "type")   \
     BTDEV_ACT(Status, STATUS, "status") \
     BTDEV_ACT(Forget, FORGET, "forget")
 
 #define BTDEV_ELEMENTS                                \
     BTDEV(FriendlyName, FRIENDLYNAME, "friendlyname") \
-    BTDEV(Type,         TYPE,         "type")         \
     BTDEV(Battery,      BATTERY,      "battery")      \
-    BTDEV(Signal,       SIGNAL,       "signal")       \
+    BTDEV(Address,      ADDRESS,      "address")      \
+    BTDEV(Type,         TYPE,         "type")         \
     BTDEV(Status,       STATUS,       "status")       \
     BTDEV(Forget,       FORGET,       "forget")
 
@@ -134,8 +144,7 @@
     CONNECT(Network,     NETWORK,     "network")     \
     CONNECT(NetAdv,      NETADV,      "netadv")      \
     CONNECT(Services,    SERVICES,    "service")     \
-    CONNECT(Bluetooth,   BLUETOOTH,   "bluetooth")   \
-    CONNECT(UsbFunction, USBFUNCTION, "usbfunction")
+    CONNECT(Bluetooth,   BLUETOOTH,   "bluetooth")
 
 #define FONT_ELEMENTS                          \
     FONT(Type,       TYPE,       "type")       \
@@ -148,7 +157,8 @@
 #define THEMEOPT_ELEMENTS                                          \
     THEMEOPT(HeaderHeight,      HEADERHEIGHT,      "headerheight") \
     THEMEOPT(FooterHeight,      FOOTERHEIGHT,      "footerheight") \
-    THEMEOPT(ContentItemCount,  CONTENTITEMCOUNT,  "count")
+    THEMEOPT(ContentItemCount,  CONTENTITEMCOUNT,  "count")        \
+    THEMEOPT(GlyphSize,         GLYPHSIZE,         "glyphsize")
 
 #define CUSTOM_ELEMENTS                                         \
     CUSTOM(Catalogue,       CATALOGUE,       "catalogue")       \
@@ -216,6 +226,7 @@
     INFO(Space,      SPACE,      "space")      \
     INFO(Tester,     TESTER,     "tester")     \
     INFO(SysInfo,    SYSINFO,    "sysinfo")    \
+    INFO(BatInfo,    BATINFO,    "batinfo")    \
     INFO(NetInfo,    NETINFO,    "netinfo")    \
     INFO(Chrony,     CHRONY,     "chrony")     \
     INFO(Credit,     CREDIT,     "credit")
@@ -346,6 +357,15 @@
     OVERLAY(BriAnchor, BRIANCHOR, "bri_anchor") \
     OVERLAY(BriScale,  BRISCALE,  "bri_scale")
 
+#define PASSCFG_ELEMENTS                              \
+    PASSCFG(BootCode,    BOOTCODE,    "boot_lock")    \
+    PASSCFG(BootMsg,     BOOTMSG,     "boot_info")    \
+    PASSCFG(LaunchCode,  LAUNCHCODE,  "launch_lock")  \
+    PASSCFG(LaunchMsg,   LAUNCHMSG,   "launch_info")  \
+    PASSCFG(SettingCode, SETTINGCODE, "setting_lock") \
+    PASSCFG(SettingMsg,  SETTINGMSG,  "setting_info") \
+    PASSCFG(SafetyCode,  SAFETYCODE,  "safety")
+
 #define POWER_ELEMENTS                              \
     POWER(Shutdown,    SHUTDOWN,    "shutdown")     \
     POWER(Battery,     BATTERY,     "battery")      \
@@ -406,22 +426,22 @@
     STORAGE(Theme,      THEME,      "theme")      \
     STORAGE(Track,      TRACK,      "track")
 
-#define SYSINFO_ELEMENTS                    \
-    SYSINFO(Version,  VERSION,  "version")  \
-    SYSINFO(Build,    BUILD,    "build")    \
-    SYSINFO(Device,   DEVICE,   "device")   \
-    SYSINFO(Kernel,   KERNEL,   "kernel")   \
-    SYSINFO(Uptime,   UPTIME,   "uptime")   \
-    SYSINFO(Cpu,      CPU,      "cpu")      \
-    SYSINFO(Speed,    SPEED,    "speed")    \
-    SYSINFO(Governor, GOVERNOR, "governor") \
-    SYSINFO(Memory,   MEMORY,   "memory")   \
-    SYSINFO(Swap,     SWAP,     "swap")     \
-    SYSINFO(Temp,     TEMP,     "temp")     \
-    SYSINFO(Capacity, CAPACITY, "capacity") \
-    SYSINFO(Voltage,  VOLTAGE,  "voltage")  \
-    SYSINFO(Charger,  CHARGER,  "charger")  \
-    SYSINFO(Reload,   RELOAD,   "reload")
+#define SYSINFO_ELEMENTS                     \
+    SYSINFO(Version,  VERSION,   "version")  \
+    SYSINFO(Build,    BUILD,     "build")    \
+    SYSINFO(Device,   DEVICE,    "device")   \
+    SYSINFO(Kernel,   KERNEL,    "kernel")   \
+    SYSINFO(Arch,     ARCH,      "arch")     \
+    SYSINFO(Uptime,   UPTIME,    "uptime")   \
+    SYSINFO(BootTime, BOOT_TIME, "boottime") \
+    SYSINFO(LoadAvg,  LOAD_AVG,  "loadavg")  \
+    SYSINFO(Cpu,      CPU,       "cpu")      \
+    SYSINFO(Speed,    SPEED,     "speed")    \
+    SYSINFO(Governor, GOVERNOR,  "governor") \
+    SYSINFO(Memory,   MEMORY,    "memory")   \
+    SYSINFO(Swap,     SWAP,      "swap")     \
+    SYSINFO(Temp,     TEMP,      "temp")     \
+    SYSINFO(Reload,   RELOAD,    "reload")
 
 #define THEMEFILTER_ELEMENTS                      \
     THEMEFILTER(AllThemes, ALLTHEMES, "theme")    \
@@ -432,12 +452,10 @@
 #define TWEAKADV_ELEMENTS                             \
     TWEAKADV(Accelerate,  ACCELERATE,  "accelerate")  \
     TWEAKADV(RepeatDelay, REPEATDELAY, "repeat")      \
-    TWEAKADV(Swap,        SWAP,        "swap")        \
     TWEAKADV(StickNav,    STICKNAV,    "sticknav")    \
     TWEAKADV(Volume,      VOLUME,      "volume")      \
     TWEAKADV(Brightness,  BRIGHTNESS,  "brightness")  \
     TWEAKADV(Thermal,     THERMAL,     "thermal")     \
-    TWEAKADV(Passcode,    PASSCODE,    "lock")        \
     TWEAKADV(Led,         LED,         "led")         \
     TWEAKADV(RandomTheme, RANDOMTHEME, "randomtheme") \
     TWEAKADV(RetroWait,   RETROWAIT,   "retrowait")   \
@@ -460,13 +478,19 @@
     TWEAKADV(IncVolume,   INCVOLUME,   "invvolume")   \
     TWEAKADV(MaxGpu,      MAXGPU,      "maxgpu")      \
     TWEAKADV(AudioReady,  AUDIOREADY,  "audioready")  \
-    TWEAKADV(AudioSwap,   AUDIOSWAP,   "audioswap")
+    TWEAKADV(AudioSwap,   AUDIOSWAP,   "audioswap")   \
+    TWEAKADV(TrustModify, TRUSTMODIFY, "trustmodify") \
+    TWEAKADV(TrustPower,  TRUSTPOWER,  "trustpower")  \
+    TWEAKADV(TrustRemove, TRUSTREMOVE, "trustremove") \
+    TWEAKADV(UsbFunction, USBFUNCTION, "usbfunction")
 
 #define TWEAKGEN_ELEMENTS                          \
     TWEAKGEN(Rtc,        RTC,        "clock")      \
     TWEAKGEN(Hdmi,       HDMI,       "hdmi")       \
     TWEAKGEN(Rgb,        RGB,        "rgb")        \
+    TWEAKGEN(InputRemap, INPUTREMAP, "inputremap") \
     TWEAKGEN(Advanced,   ADVANCED,   "advanced")   \
+    TWEAKGEN(PassCode,   PASSCODE,   "lock")       \
     TWEAKGEN(Brightness, BRIGHTNESS, "brightness") \
     TWEAKGEN(Volume,     VOLUME,     "volume")     \
     TWEAKGEN(AudioSink,  AUDIOSINK,  "audiosink")  \

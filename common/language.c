@@ -1,26 +1,13 @@
-#include <string.h>
 #include "common.h"
 #include "options.h"
 #include "language.h"
 
 void load_lang(struct mux_lang *lang) {
-    char buffer[MAX_BUFFER_SIZE];
     load_language_file(mux_module);
 
-#define SYSTEM_FIELD(field, string)                     \
-        snprintf(buffer, sizeof(buffer), "%s", string), \
-        strncpy(field, buffer, MAX_BUFFER_SIZE - 1),    \
-        field[MAX_BUFFER_SIZE - 1] = '\0'
-
-#define GENERIC_FIELD(field, string)                                    \
-        snprintf(buffer, sizeof(buffer), "%s", string),                 \
-        strncpy(field, translate_generic(buffer), MAX_BUFFER_SIZE - 1), \
-        field[MAX_BUFFER_SIZE - 1] = '\0'
-
-#define SPECIFIC_FIELD(field, string)                                    \
-        snprintf(buffer, sizeof(buffer), "%s", string),                  \
-        strncpy(field, translate_specific(buffer), MAX_BUFFER_SIZE - 1), \
-        field[MAX_BUFFER_SIZE - 1] = '\0'
+#define SYSTEM_FIELD(field, string)   snprintf((field), MAX_BUFFER_SIZE, "%s", (string))
+#define GENERIC_FIELD(field, string)  fill_generic((string),  (field), MAX_BUFFER_SIZE)
+#define SPECIFIC_FIELD(field, string) fill_specific((string), (field), MAX_BUFFER_SIZE)
 
     // system language
     SYSTEM_FIELD(lang->SYSTEM.NO_JOY_GENERAL, "Failed to open GENERAL joystick device");
@@ -55,6 +42,7 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.CHECK, "Check");
     GENERIC_FIELD(lang->GENERIC.CLEAR, "Clear");
     GENERIC_FIELD(lang->GENERIC.CLOSE, "Close");
+    GENERIC_FIELD(lang->GENERIC.CONFIRM, "Confirm");
     GENERIC_FIELD(lang->GENERIC.COLLECT, "Collect");
     GENERIC_FIELD(lang->GENERIC.CONTENT, "Content");
     GENERIC_FIELD(lang->GENERIC.DETAILS, "Details");
@@ -105,6 +93,7 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.RESTRICTED, "Restricted");
     GENERIC_FIELD(lang->GENERIC.SAVE, "Save");
     GENERIC_FIELD(lang->GENERIC.SAVING, "Saving…");
+    GENERIC_FIELD(lang->GENERIC.SCAN, "Scan");
     GENERIC_FIELD(lang->GENERIC.SCROLL, "Scroll");
     GENERIC_FIELD(lang->GENERIC.SELECT, "Select");
     GENERIC_FIELD(lang->GENERIC.SET, "Set");
@@ -128,11 +117,18 @@ void load_lang(struct mux_lang *lang) {
     GENERIC_FIELD(lang->GENERIC.THURSDAY, "Thursday");
     GENERIC_FIELD(lang->GENERIC.FRIDAY, "Friday");
     GENERIC_FIELD(lang->GENERIC.SATURDAY, "Saturday");
+    GENERIC_FIELD(lang->GENERIC.CANCEL, "Cancel");
+    GENERIC_FIELD(lang->GENERIC.UNDERSTAND, "I Understand");
+    GENERIC_FIELD(lang->GENERIC.WARNING, "Warning");
+    GENERIC_FIELD(lang->GENERIC.SKIP_CONFIRM, "Skip Dialogue");
+    GENERIC_FIELD(lang->GENERIC.UNSAFE_ARCHIVE, "Archive contains unsafe file paths and was not extracted");
     GENERIC_FIELD(lang->GENERIC.CLEAN, "Clean");
+    GENERIC_FIELD(lang->GENERIC.DISCARD, "Discard");
     GENERIC_FIELD(lang->GENERIC.MODIFIED, "Modified");
     GENERIC_FIELD(lang->GENERIC.ICON_ONLY, "Icon Only");
     GENERIC_FIELD(lang->GENERIC.TEXT_ONLY, "Text Only");
     GENERIC_FIELD(lang->GENERIC.TEXT_ICON, "Text + Icon");
+    GENERIC_FIELD(lang->GENERIC.UNSAVED, "Unsaved Changes");
 
     // muxactivity
     SPECIFIC_FIELD(lang->MUXACTIVITY.TITLE, "ACTIVITY TRACKER");
@@ -279,6 +275,27 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.MERGE, "Merge all backup targets to a single archive");
     SPECIFIC_FIELD(lang->MUXBACKUP.HELP.START, "Start the backup process for the selected items");
 
+    // muxbatinfo
+    SPECIFIC_FIELD(lang->MUXBATINFO.TITLE, "BATTERY DETAILS");
+    SPECIFIC_FIELD(lang->MUXBATINFO.CAPACITY, "Capacity");
+    SPECIFIC_FIELD(lang->MUXBATINFO.VOLTAGE, "Voltage");
+    SPECIFIC_FIELD(lang->MUXBATINFO.STATUS, "Status");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HEALTH, "Health");
+    SPECIFIC_FIELD(lang->MUXBATINFO.DESIGN_CAP, "Design Capacity");
+    SPECIFIC_FIELD(lang->MUXBATINFO.LAST_CHARGED, "Last Charged");
+    SPECIFIC_FIELD(lang->MUXBATINFO.TIME_ON_BATTERY, "Time on Battery");
+    SPECIFIC_FIELD(lang->MUXBATINFO.BATTERY_USED, "Battery Used");
+    SPECIFIC_FIELD(lang->MUXBATINFO.CHARGER, "Charger");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.CAPACITY, "The current detected battery capacity");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.VOLTAGE, "The current detected battery voltage");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.STATUS, "The current charging status reported by the battery");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.HEALTH, "The health status reported by the battery");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.DESIGN_CAP, "The original design capacity of the battery in milliamp-hours");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.LAST_CHARGED, "The last time the charger was unplugged after being connected to power");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.TIME_ON_BATTERY, "Total wall-clock time since the charger was last unplugged, including suspend");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.BATTERY_USED, "Battery percentage used since the charger was last unplugged");
+    SPECIFIC_FIELD(lang->MUXBATINFO.HELP.CHARGER, "Detection of the charger cable");
+
     // muxcharge
     SPECIFIC_FIELD(lang->MUXCHARGE.BOOT, "Booting System - Please Wait…");
     SPECIFIC_FIELD(lang->MUXCHARGE.CAPACITY, "Capacity");
@@ -363,14 +380,10 @@ void load_lang(struct mux_lang *lang) {
     // muxconnect
     SPECIFIC_FIELD(lang->MUXCONNECT.TITLE, "CONNECTIVITY");
     SPECIFIC_FIELD(lang->MUXCONNECT.BLUETOOTH, "Bluetooth");
-    SPECIFIC_FIELD(lang->MUXCONNECT.USBFUNCTION, "USB Function");
     SPECIFIC_FIELD(lang->MUXCONNECT.SERVICES, "Web Services");
     SPECIFIC_FIELD(lang->MUXCONNECT.NETWORK, "Wi-Fi Network");
     SPECIFIC_FIELD(lang->MUXCONNECT.NETADV, "Network Settings");
-    SPECIFIC_FIELD(lang->MUXCONNECT.ADB, "Android Debug Bridge");
-    SPECIFIC_FIELD(lang->MUXCONNECT.MTP, "Media Transfer Protocol");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.SERVICES, "Toggle a range of configurable services you can access via an active network");
-    SPECIFIC_FIELD(lang->MUXCONNECT.HELP.USBFUNCTION, "Toggle between ADB and MTP USB functionality");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.NETWORK, "Connect to a Wi-Fi network manually or via a saved profile");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.NETADV, "Adjust network connectivity settings");
     SPECIFIC_FIELD(lang->MUXCONNECT.HELP.BLUETOOTH, "Manage Bluetooth devices and auto-connect settings");
@@ -378,8 +391,8 @@ void load_lang(struct mux_lang *lang) {
     // muxbtall
     SPECIFIC_FIELD(lang->MUXBTALL.TITLE, "BLUETOOTH");
     SPECIFIC_FIELD(lang->MUXBTALL.AUTOCONNECT, "Auto Connect");
-    SPECIFIC_FIELD(lang->MUXBTALL.SCAN, "Scan for Devices");
     SPECIFIC_FIELD(lang->MUXBTALL.NONE, "No Paired Devices Found");
+    SPECIFIC_FIELD(lang->MUXBTALL.LOADING, "Updating device list…");
     SPECIFIC_FIELD(lang->MUXBTALL.FORGET, "Forget");
     SPECIFIC_FIELD(lang->MUXBTALL.CONNECT, "Connect");
     SPECIFIC_FIELD(lang->MUXBTALL.DISCONNECT, "Disconnect");
@@ -387,7 +400,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBTALL.DISCONNECTED, "Disconnected");
     SPECIFIC_FIELD(lang->MUXBTALL.FORGET_CONFIRM, "Forget this device?");
     SPECIFIC_FIELD(lang->MUXBTALL.HELP.AUTOCONNECT, "Automatically reconnect to paired devices on startup");
-    SPECIFIC_FIELD(lang->MUXBTALL.HELP.SCAN, "Scan for and connect new Bluetooth controllers and audio devices");
 
     // muxbtcon
     SPECIFIC_FIELD(lang->MUXBTCON.TITLE, "BLUETOOTH SCAN");
@@ -395,22 +407,38 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXBTCON.NONE, "No Bluetooth Devices Found");
     SPECIFIC_FIELD(lang->MUXBTCON.INFO, "Device Info");
     SPECIFIC_FIELD(lang->MUXBTCON.HELP, "Scan for nearby Bluetooth devices and pair or connect to them");
+    SPECIFIC_FIELD(lang->MUXBTCON.CONNECT, "Connecting to device…");
+    SPECIFIC_FIELD(lang->MUXBTCON.DISCONNECT, "Disconnecting device…");
 
     // muxbtdev
     SPECIFIC_FIELD(lang->MUXBTDEV.TITLE, "BLUETOOTH DEVICE");
     SPECIFIC_FIELD(lang->MUXBTDEV.FRIENDLYNAME, "Friendly Name");
     SPECIFIC_FIELD(lang->MUXBTDEV.TYPE, "Device Type");
     SPECIFIC_FIELD(lang->MUXBTDEV.BATTERY, "Battery");
-    SPECIFIC_FIELD(lang->MUXBTDEV.SIGNAL, "Signal");
+    SPECIFIC_FIELD(lang->MUXBTDEV.ADDRESS, "Address");
     SPECIFIC_FIELD(lang->MUXBTDEV.STATUS, "Status");
     SPECIFIC_FIELD(lang->MUXBTDEV.CONNECTED, "Connected");
     SPECIFIC_FIELD(lang->MUXBTDEV.DISCONNECTED, "Disconnected");
     SPECIFIC_FIELD(lang->MUXBTDEV.FORGET, "Forget Device");
     SPECIFIC_FIELD(lang->MUXBTDEV.FORGET_CONFIRM, "Remove this device from the paired list?");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.AUDIO_HEADSET, "Headset");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.AUDIO_HEADPHONES, "Headphones");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.AUDIO_SPEAKER, "Speaker");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.AUDIO_MICROPHONE, "Microphone");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.AUDIO_CARD, "Audio Card");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.INPUT_GAMEPAD, "Gamepad");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.INPUT_KEYBOARD, "Keyboard");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.INPUT_MOUSE, "Mouse");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.INPUT_COMBO, "Keyboard + Mouse");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.INPUT_REMOTE, "Remote Control");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.PHONE, "Phone");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.COMPUTER, "Computer");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.NETWORK, "Network");
+    SPECIFIC_FIELD(lang->MUXBTDEV.TYPE_NAME.UNKNOWN, "Unknown");
     SPECIFIC_FIELD(lang->MUXBTDEV.HELP.FRIENDLYNAME, "The display name for this Bluetooth device");
     SPECIFIC_FIELD(lang->MUXBTDEV.HELP.TYPE, "The type of Bluetooth device");
     SPECIFIC_FIELD(lang->MUXBTDEV.HELP.BATTERY, "The battery level reported by the device");
-    SPECIFIC_FIELD(lang->MUXBTDEV.HELP.SIGNAL, "The signal strength of the Bluetooth connection");
+    SPECIFIC_FIELD(lang->MUXBTDEV.HELP.ADDRESS, "The Bluetooth address of this device");
     SPECIFIC_FIELD(lang->MUXBTDEV.HELP.STATUS, "Connect or disconnect this device");
     SPECIFIC_FIELD(lang->MUXBTDEV.HELP.FORGET, "Remove this device from the paired list");
 
@@ -507,7 +535,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXFONT.NONE, "No Fonts Available");
     SPECIFIC_FIELD(lang->MUXFONT.TYPE_OPTIONS.LANGUAGE, "Language");
     SPECIFIC_FIELD(lang->MUXFONT.TYPE_OPTIONS.THEME, "Theme");
-    SPECIFIC_FIELD(lang->MUXFONT.TYPE_OPTIONS.CUSTOM, "Custom");
+    SPECIFIC_FIELD(lang->MUXFONT.TYPE_OPTIONS.INTERNAL, "Internal");
     SPECIFIC_FIELD(lang->MUXFONT.HELP.TYPE, "Select the font type: Language uses the built-in language font, Theme uses fonts provided by the active theme, Custom lets you pick a specific TTF font");
     SPECIFIC_FIELD(lang->MUXFONT.HELP.NAME, "Select the custom TTF font to use (only applies when Font Type is Custom)");
     SPECIFIC_FIELD(lang->MUXFONT.HELP.LISTSIZE, "Set the font size for list items (0 uses the device default)");
@@ -547,6 +575,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.TUNESCALE, "Automatically adjusts scheduler behaviour based on CPU count\n\nDisable for consistent tuning on devices");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.CARDMODE, "Switch between different storage tuning options\n\nMay improve performance on certain mSD cards");
     SPECIFIC_FIELD(lang->MUXDANGER.HELP.STATE, "Switch between system sleep suspend states\n\nChanges how the device reacts to sleep mode and wake locks");
+    SPECIFIC_FIELD(lang->MUXDANGER.WARN, "These are low level kernel parameters.\n\nIncorrect values can cause system instability or data loss!");
 
     // muxdevice
     SPECIFIC_FIELD(lang->MUXDEVICE.TITLE, "DEVICE SETTINGS");
@@ -607,6 +636,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXINFO.TITLE, "INFORMATION");
     SPECIFIC_FIELD(lang->MUXINFO.NEWS, "Community News");
     SPECIFIC_FIELD(lang->MUXINFO.SYSINFO, "System Details");
+    SPECIFIC_FIELD(lang->MUXINFO.BATINFO, "Battery Details");
     SPECIFIC_FIELD(lang->MUXINFO.NETINFO, "Network Details");
     SPECIFIC_FIELD(lang->MUXINFO.ACTIVITY, "Activity Tracker");
     SPECIFIC_FIELD(lang->MUXINFO.SCREENSHOT, "Screenshots");
@@ -616,6 +646,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXINFO.CREDIT, "Supporters and Credits");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.NEWS, "Read various community news and other live information");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.SYSINFO, "Access version information and system details");
+    SPECIFIC_FIELD(lang->MUXINFO.HELP.BATINFO, "Access detailed battery information and battery usage statistics");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.NETINFO, "Access network information");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.ACTIVITY, "View all tracked play time data");
     SPECIFIC_FIELD(lang->MUXINFO.HELP.SCREENSHOT, "View all of the screenshots taken on the device");
@@ -749,6 +780,8 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXLAUNCH.EXPLORE, "Explore Content");
     SPECIFIC_FIELD(lang->MUXLAUNCH.SHUTDOWN, "Shutdown");
     SPECIFIC_FIELD(lang->MUXLAUNCH.REBOOT, "Reboot");
+    SPECIFIC_FIELD(lang->MUXLAUNCH.CONFIRM_REBOOT, "Confirm Reboot");
+    SPECIFIC_FIELD(lang->MUXLAUNCH.CONFIRM_SHUTDOWN, "Confirm Shutdown");
     SPECIFIC_FIELD(lang->MUXLAUNCH.SHORT.APP, "Apps");
     SPECIFIC_FIELD(lang->MUXLAUNCH.SHORT.CONFIG, "Config");
     SPECIFIC_FIELD(lang->MUXLAUNCH.SHORT.INFO, "Info");
@@ -838,7 +871,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXNETWORK.SAVE, "Changes Saved");
     SPECIFIC_FIELD(lang->MUXNETWORK.DHCP, "DHCP");
     SPECIFIC_FIELD(lang->MUXNETWORK.STATIC, "Static");
-    SPECIFIC_FIELD(lang->MUXNETWORK.SCAN, "Scan");
     SPECIFIC_FIELD(lang->MUXNETWORK.SUBNET, "Subnet CIDR");
     SPECIFIC_FIELD(lang->MUXNETWORK.PROFILES, "Profiles");
     SPECIFIC_FIELD(lang->MUXNETWORK.CONNECT_TRY, "Trying to Connect…");
@@ -958,6 +990,25 @@ void load_lang(struct mux_lang *lang) {
     // muxpass
     SPECIFIC_FIELD(lang->MUXPASS.TITLE, "PASSCODE");
 
+    // muxpasscfg
+    SPECIFIC_FIELD(lang->MUXPASSCFG.TITLE, "PASSCODE SETTINGS");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.BOOTCODE, "Boot Code");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.BOOTMSG, "Boot Message");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.LAUNCHCODE, "Launch Code");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.LAUNCHMSG, "Launch Message");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.SETTINGCODE, "Settings Code");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.SETTINGMSG, "Settings Message");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.SAFETYCODE, "Safety Code");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.SAVED, "Passcode saved");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.INVALID, "Code must be up to 6 digits");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.BOOTCODE, "6 digit code required at boot - set to 000000 to disable");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.BOOTMSG, "Message shown when the device first boots");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.LAUNCHCODE, "6 digit code required before launching content - set to 000000 to disable");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.LAUNCHMSG, "Message shown when launching content");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.SETTINGCODE, "6 digit code required to access settings - set to 000000 to disable");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.SETTINGMSG, "Message shown when accessing settings");
+    SPECIFIC_FIELD(lang->MUXPASSCFG.HELP.SAFETYCODE, "Emergency recovery code that bypasses all locks - set to 000000 to disable");
+
     // muxpicker
     SPECIFIC_FIELD(lang->MUXPICKER.CUSTOM, "CUSTOM PICKER");
     SPECIFIC_FIELD(lang->MUXPICKER.CATALOGUE, "CATALOGUE PICKER");
@@ -994,6 +1045,7 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXPOWER.SAVER.TYPE.MYSTIFY, "Mystify");
     SPECIFIC_FIELD(lang->MUXPOWER.SAVER.TYPE.MAZE, "Maze Runner");
     SPECIFIC_FIELD(lang->MUXPOWER.SAVER.TYPE.BLOCKFALL, "Block Fall");
+    SPECIFIC_FIELD(lang->MUXPOWER.SAVER.TYPE.DATETIME, "Date and Time");
     SPECIFIC_FIELD(lang->MUXPOWER.SAVER.SPEED.TITLE, "Screensaver Speed");
     SPECIFIC_FIELD(lang->MUXPOWER.SAVER.SPEED.CRAWL, "Crawl");
     SPECIFIC_FIELD(lang->MUXPOWER.SAVER.SPEED.CRUISE, "Cruise");
@@ -1039,6 +1091,16 @@ void load_lang(struct mux_lang *lang) {
     // muxraopt
     SPECIFIC_FIELD(lang->MUXRAOPT.TITLE, "THREADED VIDEO");
     SPECIFIC_FIELD(lang->MUXRAOPT.HELP, "Until RetroArch sorts their issue out with the threaded video option, you can toggle it here instead\n\nThis also may turn into a larger set of options in the future!");
+
+    // muxremap
+    SPECIFIC_FIELD(lang->MUXREMAP.TITLE, "Input Remap");
+    SPECIFIC_FIELD(lang->MUXREMAP.NONE, "No Controller Detected");
+    SPECIFIC_FIELD(lang->MUXREMAP.WAITING, "Press Any Input…");
+    SPECIFIC_FIELD(lang->MUXREMAP.SAVED, "Mapping Saved");
+    SPECIFIC_FIELD(lang->MUXREMAP.INPUT_LABEL, "Controller");
+    SPECIFIC_FIELD(lang->MUXREMAP.LAYOUT_LABEL, "Active Layout");
+    SPECIFIC_FIELD(lang->MUXREMAP.LAYOUT_RETRO, "Retro");
+    SPECIFIC_FIELD(lang->MUXREMAP.LAYOUT_MODERN, "Modern");
 
     // muxrgb
     SPECIFIC_FIELD(lang->MUXRGB.TITLE, "RGB LIGHTS");
@@ -1199,30 +1261,31 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXSYSINFO.BUILD, "Build ID");
     SPECIFIC_FIELD(lang->MUXSYSINFO.DEVICE, "Device Type");
     SPECIFIC_FIELD(lang->MUXSYSINFO.KERNEL, "Linux Kernel");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.ARCH, "Architecture");
     SPECIFIC_FIELD(lang->MUXSYSINFO.UPTIME, "System Uptime");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.BOOT_TIME, "Boot Time");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.LOAD_AVG, "Load Average");
     SPECIFIC_FIELD(lang->MUXSYSINFO.MEMORY.INFO, "System Memory");
     SPECIFIC_FIELD(lang->MUXSYSINFO.MEMORY.DROP, "Memory Cache Dropped");
     SPECIFIC_FIELD(lang->MUXSYSINFO.SWAP, "Swap Memory");
     SPECIFIC_FIELD(lang->MUXSYSINFO.TEMP, "Temperature");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.CAPACITY, "Battery Capacity");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.VOLTAGE, "Battery Voltage");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.CHARGER, "Charger");
     SPECIFIC_FIELD(lang->MUXSYSINFO.RELOAD, "Reload Frontend");
     SPECIFIC_FIELD(lang->MUXSYSINFO.RELOAD_RUN, "Reloading Frontend…");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.INFO, "CPU Information");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.SPEED, "CPU Speed");
     SPECIFIC_FIELD(lang->MUXSYSINFO.CPU.GOVERNOR, "CPU Governor");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.WARN, "Changing your device functions may cause unexpected behaviour or prevent the system from booting!");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.VERSION, "The current version of MustardOS running on the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.BUILD, "The current build ID of MustardOS running on the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.DEVICE, "The current device type detected and configured");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.KERNEL, "The current Linux kernel");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.ARCH, "The CPU instruction set architecture reported by the kernel");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.UPTIME, "The current running time of the system");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.BOOT_TIME, "The date and time the system was last booted");
+    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.LOAD_AVG, "Average number of runnable processes over the last 1, 5, and 15 minutes");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.MEMORY, "The current, and total, device memory usage of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.SWAP, "The current, and total, swap memory usage of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.TEMP, "The current detected temperature of the device");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CAPACITY, "The current detected battery capacity");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.VOLTAGE, "The current detected battery voltage");
-    SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CHARGER, "Detection of the charger cable");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.RELOAD, "Reload the current frontend configuration values if changed elsewhere");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.CPU, "The detected CPU type of the device");
     SPECIFIC_FIELD(lang->MUXSYSINFO.HELP.SPEED, "The current CPU frequency of the device");
@@ -1274,10 +1337,14 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.HEADER_HEIGHT, "Header Height");
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.FOOTER_HEIGHT, "Footer Height");
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.CONTENT_ITEM_COUNT, "Item Count");
+    SPECIFIC_FIELD(lang->MUXTHEMEOPT.GLYPH_SIZE, "Glyph Size");
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.SIZE_DEFAULT, "Default");
+    SPECIFIC_FIELD(lang->MUXTHEMEOPT.GLYPH_AUTO, "Auto");
+    SPECIFIC_FIELD(lang->MUXTHEMEOPT.GLYPH_NATIVE, "Native");
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.HELP.HEADERHEIGHT, "Override the theme header bar height in pixels (Default uses the theme value)");
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.HELP.FOOTERHEIGHT, "Override the theme footer bar height in pixels (Default uses the theme value)");
     SPECIFIC_FIELD(lang->MUXTHEMEOPT.HELP.CONTENTITEMCOUNT, "Override the number of visible list items (0 uses the theme default)");
+    SPECIFIC_FIELD(lang->MUXTHEMEOPT.HELP.GLYPHSIZE, "Override the SVG glyph render size in pixels (Default uses the theme value, Auto fits to item height, Native uses the actual size)");
 
     // muxtimezone
     SPECIFIC_FIELD(lang->MUXTIMEZONE.TITLE, "TIMEZONE");
@@ -1290,7 +1357,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.ACCELERATE, "Menu Acceleration");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.REPEATDELAY, "Menu Repeat Delay");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.THERMAL, "Thermal Zone Control");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.PASSCODE, "Passcode Lock");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.LED, "LED During Play");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RANDOMTHEME, "Random Theme on Boot");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.RETROWAIT, "RetroArch Network Wait");
@@ -1305,9 +1371,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAPFILE, "System Swapfile");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.ZRAMFILE, "System ZRam");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.LIDSWITCH, "Device Lid Switch");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.TITLE, "Button Swap");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.RETRO, "Retro");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.SWAP.MODERN, "Modern");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.STICKNAV.TITLE, "Menu Navigation");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.STICKNAV.DPAD, "DPAD Only");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.STICKNAV.LS, "L Stick Only");
@@ -1339,10 +1402,15 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.MAXGPU, "GPU Performance Mode");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.AUDIOREADY, "Audio Subsystem Wait");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.AUDIOSWAP, "Audio Reverse");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.TRUSTMODIFY, "Trust Modifications");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.TRUSTPOWER, "Trust Power Choice");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.TRUSTREMOVE, "Trust Removals");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.USBFUNCTION, "USB Function");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.ADB, "Android Debug Bridge");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.MTP, "Media Transfer Protocol");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.ACCELERATE, "Adjust the rate of speed when holding navigation keys down");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.REPEATDELAY, "Adjust amount of time button must be held before it begins to repeat the button action");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.THERMAL, "Toggle the system ability to automatically shut the device down due high temperature");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.PASSCODE, "Toggle the passcode lock - More information can be found on the MustardOS website");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.LED, "Toggle the power LED during content launch");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RANDOMTHEME, "Change the default theme used for the next device launch");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RETROWAIT, "Toggle a delayed start of RetroArch until a network connection is established");
@@ -1360,7 +1428,6 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.RUMBLE, "Toggle vibration for device startup, sleep, and shutdown");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.BRIGHTNESS, "Change the default brightness level that the device will use each time it starts up");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.VOLUME, "Change the default audio level that the device will use each time it starts up");
-    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SWAP, "Change how the device buttons work globally");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.STICKNAV, "Change how you navigate using the DPAD and Analogue Sticks on the device");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.DISPSUSPEND, "Toggle the device display suspend function, however some displays will not like this enabled");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.SECONDPART, "Change the partition number requested upon secondary storage mount");
@@ -1370,6 +1437,10 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.MAXGPU, "Push the onboard GPU to the maximum frequency at all times");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.AUDIOREADY, "Toggle if the device will wait for the audio subsystem to initialise during boot");
     SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.AUDIOSWAP, "Toggle the swap of left and right channels of audio");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.TRUSTMODIFY, "Skip the unsaved changes dialogue and save immediately when leaving a settings module");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.TRUSTPOWER, "Skip the confirmation dialogue when choosing to reboot or shut down");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.TRUSTREMOVE, "Skip the removal confirmation dialogue when using X to remove content or reset settings");
+    SPECIFIC_FIELD(lang->MUXTWEAKADV.HELP.USBFUNCTION, "Toggle between ADB and MTP USB functionality");
 
     // muxtweakgen
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.TITLE, "GENERAL SETTINGS");
@@ -1401,6 +1472,11 @@ void load_lang(struct mux_lang *lang) {
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.HKSHOT, "Switch between different hotkeys for taking a screenshot");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.STARTUP, "Change where the device will start up into");
     SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.AUDIOSINK, "Select the active Pipewire audio output sink");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.PASSCODE, "Passcode Settings");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.PASSCODE, "Configure boot, launch, and settings passcodes");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.INPUTREMAP, "Input Remap");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.HELP.INPUTREMAP, "Remap controller buttons and axes for the muOS frontend");
+    SPECIFIC_FIELD(lang->MUXTWEAKGEN.WARN, "These settings are intended for advanced users.\n\nChanging them incorrectly may cause unexpected behaviour!");
 
     // muxvisual
     SPECIFIC_FIELD(lang->MUXVISUAL.SORT, "Sorting Priority");

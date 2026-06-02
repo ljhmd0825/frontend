@@ -31,10 +31,6 @@ static void update_font_for_language(const char *new_language) {
 
     write_text_to_file(CONF_CONFIG_PATH "settings/advanced/font", "w", INT, 1);
     write_text_to_file(CONF_CONFIG_PATH "settings/font/name", "w", CHAR, "Noto Sans");
-    write_text_to_file(CONF_CONFIG_PATH "settings/font/list_size", "w", INT, 0);
-    write_text_to_file(CONF_CONFIG_PATH "settings/font/header_size", "w", INT, 0);
-    write_text_to_file(CONF_CONFIG_PATH "settings/font/footer_size", "w", INT, 0);
-    write_text_to_file(CONF_CONFIG_PATH "settings/font/panel_size", "w", INT, 0);
 }
 
 static void show_help(void) {
@@ -144,10 +140,7 @@ static void handle_b(void) {
     if (download_in_progress || hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -175,6 +168,10 @@ static void handle_help(void) {
 
     play_sound(SND_INFO_OPEN);
     show_help();
+}
+
+static void ui_refresh_task() {
+    download_poll();
 }
 
 static void init_elements(void) {
@@ -221,7 +218,7 @@ int muxlanguage_main(void) {
         lv_label_set_text(ui_lblScreenMessage, lang.MUXLANGUAGE.NONE);
     }
 
-    init_timer(ui_gen_refresh_task, NULL);
+    init_timer(ui_refresh_task, NULL);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),

@@ -1,6 +1,5 @@
 #include "muxshare.h"
 #include "ui/ui_muxsysinfo.h"
-#include "../common/battery.h"
 
 #define SYSINFO(NAME, ENUM, UDATA) 1,
 enum {
@@ -75,101 +74,59 @@ const char *get_cpu_model(void) {
 
     if (cached_ok) return cached;
 
-    FILE *fp = popen("lscpu", "r");
-    if (!fp) return lang.GENERIC.UNKNOWN;
+    char model[64] = {0};
+    unsigned long long cpu_cores = 0;
 
-    char models[4][64] = {{0}};
-    int model_count = 0;
+    FILE *fp = fopen("/proc/cpuinfo", "r");
+    if (fp) {
+        char line[256];
+        while (fgets(line, sizeof(line), fp)) {
+            char *trimmed = line;
+            while (*trimmed && isspace((unsigned char) *trimmed)) trimmed++;
 
-    char cpu_cores[16] = {0};
-    char line[256];
+            if (strncmp(trimmed, "processor", 9) == 0) {
+                cpu_cores++;
+            } else if (!model[0] && strncmp(trimmed, "model name", 10) == 0) {
+                char *colon = strchr(trimmed, ':');
+                if (!colon) continue;
+                char *value = colon + 1;
+                while (*value && isspace((unsigned char) *value)) value++;
+                char *end = value + strlen(value);
+                while (end > value && isspace((unsigned char) *(end - 1))) --end;
+                *end = '\0';
+                snprintf(model, sizeof(model), "%s", value);
+            }
+        }
+        fclose(fp);
+    }
 
-    while (fgets(line, sizeof(line), fp)) {
-        char *trimmed = line;
-        while (*trimmed && isspace((unsigned char) *trimmed)) trimmed++;
-
-        if (strncmp(trimmed, "CPU(s):", 7) == 0 && !cpu_cores[0]) {
-            char *value = trimmed + 7;
-            while (*value && isspace((unsigned char) *value)) value++;
-            char *end = value + strlen(value);
-            while (end > value && isspace((unsigned char) *(end - 1))) --end;
-            *end = '\0';
-            snprintf(cpu_cores, sizeof(cpu_cores), "%s", value);
-
-        } else if (strncmp(trimmed, "Model name:", 11) == 0) {
-            char *value = trimmed + 11;
-            while (*value && isspace((unsigned char) *value)) value++;
-            char *end = value + strlen(value);
-            while (end > value && isspace((unsigned char) *(end - 1))) --end;
-            *end = '\0';
-
-            int duplicate = 0;
-            for (int i = 0; i < model_count; i++) {
-                if (strcmp(models[i], value) == 0) {
-                    duplicate = 1;
+    if (!model[0]) {
+        FILE *lscpu = popen("lscpu", "r");
+        if (lscpu) {
+            char line[256];
+            while (fgets(line, sizeof(line), lscpu)) {
+                char *trimmed = line;
+                while (*trimmed && isspace((unsigned char) *trimmed)) trimmed++;
+                if (strncmp(trimmed, "Model name:", 11) == 0) {
+                    char *value = trimmed + 11;
+                    while (*value && isspace((unsigned char) *value)) value++;
+                    char *end = value + strlen(value);
+                    while (end > value && isspace((unsigned char) *(end - 1))) --end;
+                    *end = '\0';
+                    snprintf(model, sizeof(model), "%s", value);
                     break;
                 }
             }
-            if (!duplicate && model_count < 4) {
-                snprintf(models[model_count++], sizeof(models[0]), "%s", value);
-            }
+            pclose(lscpu);
         }
     }
 
-    pclose(fp);
+    if (!model[0]) return lang.GENERIC.UNKNOWN;
 
-    if (model_count == 0) return lang.GENERIC.UNKNOWN;
-    char joined[UI_BUFFER] = {0};
-
-    if (model_count == 1) {
-        snprintf(joined, sizeof(joined), "%s", models[0]);
-        for (char *p = joined; *p; p++) if (*p == '-') *p = ' ';
+    if (cpu_cores > 0) {
+        snprintf(cached, sizeof(cached), "%s (%llu)", model, cpu_cores);
     } else {
-
-        size_t prefix_len = strlen(models[0]);
-        for (int i = 1; i < model_count; i++) {
-            size_t j = 0;
-
-            while (j < prefix_len && models[i][j] == models[0][j]) j++;
-            prefix_len = j;
-        }
-
-        while (prefix_len > 0 && !isspace((unsigned char) models[0][prefix_len - 1])) prefix_len--;
-
-        if (prefix_len > 0) {
-            char prefix[64];
-            snprintf(prefix, sizeof(prefix), "%.*s", (int) prefix_len, models[0]);
-
-            char *end = prefix + strlen(prefix);
-            while (end > prefix && (isspace((unsigned char) end[-1]) || end[-1] == '-')) --end;
-
-            *end = '\0';
-
-            for (char *p = prefix; *p; p++) if (*p == '-') *p = ' ';
-
-            char suffixes[UI_BUFFER] = {0};
-            for (int i = 0; i < model_count; i++) {
-                if (i > 0) strncat(suffixes, "+", sizeof(suffixes) - strlen(suffixes) - 1);
-
-                const char *suffix = models[i] + prefix_len;
-                while (isspace((unsigned char) *suffix) || *suffix == '-') suffix++;
-
-                strncat(suffixes, suffix, sizeof(suffixes) - strlen(suffixes) - 1);
-            }
-
-            snprintf(joined, sizeof(joined), "%s %s", prefix, suffixes);
-        } else {
-            for (int i = 0; i < model_count; i++) {
-                if (i > 0) strncat(joined, " / ", sizeof(joined) - strlen(joined) - 1);
-                strncat(joined, models[i], sizeof(joined) - strlen(joined) - 1);
-            }
-        }
-    }
-
-    if (cpu_cores[0]) {
-        snprintf(cached, sizeof(cached), "%s (%s)", joined, cpu_cores);
-    } else {
-        snprintf(cached, sizeof(cached), "%s", joined);
+        snprintf(cached, sizeof(cached), "%s", model);
     }
 
     cached_ok = 1;
@@ -345,14 +302,6 @@ static const char *get_system_uptime(void) {
     return buffer;
 }
 
-const char *get_battery_cap(void) {
-    static char battery_cap[UI_BUFFER];
-    snprintf(battery_cap, sizeof(battery_cap), "%d%%",
-             battery_get_capacity());
-
-    return battery_cap;
-}
-
 const char *get_device_info(void) {
     static char device_info[UI_BUFFER];
     snprintf(device_info, sizeof(device_info), "%s",
@@ -361,59 +310,82 @@ const char *get_device_info(void) {
     return device_info;
 }
 
-const char *get_kernel_version(void) {
-    static char cached[UI_BUFFER];
-    static int cached_ok = 0;
+static char uname_kernel[UI_BUFFER];
+static char uname_arch[UI_BUFFER];
+static int uname_ready = 0;
 
-    if (cached_ok) return cached;
+static void ensure_uname(void) {
+    if (uname_ready) return;
 
-    struct utsname sys_info;
-
-    if (uname(&sys_info) == 0) {
-        snprintf(cached, sizeof(cached), "%s %s (%s)",
-                 sys_info.sysname, sys_info.release, sys_info.machine);
-
-        snprintf(hostname, sizeof(hostname), "%s", sys_info.nodename);
-        cached_ok = 1;
+    struct utsname u;
+    if (uname(&u) == 0) {
+        snprintf(uname_kernel, sizeof(uname_kernel), "%s %s", u.sysname, u.release);
+        snprintf(uname_arch, sizeof(uname_arch), "%s", u.machine);
+        snprintf(hostname, sizeof(hostname), "%s", u.nodename);
     } else {
-        snprintf(cached, sizeof(cached), "%s", lang.GENERIC.UNKNOWN);
+        snprintf(uname_kernel, sizeof(uname_kernel), "%s", lang.GENERIC.UNKNOWN);
+        snprintf(uname_arch, sizeof(uname_arch), "%s", lang.GENERIC.UNKNOWN);
     }
 
-    return cached;
+    uname_ready = 1;
 }
 
-const char *get_charger_status(void) {
+const char *get_kernel_version(void) {
+    ensure_uname();
+    return uname_kernel;
+}
+
+const char *get_cpu_arch(void) {
+    ensure_uname();
+    return uname_arch;
+}
+
+static const char *get_boot_time(void) {
     static char buffer[UI_BUFFER];
 
-    snprintf(buffer, sizeof(buffer), "%s",
-             battery_is_charging() ? lang.GENERIC.ONLINE : lang.GENERIC.OFFLINE);
+    time_t boot_ts = time(NULL) - (time_t) sysinfo_cache.uptime;
+    struct tm *tm_info = localtime(&boot_ts);
+    if (!tm_info) {
+        snprintf(buffer, sizeof(buffer), "%s", lang.GENERIC.UNKNOWN);
+        return buffer;
+    }
 
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M", tm_info);
+    return buffer;
+}
+
+static const char *get_load_average(void) {
+    static char buffer[UI_BUFFER];
+
+    double load1  = (double) sysinfo_cache.loads[0] / 65536.0;
+    double load5  = (double) sysinfo_cache.loads[1] / 65536.0;
+    double load15 = (double) sysinfo_cache.loads[2] / 65536.0;
+
+    snprintf(buffer, sizeof(buffer), "%.2f / %.2f / %.2f", load1, load5, load15);
     return buffer;
 }
 
 static void update_system_info() {
     if (sysinfo(&sysinfo_cache) != 0) {
         lv_label_set_text(ui_lblUptimeValue_sysinfo, lang.GENERIC.UNKNOWN);
+        lv_label_set_text(ui_lblBootTimeValue_sysinfo, lang.GENERIC.UNKNOWN);
+        lv_label_set_text(ui_lblLoadAvgValue_sysinfo, lang.GENERIC.UNKNOWN);
         lv_label_set_text(ui_lblSpeedValue_sysinfo, lang.GENERIC.UNKNOWN);
         lv_label_set_text(ui_lblGovernorValue_sysinfo, lang.GENERIC.UNKNOWN);
         lv_label_set_text(ui_lblMemoryValue_sysinfo, lang.GENERIC.UNKNOWN);
         lv_label_set_text(ui_lblSwapValue_sysinfo, lang.GENERIC.UNKNOWN);
         lv_label_set_text(ui_lblTempValue_sysinfo, lang.GENERIC.UNKNOWN);
-        lv_label_set_text(ui_lblCapacityValue_sysinfo, lang.GENERIC.UNKNOWN);
-        lv_label_set_text(ui_lblVoltageValue_sysinfo, lang.GENERIC.UNKNOWN);
-        lv_label_set_text(ui_lblChargerValue_sysinfo, lang.GENERIC.UNKNOWN);
         return;
     }
 
     lv_label_set_text(ui_lblUptimeValue_sysinfo, get_system_uptime());
+    lv_label_set_text(ui_lblBootTimeValue_sysinfo, get_boot_time());
+    lv_label_set_text(ui_lblLoadAvgValue_sysinfo, get_load_average());
     lv_label_set_text(ui_lblSpeedValue_sysinfo, get_current_frequency());
     lv_label_set_text(ui_lblGovernorValue_sysinfo, get_scaling_governor());
     lv_label_set_text(ui_lblMemoryValue_sysinfo, get_memory_usage());
-    lv_label_set_text(ui_lblSwapValue_sysinfo, get_swap_usage());
+    if (sysinfo_cache.totalswap != 0) lv_label_set_text(ui_lblSwapValue_sysinfo, get_swap_usage());
     lv_label_set_text(ui_lblTempValue_sysinfo, get_temperature());
-    lv_label_set_text(ui_lblCapacityValue_sysinfo, get_battery_cap());
-    lv_label_set_text(ui_lblVoltageValue_sysinfo, battery_get_voltage());
-    lv_label_set_text(ui_lblChargerValue_sysinfo, get_charger_status());
 }
 
 static void init_navigation_group(void) {
@@ -425,36 +397,92 @@ static void init_navigation_group(void) {
     INIT_VALUE_ITEM(-1, sysinfo, Version, lang.MUXSYSINFO.VERSION, "version", get_version(verify_check));
     INIT_VALUE_ITEM(-1, sysinfo, Build, lang.MUXSYSINFO.BUILD, "build", get_build());
     INIT_VALUE_ITEM(-1, sysinfo, Device, lang.MUXSYSINFO.DEVICE, "device", get_device_info());
-    INIT_VALUE_ITEM(-1, sysinfo, Kernel, lang.MUXSYSINFO.KERNEL, "kernel", get_kernel_version());
-    INIT_VALUE_ITEM(-1, sysinfo, Uptime, lang.MUXSYSINFO.UPTIME, "uptime", get_system_uptime());
+    INIT_VALUE_ITEM(-1, sysinfo, Kernel,   lang.MUXSYSINFO.KERNEL,    "kernel",   get_kernel_version());
+    INIT_VALUE_ITEM(-1, sysinfo, Arch,     lang.MUXSYSINFO.ARCH,      "arch",     get_cpu_arch());
+    INIT_VALUE_ITEM(-1, sysinfo, Uptime,   lang.MUXSYSINFO.UPTIME,    "uptime",   get_system_uptime());
+    INIT_VALUE_ITEM(-1, sysinfo, BootTime, lang.MUXSYSINFO.BOOT_TIME, "boottime", get_boot_time());
+    INIT_VALUE_ITEM(-1, sysinfo, LoadAvg,  lang.MUXSYSINFO.LOAD_AVG,  "loadavg",  get_load_average());
     INIT_VALUE_ITEM(-1, sysinfo, Cpu, lang.MUXSYSINFO.CPU.INFO, "cpu", get_cpu_model());
     INIT_VALUE_ITEM(-1, sysinfo, Speed, lang.MUXSYSINFO.CPU.SPEED, "speed", get_current_frequency());
     INIT_VALUE_ITEM(-1, sysinfo, Governor, lang.MUXSYSINFO.CPU.GOVERNOR, "governor", get_scaling_governor());
     INIT_VALUE_ITEM(-1, sysinfo, Memory, lang.MUXSYSINFO.MEMORY.INFO, "memory", get_memory_usage());
     INIT_VALUE_ITEM(-1, sysinfo, Swap, lang.MUXSYSINFO.SWAP, "swap", get_swap_usage());
     INIT_VALUE_ITEM(-1, sysinfo, Temp, lang.MUXSYSINFO.TEMP, "temp", get_temperature());
-    INIT_VALUE_ITEM(-1, sysinfo, Capacity, lang.MUXSYSINFO.CAPACITY, "capacity", get_battery_cap());
-    INIT_VALUE_ITEM(-1, sysinfo, Voltage, lang.MUXSYSINFO.VOLTAGE, "voltage", battery_get_voltage());
-    INIT_VALUE_ITEM(-1, sysinfo, Charger, lang.MUXSYSINFO.CHARGER, "charger", get_charger_status());
     INIT_VALUE_ITEM(-1, sysinfo, Reload, lang.MUXSYSINFO.RELOAD, "reload", "");
 
     reset_ui_groups();
     add_ui_groups(ui_objects, ui_objects_value, ui_objects_glyph, ui_objects_panel, false);
+
+    if (sysinfo_cache.totalswap == 0) HIDE_VALUE_ITEM(sysinfo, Swap);
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, false, 0);
+
+static int warn_mode = 0;
+static mux_dialogue warn_dlg;
+
+static void show_warn_dialog(void) {
+    warn_mode = 1;
+    warn_dlg.selected = 1;
+    dialogue_show(&warn_dlg);
+    dialogue_refresh(&warn_dlg, &theme);
 }
 
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
+static void hide_warn_dialog(void) {
+    warn_mode = 0;
+    dialogue_hide(&warn_dlg);
 }
 
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
+static void handle_dpad_up(void) {
+    if (warn_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&warn_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_up();
+}
+
+static void handle_dpad_down(void) {
+    if (warn_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&warn_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_down();
+}
+
+static void handle_dpad_up_hold(void) {
+    if (warn_mode) return;
+
+    handle_list_nav_up_hold();
+}
+
+static void handle_dpad_down_hold(void) {
+    if (warn_mode) return;
+
+    handle_list_nav_down_hold();
 }
 
 static void handle_a(void) {
+    if (warn_mode) {
+        int idx = warn_dlg.selected;
+        hide_warn_dialog();
+        if (idx == 0) {
+            char cpath[MAX_BUFFER_SIZE];
+            snprintf(cpath, sizeof(cpath), "%scount/warn_device", CONF_CONFIG_PATH);
+            create_directories(cpath, 1);
+            write_text_to_file(cpath, "w", INT, read_line_int_from(cpath, 1) + 1);
+            load_mux("device");
+            mux_input_stop();
+        }
+        return;
+    }
+
     if (msgbox_active || hold_call) return;
 
     struct _lv_obj_t *e_focused = lv_group_get_focused(ui_group);
@@ -558,11 +586,13 @@ static void handle_a(void) {
 static void handle_b(void) {
     if (hold_call) return;
 
+    if (warn_mode) {
+        hide_warn_dialog();
+        return;
+    }
+
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -573,20 +603,16 @@ static void handle_b(void) {
 }
 
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call || warn_mode) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
 }
 
 static void launch_device(void) {
-    if (msgbox_active || hold_call) return;
+    if (msgbox_active || hold_call || warn_mode) return;
 
-    if (lv_group_get_focused(ui_group) == ui_lblDevice_sysinfo) {
-        load_mux("device");
-
-        mux_input_stop();
-    }
+    if (lv_group_get_focused(ui_group) == ui_lblDevice_sysinfo) show_warn_dialog();
 }
 
 static void init_elements(void) {
@@ -621,18 +647,20 @@ int muxsysinfo_main(void) {
     load_wallpaper(ui_screen, NULL, ui_pnlWall, ui_imgWall, WALL_GENERAL);
 
     init_fonts();
+    sysinfo(&sysinfo_cache);
     init_navigation_group();
 
+    dialogue_init_warn(&warn_dlg, &theme, ui_screen, lang.MUXSYSINFO.WARN, lang.GENERIC.SELECT, lang.GENERIC.BACK);
     init_timer(ui_gen_refresh_task, update_system_info);
-    list_nav_next(0);
+    gen_step_movement(0, +1, 0, 0);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
             .press_handler = {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
@@ -641,8 +669,8 @@ int muxsysinfo_main(void) {
                     [MUX_INPUT_MENU] = handle_help,
             },
             .hold_handler = {
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up_hold,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
@@ -657,7 +685,7 @@ int muxsysinfo_main(void) {
             .combo_count = 1
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev_nowrap, list_nav_cb_next_nowrap);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

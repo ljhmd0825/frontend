@@ -6,10 +6,27 @@ static int preview_displayTime = 0;
 static int preview_index = -1;
 static int no_theme_archives = 0;
 
+static int remove_mode = 0;
+static int skip_confirm = 0;
+static mux_dialogue remove_dlg;
+
+static void show_remove_dialog(void) {
+    remove_mode = 1;
+    remove_dlg.selected = 0;
+    dialogue_show(&remove_dlg);
+    dialogue_refresh(&remove_dlg, &theme);
+}
+
+static void hide_remove_dialog(void) {
+    remove_mode = 0;
+    dialogue_hide(&remove_dlg);
+}
+
 #define TEMP_VERSION "version.txt"
 #define TEMP_CREDITS "credits.txt"
 
 char *theme_version_compat = "";
+static char *theme_version_buf = NULL;
 
 static void show_help(void) {
     if (items[current_item_index].content_type == FOLDER || items[current_item_index].content_type == MENU) return;
@@ -19,9 +36,11 @@ static void show_help(void) {
 
     char credits[MAX_BUFFER_SIZE];
     if (file_exist(credits_path)) {
-        strcpy(credits, read_all_char_from(credits_path));
+        char *raw = read_all_char_from(credits_path);
+        snprintf(credits, sizeof(credits), "%s", raw ? raw : "");
+        free(raw);
     } else {
-        strcpy(credits, lang.MUXPICKER.NONE.CREDIT);
+        snprintf(credits, sizeof(credits), "%s", lang.MUXPICKER.NONE.CREDIT);
     }
 
     show_info_box(TRS(lv_label_get_text(lv_group_get_focused(ui_group))), TRS(credits), 0);
@@ -35,7 +54,9 @@ static int version_check(void) {
     char *theme_version = read_line_char_from(theme_version_file, 1);
     if (!theme_version || !*theme_version) return 0;
 
-    theme_version_compat = theme_version;
+    free(theme_version_buf);
+    theme_version_buf = theme_version;
+    theme_version_compat = theme_version_buf;
 
     for (size_t i = 0; i < THEME_COMPAT; i++) {
         const char *compat = theme_back_compat[i];
@@ -171,12 +192,91 @@ static void list_nav_next(int steps) {
 }
 
 static void save_active_theme(char *path) {
-    write_text_to_file(CONF_CONFIG_PATH "theme/active", "w", CHAR, path);
+    write_text_to_file_atomic(CONF_CONFIG_PATH "theme/active", CHAR, path);
     if (strcmp(config.THEME.ACTIVE, path) != 0) run_tweak_script(lang.GENERIC.LOADING);
+}
+
+static void do_remove(void) {
+    if (strcasecmp(items[current_item_index].name, "MustardOS") == 0) {
+        play_sound(SND_ERROR);
+        toast_message(lang.MUXPICKER.PROTECTED, MEDIUM);
+        return;
+    }
+
+    char active_path[PATH_MAX];
+    snprintf(active_path, sizeof(active_path), "%s/%s",
+             sys_dir, items[current_item_index].name);
+    if (strcasecmp(active_path, theme_base) == 0) {
+        play_sound(SND_ERROR);
+        toast_message(lang.GENERIC.CANNOT_DELETE_ACTIVE_THEME, MEDIUM);
+        return;
+    }
+
+    if (!dir_exist(active_path)) {
+        play_sound(SND_ERROR);
+        toast_message(lang.GENERIC.REMOVE_FAIL, MEDIUM);
+        return;
+    }
+
+    remove_directory_recursive(active_path);
+    sync();
+
+    play_sound(SND_MUOS);
+    write_text_to_file(MUOS_PIN_LOAD, "w", INT, get_index_on_delete(current_item_index, ui_count - 1));
+
+    load_mux("theme");
+    mux_input_stop();
+}
+
+static void handle_dpad_up(void) {
+    if (remove_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&remove_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+    handle_list_nav_up();
+}
+
+static void handle_dpad_down(void) {
+    if (remove_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&remove_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_down();
+}
+
+static void handle_dpad_up_hold(void) {
+    if (remove_mode) return;
+
+    handle_list_nav_up_hold();
+}
+
+static void handle_dpad_down_hold(void) {
+    if (remove_mode) return;
+
+    handle_list_nav_down_hold();
 }
 
 static void handle_a(void) {
     if (msgbox_active || !ui_count || hold_call) return;
+
+    if (remove_mode) {
+        mux_remove_opt opt = (mux_remove_opt) remove_dlg.selected;
+        hide_remove_dialog();
+        if (opt == MUX_REMOVE_YEP) {
+            do_remove();
+        } else if (opt == MUX_REMOVE_SKIP) {
+            skip_confirm = 1;
+            do_remove();
+        }
+        return;
+    }
 
     play_sound(SND_CONFIRM);
 
@@ -241,59 +341,31 @@ static void handle_a(void) {
 }
 
 static void handle_x(void) {
-    if (msgbox_active || !ui_count ||
+    if (msgbox_active || !ui_count || remove_mode ||
         items[current_item_index].content_type == FOLDER ||
         items[current_item_index].content_type == MENU) {
         return;
     }
 
-    if (!hold_call) {
-        play_sound(SND_ERROR);
-        toast_message(lang.GENERIC.HOLD_REMOVE, SHORT);
+    if (config.SETTINGS.ADVANCED.TRUSTREMOVE || skip_confirm) {
+        do_remove();
         return;
     }
 
-    if (strcasecmp(items[current_item_index].name, "MustardOS") == 0) {
-        play_sound(SND_ERROR);
-        toast_message(lang.MUXPICKER.PROTECTED, MEDIUM);
-        return;
-    }
-
-    char active_path[PATH_MAX];
-    snprintf(active_path, sizeof(active_path), "%s/%s",
-             sys_dir, items[current_item_index].name);
-    if (strcasecmp(active_path, theme_base) == 0) {
-        play_sound(SND_ERROR);
-        toast_message(lang.GENERIC.CANNOT_DELETE_ACTIVE_THEME, MEDIUM);
-        return;
-    }
-
-    if (!dir_exist(active_path)) {
-        play_sound(SND_ERROR);
-        toast_message(lang.GENERIC.REMOVE_FAIL, MEDIUM);
-        return;
-    }
-
-    remove_directory_recursive(active_path);
-    sync();
-
-    play_sound(SND_MUOS);
-    write_text_to_file(MUOS_PIN_LOAD, "w", INT, get_index_on_delete(current_item_index, ui_count - 1));
-
-    hold_call = 0;
-    load_mux("theme");
-
-    mux_input_stop();
+    play_sound(SND_CONFIRM);
+    show_remove_dialog();
 }
 
 static void handle_b(void) {
     if (hold_call) return;
 
+    if (remove_mode) {
+        hide_remove_dialog();
+        return;
+    }
+
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -401,6 +473,7 @@ int muxtheme_main(char *ex_dir) {
 
     if (ui_count > 0 && sys_index > -1 && sys_index <= ui_count && current_item_index < ui_count) list_nav_move(sys_index, +1);
 
+    dialogue_init_remove(&remove_dlg, &theme, ui_screen, NULL, lang.GENERIC.SELECT, lang.GENERIC.BACK);
     init_timer(ui_refresh_task, NULL);
 
     mux_input_options input_opts = {
@@ -409,8 +482,8 @@ int muxtheme_main(char *ex_dir) {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_X] = handle_x,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
@@ -419,8 +492,8 @@ int muxtheme_main(char *ex_dir) {
                     [MUX_INPUT_MENU] = handle_help,
             },
             .hold_handler = {
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up_hold,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,

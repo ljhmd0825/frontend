@@ -1,6 +1,39 @@
 #include "muxshare.h"
 #include "ui/ui_muxcustom.h"
 
+static int save_mode = 0;
+static mux_dialogue save_dlg;
+
+static int msg_mode = 0;
+static mux_dialogue msg_dlg;
+
+static void show_message_dialog(void) {
+    msg_mode = 1;
+    dialogue_show(&msg_dlg);
+}
+
+static void hide_message_dialog(void) {
+    msg_mode = 0;
+    dialogue_hide(&msg_dlg);
+}
+
+static int pending_submenu = 0;
+static char pending_pdi[64];
+static char pending_pik[MAX_BUFFER_SIZE];
+static char pending_mux_load[32];
+
+static void show_save_dialog(void) {
+    save_mode = 1;
+    save_dlg.selected = 0;
+    dialogue_show(&save_dlg);
+    dialogue_refresh(&save_dlg, &theme);
+}
+
+static void hide_save_dialog(void) {
+    save_mode = 0;
+    dialogue_hide(&save_dlg);
+}
+
 #define CUSTOM(NAME, ENUM, UDATA) 1,
 enum {
     UI_COUNT = E_SIZE(CUSTOM_ELEMENTS)
@@ -10,6 +43,13 @@ enum {
 #define CUSTOM(NAME, ENUM, UDATA) static int NAME##_original;
 CUSTOM_ELEMENTS
 #undef CUSTOM
+
+static int any_custom_modified(void) {
+#define CUSTOM(NAME, ENUM, UDATA) if (lv_dropdown_get_selected(ui_dro##NAME##_custom) != NAME##_original) return 1;
+    CUSTOM_ELEMENTS
+#undef CUSTOM
+    return 0;
+}
 
 static void list_nav_move(int steps, int direction);
 
@@ -206,11 +246,7 @@ static void init_navigation_group(void) {
     for (int i = 0; i < A_SIZE(theme_resolutions); i++) {
         snprintf(theme_device_folder, sizeof(theme_device_folder), "%s/%s",
                  theme_base, theme_resolutions[i].resolution);
-
-        if (dir_exist(theme_device_folder)) {
-            lv_dropdown_add_option(ui_droThemeResolution_custom,
-                                   theme_resolutions[i].resolution, LV_DROPDOWN_POS_LAST);
-        }
+        if (dir_exist(theme_device_folder)) lv_dropdown_add_option(ui_droThemeResolution_custom, theme_resolutions[i].resolution, LV_DROPDOWN_POS_LAST);
     }
 
     reset_ui_groups();
@@ -263,12 +299,26 @@ static void list_nav_next(int steps) {
 
 static void handle_option_prev(void) {
     if (msgbox_active) return;
+    if (save_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
 
     move_option(lv_group_get_focused(ui_group_value), -1);
 }
 
 static void handle_option_next(void) {
     if (msgbox_active) return;
+    if (save_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
 
     move_option(lv_group_get_focused(ui_group_value), +1);
 }
@@ -300,7 +350,7 @@ static void restore_custom_options(void) {
     lv_dropdown_set_selected(ui_droThemeScaling_custom, config.SETTINGS.GENERAL.THEME_SCALING);
 }
 
-static void save_custom_options() {
+static int save_custom_options(void) {
     int is_modified = 0;
 
     CHECK_AND_SAVE_STD(custom, Animation, "visual/backgroundanimation", INT, 0);
@@ -345,13 +395,13 @@ static void save_custom_options() {
             write_text_to_file(theme_active_txt_path, "w", CHAR, theme_alt);
 
             char theme_alt_archive[MAX_BUFFER_SIZE];
-            snprintf(theme_alt_archive, sizeof(theme_alt_archive), "%s/alternate/%s.muxalt", theme_base,
-                     theme_alt);
+            snprintf(theme_alt_archive, sizeof(theme_alt_archive), "%s/alternate/%s.muxalt", theme_base, theme_alt);
 
             if (file_exist(theme_alt_archive)) {
                 LOG_INFO(mux_module, "Extracting Alternative Theme: %s", theme_alt_archive);
-                extract_zip_to_dir(theme_alt_archive, theme_base);
+                if (extract_zip_to_dir(theme_alt_archive, theme_base) < 0) return -1;
             }
+
             write_text_to_file(MUOS_BTL_LOAD, "w", INT, 1);
 
             if (config.SETTINGS.RGB.MODE == RGB_MODE_THEME_SUPPLIED) {
@@ -392,10 +442,49 @@ static void save_custom_options() {
     if (is_modified > 0) run_tweak_script(lang.GENERIC.SAVING);
 
     if (file_exist(MUOS_PIK_LOAD)) remove(MUOS_PIK_LOAD);
+    return 0;
 }
 
 static void handle_a(void) {
-    if (msgbox_active || hold_call) return;
+    if (msg_mode || msgbox_active || hold_call) return;
+
+    if (save_mode) {
+        mux_unsaved_opt opt = (mux_unsaved_opt) save_dlg.selected;
+        hide_save_dialog();
+
+        if (pending_submenu) {
+            pending_submenu = 0;
+
+            if (opt == MUX_UNSAVED_SAVE && save_custom_options() < 0) {
+                show_message_dialog();
+                return;
+            }
+
+            play_sound(SND_CONFIRM);
+
+            toast_message(lang.GENERIC.LOADING, FOREVER);
+            write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, pending_pdi);
+
+            if (pending_pik[0]) write_text_to_file(MUOS_PIK_LOAD, "w", CHAR, pending_pik);
+
+            load_mux(pending_mux_load);
+            mux_input_stop();
+
+            return;
+        }
+
+        if (opt == MUX_UNSAVED_SAVE && save_custom_options() < 0) {
+            show_message_dialog();
+            return;
+        }
+
+        play_sound(opt == MUX_UNSAVED_SAVE ? SND_CONFIRM : SND_BACK);
+        write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "custom");
+
+        mux_input_stop();
+
+        return;
+    }
 
     static int16_t KIOSK_PASS = 0;
 
@@ -424,27 +513,27 @@ static void handle_a(void) {
     static const menu_entry entries[UI_COUNT] = {
             {"catalogue", "package/catalogue", &kiosk.CUSTOM.CATALOGUE, MENU_CATALOGUE,    NULL},
             {"config",    "package/config",    &kiosk.CUSTOM.RACONFIG,  MENU_CONFIG,       NULL},
-            {"font", NULL,                     &KIOSK_PASS,             MENU_FONT,         NULL}, // Font Settings
+            {"font",     NULL,                 &KIOSK_PASS,             MENU_FONT,         NULL}, // Font Settings
             {"themeopt", NULL,                 &KIOSK_PASS,             MENU_THEMEOPT,     NULL}, // Theme Options
             {"theme",     "/theme",            &kiosk.CUSTOM.THEME,     MENU_THEME,        NULL},
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Theme Resolution
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Theme Scaling
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_THEME_ALTERNATE, visible_theme_alternate},
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,          visible_animation},
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Background Music
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_MUSIC_VOLUME, NULL},
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Black Fade Animation
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Save State Launch
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Shuffle
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Box Art
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Box Art Alignment
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Full Width
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Launch Splash
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Grid Mode
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Hide Grid Mode Box Art
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Navigation Sound
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_SOUND_VOLUME, NULL},
-            {NULL,   NULL,                     &KIOSK_PASS,             MENU_OPTION,       NULL}, // Startup Chime
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Theme Resolution
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Theme Scaling
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_THEME_ALTERNATE, visible_theme_alternate},
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,          visible_animation},
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Background Music
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_MUSIC_VOLUME, NULL},
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Black Fade Animation
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Save State Launch
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Shuffle
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Box Art
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Box Art Alignment
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Full Width
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Launch Splash
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Content Grid Mode
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Hide Grid Mode Box Art
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Navigation Sound
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_SOUND_VOLUME, NULL},
+            {NULL,       NULL,                 &KIOSK_PASS,             MENU_OPTION,       NULL}, // Startup Chime
     };
 
     const menu_entry *visible_entries[UI_COUNT];
@@ -467,6 +556,17 @@ static void handle_a(void) {
                 return;
             }
 
+            if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_custom_modified()) {
+                snprintf(pending_pdi, sizeof(pending_pdi), "%s", entry->mux_name);
+                snprintf(pending_pik, sizeof(pending_pik), "%s", entry->launch_path);
+                snprintf(pending_mux_load, sizeof(pending_mux_load), "%s", entry->action == MENU_THEME ? "theme" : "picker");
+
+                pending_submenu = 1;
+                show_save_dialog();
+
+                return;
+            }
+
             save_custom_options();
 
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, entry->mux_name);
@@ -482,6 +582,18 @@ static void handle_a(void) {
         case MENU_FONT:
             if (is_ksk(*entry->kiosk_flag)) {
                 kiosk_denied();
+                return;
+            }
+
+            if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_custom_modified()) {
+                snprintf(pending_pdi, sizeof(pending_pdi), "%s", entry->mux_name);
+                pending_pik[0] = '\0';
+
+                snprintf(pending_mux_load, sizeof(pending_mux_load), "font");
+                pending_submenu = 1;
+
+                show_save_dialog();
+
                 return;
             }
 
@@ -501,6 +613,18 @@ static void handle_a(void) {
                 return;
             }
 
+            if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_custom_modified()) {
+                snprintf(pending_pdi, sizeof(pending_pdi), "%s", entry->mux_name);
+                pending_pik[0] = '\0';
+
+                snprintf(pending_mux_load, sizeof(pending_mux_load), "themeopt");
+                pending_submenu = 1;
+
+                show_save_dialog();
+
+                return;
+            }
+
             save_custom_options();
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, entry->mux_name);
 
@@ -514,14 +638,17 @@ static void handle_a(void) {
         case MENU_MUSIC_VOLUME:
             toast_message(lang.MUXCUSTOM.MUSIC.SET, SHORT);
             set_bgm_volume(pct_to_int(lv_dropdown_get_selected(ui_droMusicVolume_custom), 0, 100));
+            MusicVolume_original = pct_to_int(lv_dropdown_get_selected(ui_droMusicVolume_custom), 0, 100);
             break;
         case MENU_SOUND_VOLUME:
             toast_message(lang.MUXCUSTOM.SOUND.SET, SHORT);
             set_nav_volume(pct_to_int(lv_dropdown_get_selected(ui_droSoundVolume_custom), 0, 100));
+            SoundVolume_original = pct_to_int(lv_dropdown_get_selected(ui_droSoundVolume_custom), 0, 100);
             break;
         case MENU_THEME_ALTERNATE:
             write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "alternate");
             save_custom_options();
+            init_dropdown_settings();
             load_mux("custom");
 
             mux_input_stop();
@@ -537,24 +664,77 @@ static void handle_a(void) {
 static void handle_b(void) {
     if (hold_call) return;
 
+    if (msg_mode) {
+        play_sound(SND_BACK);
+        hide_message_dialog();
+        return;
+    }
+
+    if (save_mode) {
+        hide_save_dialog();
+        return;
+    }
+
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
+        return;
+    }
+
+    if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_custom_modified()) {
+        show_save_dialog();
         return;
     }
 
     play_sound(SND_BACK);
 
     write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "custom");
-    save_custom_options();
+
+    if (save_custom_options() < 0) {
+        show_message_dialog();
+        return;
+    }
 
     mux_input_stop();
 }
 
+static void handle_dpad_up(void) {
+    if (save_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_up();
+}
+
+static void handle_dpad_down(void) {
+    if (save_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_down();
+}
+
+static void handle_dpad_up_hold(void) {
+    if (save_mode) return;
+
+    handle_list_nav_up_hold();
+}
+
+static void handle_dpad_down_hold(void) {
+    if (save_mode) return;
+
+    handle_list_nav_down_hold();
+}
+
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call || save_mode) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
@@ -603,6 +783,10 @@ int muxcustom_main(void) {
     restore_custom_options();
     init_dropdown_settings();
 
+    dialogue_init_unsaved(&save_dlg, &theme, ui_screen, lang.GENERIC.UNSAVED, NULL,
+                          lang.GENERIC.SAVE, lang.GENERIC.DISCARD, lang.GENERIC.SELECT, lang.GENERIC.BACK);
+    dialogue_init_message(&msg_dlg, &theme, ui_screen, lang.GENERIC.WARNING, NULL,
+                          lang.GENERIC.UNSAFE_ARCHIVE, lang.GENERIC.BACK);
     init_timer(ui_gen_refresh_task, NULL);
 
     mux_input_options input_opts = {
@@ -612,8 +796,8 @@ int muxcustom_main(void) {
                     [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
@@ -622,8 +806,8 @@ int muxcustom_main(void) {
                     [MUX_INPUT_MENU] = handle_help,
             },
             .hold_handler = {
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up_hold,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down_hold,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,

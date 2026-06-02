@@ -95,6 +95,10 @@ typedef void (*mux_idle_handler)(void);
 // values can be added directly to coordinates without inversion.
 typedef void (*mux_input_analog_handler)(int16_t ls_x, int16_t ls_y, int16_t rs_x, int16_t rs_y);
 
+// Callback invoked for every raw SDL event before normal input processing.
+// Use for capture modes that need unfiltered event access (e.g. input remap).
+typedef void (*mux_raw_event_handler)(const SDL_Event *ev);
+
 typedef void (*key_event_callback)(struct input_event);
 
 // Configuration for a multi-input combo.
@@ -124,9 +128,6 @@ typedef struct {
     // (The idle_handler may still be called more frequently at times.)
     uint32_t max_idle_ms;
 
-    // Whether to swap the A/B/X/Y buttons. False is the Japanese layout (A on the right) and true
-    // is the Western layout (A on the bottom).
-    int swap_btn;
     // Whether to swap the up/down and left/right axes on the D-pad and sticks.
     int swap_axis;
     int remap_to_dpad;
@@ -149,11 +150,16 @@ typedef struct {
     // This is optional.  If set, called once per poll cycle with raw stick positioning
     mux_input_analog_handler analog_handler;
 
+    // This is optional.  If set, called for every raw SDL_Event before normal processing.
+    mux_raw_event_handler raw_event_handler;
+
     mux_input_combo combo[MUX_INPUT_COMBO_COUNT];
     int combo_count;
 } mux_input_options;
 
 extern int swap_axis;
+
+void mux_input_reload_mappings(void);
 
 void mux_input_task(const mux_input_options *opts);
 

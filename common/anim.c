@@ -74,7 +74,7 @@ static int restore_state(const char *base_path, int frame_delay_ms, int frame_co
     int saved_delay, saved_frames;
     long long saved_epoch;
 
-    int ok = fscanf(f, "%s\n%d\n%lld\n%d\n", saved_path, &saved_delay, &saved_epoch, &saved_frames) == 4;
+    int ok = fscanf(f, "%4095s\n%d\n%lld\n%d\n", saved_path, &saved_delay, &saved_epoch, &saved_frames) == 4;
     fclose(f);
 
     if (!ok || strcmp(saved_path, base_path) != 0 || saved_delay != frame_delay_ms) {
@@ -196,8 +196,7 @@ static void load_impl(const char *base_path, int frame_delay_ms, int foreground,
         return;
     }
 
-    strncpy(anim.base_path, base_path, sizeof(anim.base_path) - 1);
-    anim.base_path[sizeof(anim.base_path) - 1] = '\0';
+    snprintf(anim.base_path, sizeof(anim.base_path), "%s", base_path);
 
     anim.frame_delay_ms = frame_delay_ms > 0 ? frame_delay_ms : 100;
     anim.foreground = foreground;

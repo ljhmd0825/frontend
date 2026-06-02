@@ -78,10 +78,7 @@ static void show_help(void) {
             LOG_SUCCESS(mux_module, "Loading Application Translation: %s", app_lang_file);
 
             mini_t *app_lang = mini_load(app_lang_file);
-
-            strncpy(app_help, get_ini_string(app_lang, "help", config.SETTINGS.GENERAL.LANGUAGE,
-                                             TRS(lang.GENERIC.NO_HELP)), sizeof(app_help));
-            app_help[sizeof(app_help) - 1] = '\0';
+            snprintf(app_help, sizeof(app_help), "%s", get_ini_string(app_lang, "help", config.SETTINGS.GENERAL.LANGUAGE, TRS(lang.GENERIC.NO_HELP)));
 
             mini_free(app_lang);
         } else {
@@ -425,10 +422,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -492,7 +486,7 @@ static void ui_refresh_task() {
         }
         adjust_gen_panel();
 
-        lv_obj_move_foreground(overlay_image);
+        if (overlay_image) lv_obj_move_foreground(overlay_image);
 
         lv_obj_invalidate(ui_pnlContent);
         nav_moved = 0;

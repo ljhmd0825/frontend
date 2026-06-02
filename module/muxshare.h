@@ -1,6 +1,7 @@
 #pragma once
 
 #include <assert.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -32,6 +33,7 @@
 #include "../common/common.h"
 #include "../common/debug.h"
 #include "../common/display.h"
+#include "../common/dialogue.h"
 #include "../common/board.h"
 #include "../common/union.h"
 #include "../common/ui_common.h"
@@ -45,12 +47,11 @@
 #include "../common/skip_list.h"
 #include "../common/passcode.h"
 #include "../common/timezone.h"
+#include "../common/bluetooth.h"
 #include "../common/verify.h"
 #include "../common/core/common.h"
 #include "../common/input/list_nav.h"
 #include "../common/json/json.h"
-#include "../font/notosans_big.h"
-#include "../font/notosans_big_hd.h"
 #include "../lookup/lookup.h"
 
 extern size_t item_count;
@@ -150,6 +151,18 @@ void ui_gen_refresh_task();
 
 void gen_step_movement(int steps, int direction, int long_dot, int count_offset);
 
+void list_nav_cb_prev(int steps);
+
+void list_nav_cb_next(int steps);
+
+void list_nav_cb_prev_nowrap(int steps);
+
+void list_nav_cb_next_nowrap(int steps);
+
+void handle_msgbox_dismiss(void);
+
+int build_safe_path(char *dst, size_t n, const char *base, const char *name);
+
 void resolve_friendly_name(char *dir, char *raw_name, char *out);
 
 void adjust_label_value_width(lv_obj_t *panel, lv_obj_t *label, lv_obj_t *value);
@@ -174,6 +187,8 @@ int muxassign_main(int auto_assign, char *name, char *dir, char *sys, int app);
 
 int muxbackup_main();
 
+int muxbatinfo_main();
+
 int muxchrony_main();
 
 int muxcoladjust_main();
@@ -197,6 +212,8 @@ int muxcontrol_main(int auto_assign, char *name, char *dir, char *sys, int app);
 int muxcustom_main();
 
 int muxdanger_main();
+
+int muxremap_main();
 
 int muxdevice_main();
 
@@ -237,6 +254,8 @@ int muxoption_main(int nothing, char *name, char *dir, char *sys, int app);
 int muxoverlay_main();
 
 int muxpass_main(int auth_type);
+
+int muxpasscfg_main();
 
 int muxpicker_main(char *type, char *ex_dir);
 
@@ -291,6 +310,10 @@ int muxtweakgen_main();
 int muxvisual_main();
 
 int muxwebserv_main();
+
+void resolve_grid_item_images(const char *mux_dim, const char *mux_module, const char *glyph_name,
+                              char *grid_img, size_t img_size,
+                              char *grid_img_foc, size_t foc_size);
 
 #define SAFE_DELETE(ELEMENT, DEL_FUNC) \
     do {                               \

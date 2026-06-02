@@ -345,8 +345,9 @@ void update_file_counter(lv_obj_t *counter, int file_count) {
 }
 
 char *get_friendly_folder_name(char *folder_name, int fn_valid, struct json fn_json) {
-    char *friendly_folder_name = (char *) malloc(MAX_BUFFER_SIZE);
-    strcpy(friendly_folder_name, folder_name);
+    char *friendly_folder_name = mux_malloc(MAX_BUFFER_SIZE);
+    snprintf(friendly_folder_name, MAX_BUFFER_SIZE, "%s", folder_name);
+
     if (!config.VISUAL.FRIENDLYFOLDER || !fn_valid) return friendly_folder_name;
 
     struct json good_name_json = json_object_get(fn_json, str_tolower(strdup(folder_name)));
@@ -493,7 +494,7 @@ void ui_gen_refresh_task() {
         if (lv_group_get_obj_count(ui_group) > 0) adjust_wallpaper_element(ui_group, 0, WALL_GENERAL);
         adjust_gen_panel();
 
-        lv_obj_move_foreground(overlay_image);
+        if (overlay_image) lv_obj_move_foreground(overlay_image);
         lv_obj_invalidate(ui_pnlContent);
 
         nav_moved = 0;
@@ -528,6 +529,44 @@ void gen_step_movement(int steps, int direction, int long_dot, int count_offset)
     if (long_dot) set_label_long_mode(&theme, lv_group_get_focused(ui_group));
 
     nav_moved = 1;
+}
+
+void list_nav_cb_prev(int steps) {
+    gen_step_movement(steps, -1, 1, 0);
+}
+
+void list_nav_cb_next(int steps) {
+    gen_step_movement(steps, +1, 1, 0);
+}
+
+void list_nav_cb_prev_nowrap(int steps) {
+    gen_step_movement(steps, -1, 0, 0);
+}
+
+void list_nav_cb_next_nowrap(int steps) {
+    gen_step_movement(steps, +1, 0, 0);
+}
+
+void handle_msgbox_dismiss(void) {
+    play_sound(SND_INFO_CLOSE);
+    msgbox_active = 0;
+    progress_onscreen = 0;
+    lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+}
+
+int build_safe_path(char *dst, size_t n, const char *base, const char *name) {
+    int len = snprintf(dst, n, "%s/%s", base, name);
+    if (len < 0 || (size_t) len >= n) return -1;
+
+    char resolved[PATH_MAX];
+    if (!realpath(dst, resolved)) return -1;
+
+    size_t base_len = strlen(base);
+    if (strncmp(resolved, base, base_len) != 0) return -1;
+    if (resolved[base_len] != '/' && resolved[base_len] != '\0') return -1;
+
+    snprintf(dst, n, "%s", resolved);
+    return 0;
 }
 
 void resolve_friendly_name(char *dir, char *raw_name, char *out) {
@@ -676,7 +715,16 @@ void render_image_refresh(const char *image_type, char *h_core_artwork, char *h_
                 if (file_exist(image)) {
                     *starter_image = 1;
 
-                    snprintf(image_path, sizeof(image_path), "M:%s", image);
+                    size_t ilen = strlen(image);
+                    if (ilen > 4 && strcmp(image + ilen - 4, ".svg") == 0) {
+                        int box_w = device.MUX.WIDTH;
+                        int box_h = device.MUX.HEIGHT - theme.HEADER.HEIGHT - theme.FOOTER.HEIGHT - 4;
+                        if (box_h <= 0) box_h = device.MUX.HEIGHT;
+                        snprintf(image_path, sizeof(image_path), "M:%s?%dx%d", image, box_w, box_h);
+                    } else {
+                        snprintf(image_path, sizeof(image_path), "M:%s", image);
+                    }
+
                     lv_img_set_src(ui_imgBox, image_path);
 
                     snprintf(box_image_previous_path, sizeof(box_image_previous_path), "%s", image);
@@ -686,6 +734,29 @@ void render_image_refresh(const char *image_type, char *h_core_artwork, char *h_
                 }
             }
         }
+    }
+}
+
+void resolve_grid_item_images(const char *mux_dim, const char *mux_module, const char *glyph_name,
+                              char *grid_img, size_t img_size,
+                              char *grid_img_foc, size_t foc_size) {
+    grid_img[0] = '\0';
+    if (!load_element_image_specifics(mux_dim, mux_module, "grid", glyph_name, "default", "svg", grid_img, img_size) &&
+        !load_element_image_specifics(mux_dim, mux_module, "grid", glyph_name, "default", "png", grid_img, img_size)) {
+        char embed[MAX_BUFFER_SIZE];
+        if (get_glyph_path(mux_module, glyph_name, embed, sizeof(embed)))
+            snprintf(grid_img, img_size, "%s", embed + 2);
+    }
+
+    char glyph_name_focused[MAX_BUFFER_SIZE];
+    snprintf(glyph_name_focused, sizeof(glyph_name_focused), "%s_focused", glyph_name);
+
+    grid_img_foc[0] = '\0';
+    if (!load_element_image_specifics(mux_dim, mux_module, "grid", glyph_name_focused, "default_focused", "svg", grid_img_foc, foc_size) &&
+        !load_element_image_specifics(mux_dim, mux_module, "grid", glyph_name_focused, "default_focused", "png", grid_img_foc, foc_size)) {
+        char embed[MAX_BUFFER_SIZE];
+        if (get_glyph_path(mux_module, glyph_name, embed, sizeof(embed)))
+            snprintf(grid_img_foc, foc_size, "%s", embed + 2);
     }
 }
 

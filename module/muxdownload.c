@@ -7,6 +7,22 @@ static char data_type[MAX_BUFFER_SIZE];
 static int exit_status = 0;
 static int starter_image = 0;
 
+static void sanitise_download_name(char *dest, const char *src) {
+    size_t j = 0;
+    while (*src && j < MAX_BUFFER_SIZE - 1) {
+        if (*src == '/' || *src == '\\') {
+            dest[j++] = '_';
+            src++;
+        } else if (src[0] == '.' && src[1] == '.') {
+            dest[j++] = '.';
+            src += 2;
+        } else {
+            dest[j++] = *src++;
+        }
+    }
+    dest[j] = '\0';
+}
+
 static void show_help(void) {
     show_info_box(items[current_item_index].name, items[current_item_index].help, 0);
 }
@@ -36,8 +52,11 @@ static void create_content_items(void) {
     for (int i = 0; i < count; i++) {
         struct json item = json_array_get(fn_json, i);
 
+        char raw_name[MAX_BUFFER_SIZE];
+        json_string_copy(json_object_get(item, "name"), raw_name, sizeof(raw_name));
+
         char name[MAX_BUFFER_SIZE];
-        json_string_copy(json_object_get(item, "name"), name, sizeof(name));
+        sanitise_download_name(name, raw_name);
 
         char url[MAX_BUFFER_SIZE];
         json_string_copy(json_object_get(item, "url"), url, sizeof(url));
@@ -155,6 +174,9 @@ static void download_finished(int result) {
         snprintf(file_path, sizeof(file_path), "%s/%s/%s.muxzip",
                  device.STORAGE.ROM.MOUNT, MUOS_ARCH_PATH, items[current_item_index].name);
         extract_archive(file_path, "coredown");
+    } else {
+        play_sound(SND_ERROR);
+        toast_message(lang.MUXDOWNLOAD.ERROR_GET_DATA, SHORT);
     }
 }
 
@@ -201,10 +223,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -288,7 +307,7 @@ static void ui_refresh_task() {
             lv_obj_add_flag(ui_pnlMessage, LV_OBJ_FLAG_HIDDEN);
         }
 
-        lv_obj_move_foreground(overlay_image);
+        if (overlay_image) lv_obj_move_foreground(overlay_image);
 
         nav_moved = 0;
     }

@@ -69,7 +69,11 @@ static void create_archive_items(void) {
 
     for (size_t i = 0, k = 0; i < A_SIZE(mount_points); ++i) {
         for (size_t j = 0; j < A_SIZE(subdirs); ++j, ++k) {
-            snprintf(archive_directories[k], sizeof(archive_directories[k]), "%s%s", mount_points[i], subdirs[j]);
+            int len = snprintf(archive_directories[k], sizeof(archive_directories[k]), "%s%s", mount_points[i], subdirs[j]);
+            if (len < 0 || (size_t) len >= sizeof(archive_directories[k])) {
+                LOG_WARN(mux_module, "Archive path truncated: %s%s", mount_points[i], subdirs[j]);
+                archive_directories[k][0] = '\0';
+            }
         }
     }
 
@@ -119,8 +123,7 @@ static void create_archive_items(void) {
         }
 
         char ext_upper[16];
-        strncpy(ext_upper, ext_type, sizeof(ext_upper) - 1);
-        ext_upper[sizeof(ext_upper) - 1] = '\0';
+        snprintf(ext_upper, sizeof(ext_upper), "%s", ext_type);
         str_toupper(ext_upper);
 
         for (size_t j = 0; j < A_SIZE(mount_points); ++j) {
@@ -139,10 +142,10 @@ static void create_archive_items(void) {
                  str_remchar(str_replace(base_filename, strip_dir(base_filename), ""), '/'));
 
         char install_check[MAX_BUFFER_SIZE];
-        snprintf(install_check, sizeof(install_check), OPT_PATH "update/installed/%s.done",
-                 archive_name);
+        int ic_len = snprintf(install_check, sizeof(install_check),
+                              OPT_PATH "update/installed/%s.done", archive_name);
 
-        int is_installed = file_exist(install_check);
+        int is_installed = (ic_len >= 0 && (size_t) ic_len < sizeof(install_check)) && file_exist(install_check);
 
         char archive_store[MAX_BUFFER_SIZE];
         snprintf(archive_store, sizeof(archive_store), "%s %s", prefix, archive_name);
@@ -176,19 +179,91 @@ static void create_archive_items(void) {
     free_array(files, file_count);
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, true, 0);
+
+static int remove_mode = 0;
+static int skip_confirm = 0;
+static mux_dialogue remove_dlg;
+
+static void show_remove_dialog(void) {
+    remove_mode = 1;
+    remove_dlg.selected = 0;
+    dialogue_show(&remove_dlg);
+    dialogue_refresh(&remove_dlg, &theme);
 }
 
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
+static void hide_remove_dialog(void) {
+    remove_mode = 0;
+    dialogue_hide(&remove_dlg);
 }
 
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
+static void do_remove(void) {
+    char *archive_item = items[current_item_index].name;
+
+    if (!file_exist(archive_item)) {
+        play_sound(SND_ERROR);
+        toast_message(lang.GENERIC.REMOVE_FAIL, MEDIUM);
+        return;
+    }
+
+    remove(archive_item);
+    sync();
+
+    play_sound(SND_MUOS);
+    write_text_to_file(MUOS_IDX_LOAD, "w", INT, get_index_on_delete(current_item_index, ui_count - 1));
+
+    load_mux("archive");
+    mux_input_stop();
+}
+
+static void handle_dpad_up(void) {
+    if (remove_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&remove_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_up();
+}
+
+static void handle_dpad_down(void) {
+    if (remove_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&remove_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_down();
+}
+
+static void handle_dpad_up_hold(void) {
+    if (remove_mode) return;
+
+    handle_list_nav_up_hold();
+}
+
+static void handle_dpad_down_hold(void) {
+    if (remove_mode) return;
+
+    handle_list_nav_down_hold();
 }
 
 static void handle_a(void) {
+    if (remove_mode) {
+        mux_remove_opt opt = (mux_remove_opt) remove_dlg.selected;
+        hide_remove_dialog();
+        if (opt == MUX_REMOVE_YEP) {
+            do_remove();
+        } else if (opt == MUX_REMOVE_SKIP) {
+            skip_confirm = 1;
+            do_remove();
+        }
+        return;
+    }
+
     if (msgbox_active || hold_call) return;
 
     if (ui_count > 0) {
@@ -205,43 +280,27 @@ static void handle_a(void) {
 }
 
 static void handle_x(void) {
-    if (msgbox_active || !ui_count) return;
+    if (msgbox_active || !ui_count || remove_mode) return;
 
-    if (!hold_call) {
-        play_sound(SND_ERROR);
-        toast_message(lang.GENERIC.HOLD_REMOVE, SHORT);
+    if (config.SETTINGS.ADVANCED.TRUSTREMOVE || skip_confirm) {
+        do_remove();
         return;
     }
 
-    char *archive_item = items[current_item_index].name;
-
-    if (!file_exist(archive_item)) {
-        play_sound(SND_ERROR);
-        toast_message(lang.GENERIC.REMOVE_FAIL, MEDIUM);
-        return;
-    }
-
-    remove(archive_item);
-    sync();
-
-    play_sound(SND_MUOS);
-    write_text_to_file(MUOS_IDX_LOAD, "w", INT, get_index_on_delete(current_item_index, ui_count - 1));
-
-    hold_call = 0;
-    load_mux("archive");
-
-    mux_input_stop();
+    play_sound(SND_CONFIRM);
+    show_remove_dialog();
 }
-
 
 static void handle_b(void) {
     if (hold_call) return;
 
+    if (remove_mode) {
+        hide_remove_dialog();
+        return;
+    }
+
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -265,8 +324,8 @@ static void init_elements(void) {
             {ui_lblNavA,      lang.GENERIC.EXTRACT, 1},
             {ui_lblNavBGlyph, "",                   0},
             {ui_lblNavB,      lang.GENERIC.BACK,    0},
-            {ui_lblNavXGlyph, "",                   0},
-            {ui_lblNavX,      lang.GENERIC.REMOVE,  0},
+            {ui_lblNavXGlyph, "",                   1},
+            {ui_lblNavX,      lang.GENERIC.REMOVE,  1},
             {NULL, NULL,                            0}
     });
 
@@ -288,7 +347,7 @@ static void ui_refresh_task() {
         }
         adjust_gen_panel();
 
-        lv_obj_move_foreground(overlay_image);
+        if (overlay_image) lv_obj_move_foreground(overlay_image);
 
         lv_obj_invalidate(ui_pnlContent);
         nav_moved = 0;
@@ -296,6 +355,7 @@ static void ui_refresh_task() {
 }
 
 int muxarchive_main(void) {
+    skip_confirm = 0;
     init_module(__func__);
     init_theme(1, 1);
 
@@ -319,7 +379,7 @@ int muxarchive_main(void) {
     int nav_hidden = 0;
     if (ui_count > 0) {
         nav_hidden = 1;
-        if (arc_index > -1 && arc_index <= ui_count && current_item_index < ui_count) list_nav_move(arc_index, +1);
+        if (arc_index > -1 && arc_index <= ui_count && current_item_index < ui_count) gen_step_movement(arc_index, +1, 1, 0);
     } else {
         lv_label_set_text(ui_lblScreenMessage, lang.MUXARCHIVE.NONE);
     }
@@ -330,6 +390,7 @@ int muxarchive_main(void) {
     };
     set_nav_flags(nav_e, A_SIZE(nav_e));
 
+    dialogue_init_remove(&remove_dlg, &theme, ui_screen, NULL, lang.GENERIC.SELECT, lang.GENERIC.BACK);
     init_timer(ui_refresh_task, NULL);
 
     mux_input_options input_opts = {
@@ -338,8 +399,8 @@ int muxarchive_main(void) {
                     [MUX_INPUT_A] = handle_a,
                     [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_X] = handle_x,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
@@ -348,15 +409,15 @@ int muxarchive_main(void) {
                     [MUX_INPUT_MENU] = handle_help,
             },
             .hold_handler = {
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up_hold,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev, list_nav_cb_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

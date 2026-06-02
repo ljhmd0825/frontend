@@ -37,31 +37,31 @@ static void load_profile(char *name) {
 
     int is_static = (strcasecmp(mini_get_string(net_profile, "network", "type", "dhcp"), "static") == 0);
 
-    write_text_to_file(CONF_CONFIG_PATH "network/type", "w", INT, is_static ? 1 : 0);
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/type", INT, is_static ? 1 : 0);
 
-    write_text_to_file(CONF_CONFIG_PATH "network/ssid", "w", CHAR,
-                       mini_get_string(net_profile, "network", "ssid", ""));
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/ssid", CHAR,
+                              mini_get_string(net_profile, "network", "ssid", ""));
 
-    write_text_to_file(CONF_CONFIG_PATH "network/hidden", "w", INT,
-                       mini_get_int(net_profile, "network", "hidden", 0));
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/hidden", INT,
+                              mini_get_int(net_profile, "network", "hidden", 0));
 
-    write_text_to_file(CONF_CONFIG_PATH "network/pass", "w", CHAR,
-                       mini_get_string(net_profile, "network", "pass", ""));
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/pass", CHAR,
+                              mini_get_string(net_profile, "network", "pass", ""));
 
-    write_text_to_file(CONF_CONFIG_PATH "network/address", "w", CHAR,
-                       is_static ? mini_get_string(net_profile, "network", "address", "") : "");
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/address", CHAR,
+                              is_static ? mini_get_string(net_profile, "network", "address", "") : "");
 
-    write_text_to_file(CONF_CONFIG_PATH "network/subnet", "w", CHAR,
-                       is_static ? mini_get_string(net_profile, "network", "subnet", "") : "");
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/subnet", CHAR,
+                              is_static ? mini_get_string(net_profile, "network", "subnet", "") : "");
 
-    write_text_to_file(CONF_CONFIG_PATH "network/gateway", "w", CHAR,
-                       is_static ? mini_get_string(net_profile, "network", "gateway", "") : "");
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/gateway", CHAR,
+                              is_static ? mini_get_string(net_profile, "network", "gateway", "") : "");
 
-    write_text_to_file(CONF_CONFIG_PATH "network/dns", "w", CHAR,
-                       is_static ? mini_get_string(net_profile, "network", "dns", "") : "");
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/dns", CHAR,
+                              is_static ? mini_get_string(net_profile, "network", "dns", "") : "");
 
-    write_text_to_file(CONF_CONFIG_PATH "network/hostname", "w", CHAR,
-                       mini_get_string(net_profile, "network", "hostname", read_line_char_from("/etc/hostname", 1)));
+    write_text_to_file_atomic(CONF_CONFIG_PATH "network/hostname", CHAR,
+                              mini_get_string(net_profile, "network", "hostname", read_line_char_from("/etc/hostname", 1)));
 
     mini_free(net_profile);
 }
@@ -84,7 +84,7 @@ static int save_profile(void) {
         return 0;
     }
 
-    int type = safe_atoi(p_type);
+    int type = safe_atoi(p_type, 0);
     if (type) {
         if (!p_address || strlen(p_address) == 0 ||
             !p_subnet || strlen(p_subnet) == 0 ||
@@ -132,17 +132,6 @@ static int save_profile(void) {
     return 1;
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, true, 0);
-}
-
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
-}
-
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
-}
 
 static void create_profile_items(void) {
     const char *dirs[] = {RUN_STORAGE_PATH "network"};
@@ -216,10 +205,7 @@ static void handle_b(void) {
     if (hold_call) return;
 
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
         return;
     }
 
@@ -298,7 +284,7 @@ int muxnetprofile_main(void) {
 
         lv_obj_clear_flag(ui_lblNavY, MU_OBJ_FLAG_HIDE_FLOAT);
         lv_obj_clear_flag(ui_lblNavYGlyph, MU_OBJ_FLAG_HIDE_FLOAT);
-        list_nav_move(0, +1);
+        gen_step_movement(0, +1, 1, 0);
     } else {
         lv_label_set_text(ui_lblScreenMessage, lang.MUXNETPROFILE.NONE);
     }
@@ -330,7 +316,7 @@ int muxnetprofile_main(void) {
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev, list_nav_cb_next);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

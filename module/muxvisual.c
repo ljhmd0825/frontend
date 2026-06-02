@@ -1,6 +1,23 @@
 #include "muxshare.h"
 #include "ui/ui_muxvisual.h"
 
+static int save_mode = 0;
+static int pending_sort = 0;
+
+static mux_dialogue save_dlg;
+
+static void show_save_dialog(void) {
+    save_mode = 1;
+    save_dlg.selected = 0;
+    dialogue_show(&save_dlg);
+    dialogue_refresh(&save_dlg, &theme);
+}
+
+static void hide_save_dialog(void) {
+    save_mode = 0;
+    dialogue_hide(&save_dlg);
+}
+
 #define VISUAL(NAME, ENUM, UDATA) 1,
 enum {
     UI_COUNT = E_SIZE(VISUAL_ELEMENTS)
@@ -10,6 +27,13 @@ enum {
 #define VISUAL(NAME, ENUM, UDATA) static int NAME##_original;
 VISUAL_ELEMENTS
 #undef VISUAL
+
+static int any_visual_modified(void) {
+#define VISUAL(NAME, ENUM, UDATA) if (lv_dropdown_get_selected(ui_dro##NAME##_visual) != NAME##_original) return 1;
+    VISUAL_ELEMENTS
+#undef VISUAL
+    return 0;
+}
 
 static int overlay_count;
 
@@ -27,8 +51,6 @@ static void init_dropdown_settings(void) {
 #define VISUAL(NAME, ENUM, UDATA) NAME##_original = lv_dropdown_get_selected(ui_dro##NAME##_visual);
     VISUAL_ELEMENTS
 #undef VISUAL
-
-    OverlayTransparency_original = pct_to_int(lv_dropdown_get_selected(ui_droOverlayTransparency_visual), 0, 255);
 }
 
 static void restore_visual_options(void) {
@@ -62,7 +84,15 @@ static void save_visual_options(void) {
     CHECK_AND_SAVE_STD(visual, MixedContent, "visual/mixedcontent", INT, 0);
     CHECK_AND_SAVE_STD(visual, ForwardHistory, "visual/forwardhistory", INT, 0);
     CHECK_AND_SAVE_STD(visual, OverlayImage, "visual/overlayimage", INT, 0);
-    CHECK_AND_SAVE_PCT(visual, OverlayTransparency, "visual/overlaytransparency", INT, 0, 255);
+
+    {
+        int ot_current = lv_dropdown_get_selected(ui_droOverlayTransparency_visual);
+        if (ot_current != OverlayTransparency_original) {
+            is_modified++;
+            write_text_to_file(CONF_CONFIG_PATH "visual/overlaytransparency", "w", INT,
+                               pct_to_int(ot_current, 0, 255));
+        }
+    }
 
     if (is_modified > 0) {
         toast_message(lang.GENERIC.SAVING, FOREVER);
@@ -117,26 +147,29 @@ static void init_navigation_group(void) {
     if (!device.BOARD.HASNETWORK) HIDE_OPTION_ITEM(visual, Network);
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, false, 0);
-}
-
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
-}
-
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
-}
 
 static void handle_option_prev(void) {
     if (msgbox_active) return;
+    if (save_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
 
     move_option(lv_group_get_focused(ui_group_value), -1);
 }
 
 static void handle_option_next(void) {
     if (msgbox_active) return;
+    if (save_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
 
     move_option(lv_group_get_focused(ui_group_value), +1);
 }
@@ -144,8 +177,41 @@ static void handle_option_next(void) {
 static void handle_a(void) {
     if (msgbox_active) return;
 
+    if (save_mode) {
+        mux_unsaved_opt opt = (mux_unsaved_opt) save_dlg.selected;
+        hide_save_dialog();
+
+        if (pending_sort) {
+            pending_sort = 0;
+
+            if (opt == MUX_UNSAVED_SAVE) save_visual_options();
+            play_sound(SND_CONFIRM);
+
+            load_mux("sort");
+            mux_input_stop();
+
+            return;
+        }
+
+        if (opt == MUX_UNSAVED_SAVE) save_visual_options();
+
+        play_sound(opt == MUX_UNSAVED_SAVE ? SND_CONFIRM : SND_BACK);
+        write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "interface");
+
+        mux_input_stop();
+
+        return;
+    }
+
     struct _lv_obj_t *e_focused = lv_group_get_focused(ui_group);
     if (e_focused == ui_lblSort_visual) {
+        if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_visual_modified()) {
+            pending_sort = 1;
+            show_save_dialog();
+
+            return;
+        }
+
         play_sound(SND_CONFIRM);
 
         save_visual_options();
@@ -160,13 +226,21 @@ static void handle_a(void) {
 static void handle_b(void) {
     if (hold_call) return;
 
-    if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+    if (save_mode) {
+        hide_save_dialog();
         return;
     }
+
+    if (msgbox_active) {
+        handle_msgbox_dismiss();
+        return;
+    }
+
+    if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_visual_modified()) {
+        show_save_dialog();
+        return;
+    }
+
     play_sound(SND_BACK);
 
     save_visual_options();
@@ -176,8 +250,44 @@ static void handle_b(void) {
     mux_input_stop();
 }
 
+static void handle_dpad_up(void) {
+    if (save_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_up();
+}
+
+static void handle_dpad_down(void) {
+    if (save_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_down();
+}
+
+static void handle_dpad_up_hold(void) {
+    if (save_mode) return;
+
+    handle_list_nav_up_hold();
+}
+
+static void handle_dpad_down_hold(void) {
+    if (save_mode) return;
+
+    handle_list_nav_down_hold();
+}
+
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || hold_call || save_mode) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
@@ -220,8 +330,10 @@ int muxvisual_main(void) {
     restore_visual_options();
     init_dropdown_settings();
 
+    dialogue_init_unsaved(&save_dlg, &theme, ui_screen, lang.GENERIC.UNSAVED, NULL,
+                          lang.GENERIC.SAVE, lang.GENERIC.DISCARD, lang.GENERIC.SELECT, lang.GENERIC.BACK);
     init_timer(ui_gen_refresh_task, NULL);
-    list_nav_next(0);
+    gen_step_movement(0, +1, 0, 0);
 
     mux_input_options input_opts = {
             .swap_axis = (theme.MISC.NAVIGATION_TYPE == 1),
@@ -230,8 +342,8 @@ int muxvisual_main(void) {
                     [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             },
@@ -242,15 +354,15 @@ int muxvisual_main(void) {
             .hold_handler = {
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up_hold,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev_nowrap, list_nav_cb_next_nowrap);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

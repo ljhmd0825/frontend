@@ -12,7 +12,6 @@ enum {
 BACKUP_ELEMENTS
 #undef BACKUP
 
-static void list_nav_move(int steps, int direction);
 
 static void show_help(void) {
     struct help_msg help_messages[] = {
@@ -109,21 +108,10 @@ static void init_navigation_group(void) {
     }
 
     if (ui_count > 0 && dbi_index >= 0 && dbi_index < ui_count && current_item_index < ui_count) {
-        list_nav_move(dbi_index, 1);
+        gen_step_movement(dbi_index, 1, 0, 0);
     }
 }
 
-static void list_nav_move(int steps, int direction) {
-    gen_step_movement(steps, direction, false, 0);
-}
-
-static void list_nav_prev(int steps) {
-    list_nav_move(steps, -1);
-}
-
-static void list_nav_next(int steps) {
-    list_nav_move(steps, +1);
-}
 
 static void handle_option_prev(void) {
     if (msgbox_active) return;
@@ -174,10 +162,9 @@ static void handle_a(void) {
 
     char target_value[MAX_BUFFER_SIZE];
     lv_dropdown_get_selected_str(ui_droTarget_backup, target_value, sizeof(target_value));
-    char datetime[64];
 
-    strncpy(datetime, get_datetime(), sizeof(datetime) - 1);
-    datetime[sizeof(datetime) - 1] = '\0';
+    char datetime[64];
+    snprintf(datetime, sizeof(datetime), "%s", get_datetime());
 
     char *manifest_file = "/tmp/muxbackup_manifest.txt";
 
@@ -191,7 +178,7 @@ static void handle_a(void) {
     // Write for batch backup
     char do_merge[4];
     if (e_focused == ui_lblStart_backup) {
-        sprintf(do_merge, "%d", lv_dropdown_get_selected(ui_droMerge_backup));
+        snprintf(do_merge, sizeof(do_merge), "%d", lv_dropdown_get_selected(ui_droMerge_backup));
 
         fprintf(fp, "%s %s\n", "BATCH", target_value);
 
@@ -206,8 +193,9 @@ static void handle_a(void) {
             fprintf(fp, "%s %s\n", target_value, runner);
         }
     } else { // For other backup paths, write the focused label and its path suffix
-        sprintf(do_merge, "%d", 0);
+        snprintf(do_merge, sizeof(do_merge), "%d", 0);
         fprintf(fp, "%s %s\n", "INDIVIDUAL", target_value);
+
         char *runner = lv_obj_get_user_data(e_focused);
         fprintf(fp, "%s %s\n", target_value, runner);
     }
@@ -343,7 +331,7 @@ int muxbackup_main(void) {
             }
     };
 
-    list_nav_set_callbacks(list_nav_prev, list_nav_next);
+    list_nav_set_callbacks(list_nav_cb_prev_nowrap, list_nav_cb_next_nowrap);
     init_input(&input_opts, true);
     mux_input_task(&input_opts);
 

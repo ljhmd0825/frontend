@@ -1,6 +1,47 @@
 #include "muxshare.h"
 #include "ui/ui_muxtweakgen.h"
 
+static int save_mode = 0;
+static mux_dialogue save_dlg;
+static char pending_submenu[64] = "";
+
+static void show_save_dialog(void) {
+    save_mode = 1;
+    save_dlg.selected = 0;
+    dialogue_show(&save_dlg);
+    dialogue_refresh(&save_dlg, &theme);
+}
+
+static void hide_save_dialog(void) {
+    save_mode = 0;
+    dialogue_hide(&save_dlg);
+    pending_submenu[0] = '\0';
+}
+
+static int warn_mode = 0;
+static mux_dialogue warn_dlg;
+static char warn_pending[64] = "";
+
+static void show_warn_dialog(const char *target) {
+    warn_mode = 1;
+    warn_dlg.selected = 1;
+    snprintf(warn_pending, sizeof(warn_pending), "%s", target);
+
+    if (warn_dlg.description_label) {
+        const char *desc = strcmp(target, "danger") == 0 ? lang.MUXDANGER.WARN : lang.MUXTWEAKGEN.WARN;
+        lv_label_set_text(warn_dlg.description_label, desc);
+    }
+
+    dialogue_show(&warn_dlg);
+    dialogue_refresh(&warn_dlg, &theme);
+}
+
+static void hide_warn_dialog(void) {
+    warn_mode = 0;
+    dialogue_hide(&warn_dlg);
+    warn_pending[0] = '\0';
+}
+
 #define TWEAKGEN(NAME, ENUM, UDATA) 1,
 enum {
     UI_COUNT = E_SIZE(TWEAKGEN_ELEMENTS)
@@ -10,6 +51,13 @@ enum {
 #define TWEAKGEN(NAME, ENUM, UDATA) static int NAME##_original;
 TWEAKGEN_ELEMENTS
 #undef TWEAKGEN
+
+static int any_tweakgen_modified(void) {
+#define TWEAKGEN(NAME, ENUM, UDATA) if (lv_dropdown_get_selected(ui_dro##NAME##_tweakgen) != NAME##_original) return 1;
+    TWEAKGEN_ELEMENTS
+#undef TWEAKGEN
+    return 0;
+}
 
 static int audio_overdrive = 100;
 static char **audio_sinks = NULL;
@@ -48,10 +96,6 @@ static void init_dropdown_settings(void) {
     TWEAKGEN_ELEMENTS
 #undef TWEAKGEN
 
-    if (!hdmi_mode) {
-        Brightness_original = pct_to_int(lv_dropdown_get_selected(ui_droBrightness_tweakgen), 2, device.SCREEN.BRIGHT);
-        Volume_original = clamp_range(lv_dropdown_get_selected(ui_droVolume_tweakgen), 0, lv_dropdown_get_option_cnt(ui_droVolume_tweakgen) - 1);
-    }
 }
 
 static void restore_tweak_options(void) {
@@ -102,7 +146,7 @@ static void save_tweak_options(void) {
     }
 
     int bright_mod = pct_to_int(lv_dropdown_get_selected(ui_droBrightness_tweakgen), 2, device.SCREEN.BRIGHT);
-    if (bright_mod != Brightness_original) set_setting_value("bright", bright_mod, 0);
+    if (lv_dropdown_get_selected(ui_droBrightness_tweakgen) != Brightness_original) set_setting_value("bright", bright_mod, 0);
 
     if (!hdmi_mode) {
         int volume_mod = lv_dropdown_get_selected(ui_droVolume_tweakgen);
@@ -208,7 +252,9 @@ static void init_navigation_group(void) {
     INIT_OPTION_ITEM(-1, tweakgen, Rtc, lang.MUXTWEAKGEN.RTC, "clock", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakgen, Hdmi, lang.MUXTWEAKGEN.HDMI, "hdmi", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakgen, Rgb, lang.MUXTWEAKGEN.RGB, "rgb", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakgen, InputRemap, lang.MUXTWEAKGEN.INPUTREMAP, "inputremap", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakgen, Advanced, lang.MUXTWEAKGEN.ADVANCED, "advanced", NULL, 0);
+    INIT_OPTION_ITEM(-1, tweakgen, PassCode, lang.MUXTWEAKGEN.PASSCODE, "lock", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakgen, Brightness, lang.MUXTWEAKGEN.BRIGHTNESS, "brightness", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakgen, Volume, lang.MUXTWEAKGEN.VOLUME, "volume", NULL, 0);
     INIT_OPTION_ITEM(-1, tweakgen, AudioSink, lang.MUXTWEAKGEN.AUDIOSINK, "audiosink", audio_sinks, audio_sink_count);
@@ -270,7 +316,8 @@ static void check_focus(void) {
     struct _lv_obj_t *e_focused = lv_group_get_focused(ui_group);
 
     int is_module = (e_focused == ui_lblHdmi_tweakgen || e_focused == ui_lblRtc_tweakgen ||
-                     e_focused == ui_lblAdvanced_tweakgen || e_focused == ui_lblRgb_tweakgen);
+                     e_focused == ui_lblAdvanced_tweakgen || e_focused == ui_lblRgb_tweakgen ||
+                     e_focused == ui_lblPassCode_tweakgen);
     int is_set_opt = (e_focused == ui_lblBrightness_tweakgen || e_focused == ui_lblVolume_tweakgen);
 
     if (is_module) {
@@ -314,8 +361,16 @@ static void list_nav_next(int steps) {
 static void update_option_values(void) {
     struct _lv_obj_t *e_focused = lv_group_get_focused(ui_group);
 
-    HANDLE_TWEAK_OPT(Brightness, lang.MUXTWEAKGEN.BRIGHTNESS_SET,
-                     pct_to_int(lv_dropdown_get_selected(ui_droBrightness_tweakgen), 2, device.SCREEN.BRIGHT), "bright", 0);
+    if (e_focused == ui_lblBrightness_tweakgen) {
+        int idx = lv_dropdown_get_selected(ui_droBrightness_tweakgen);
+        if (idx != Brightness_original) {
+            toast_message(lang.MUXTWEAKGEN.BRIGHTNESS_SET, SHORT);
+            set_setting_value("bright", pct_to_int(idx, 2, device.SCREEN.BRIGHT), 0);
+            Brightness_original = idx;
+        }
+        return;
+    }
+
     HANDLE_TWEAK_OPT(Volume, lang.MUXTWEAKGEN.VOLUME_SET,
                      lv_dropdown_get_selected(ui_droVolume_tweakgen), "audio", 0);
 }
@@ -323,11 +378,43 @@ static void update_option_values(void) {
 static void handle_option_prev(void) {
     if (msgbox_active || block_input) return;
 
+    if (warn_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&warn_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    if (save_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
     move_option(lv_group_get_focused(ui_group_value), -1);
 }
 
 static void handle_option_next(void) {
     if (msgbox_active || block_input) return;
+
+    if (warn_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&warn_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    if (save_mode) {
+        if (swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
 
     move_option(lv_group_get_focused(ui_group_value), +1);
 }
@@ -345,19 +432,79 @@ static int get_multi_count(void) {
 }
 
 static void handle_option_prev_multi(void) {
-    if (msgbox_active || block_input) return;
+    if (msgbox_active || block_input || save_mode || warn_mode) return;
 
     move_option(lv_group_get_focused(ui_group_value), -get_multi_count());
 }
 
 static void handle_option_next_multi(void) {
-    if (msgbox_active || block_input) return;
+    if (msgbox_active || block_input || save_mode || warn_mode) return;
 
     move_option(lv_group_get_focused(ui_group_value), +get_multi_count());
 }
 
 static void handle_a(void) {
     if (msgbox_active || block_input || hold_call) return;
+
+    if (warn_mode) {
+        int idx = warn_dlg.selected;
+        char target[64];
+        snprintf(target, sizeof(target), "%s", warn_pending);
+        hide_warn_dialog();
+
+        if (idx == 0) {
+            if (strcmp(target, "danger") == 0) {
+                char c_path[MAX_BUFFER_SIZE];
+                snprintf(c_path, sizeof(c_path), CONF_CONFIG_PATH "count/warn_danger");
+
+                create_directories(c_path, 1);
+
+                write_text_to_file(c_path, "w", INT, read_line_int_from(c_path, 1) + 1);
+                play_sound(SND_CONFIRM);
+
+                load_mux("danger");
+                mux_input_stop();
+            } else if (strcmp(target, "tweakadv") == 0) {
+                char c_path[MAX_BUFFER_SIZE];
+                snprintf(c_path, sizeof(c_path), CONF_CONFIG_PATH "count/warn_tweakadv");
+
+                create_directories(c_path, 1);
+                write_text_to_file(c_path, "w", INT, read_line_int_from(c_path, 1) + 1);
+
+                if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_tweakgen_modified()) {
+                    snprintf(pending_submenu, sizeof(pending_submenu), "%s", "tweakadv");
+                    show_save_dialog();
+                } else {
+                    play_sound(SND_CONFIRM);
+                    save_tweak_options();
+
+                    load_mux("tweakadv");
+                    mux_input_stop();
+                }
+            }
+        }
+        return;
+    }
+
+    if (save_mode) {
+        mux_unsaved_opt opt = (mux_unsaved_opt) save_dlg.selected;
+        char submenu[64];
+        snprintf(submenu, sizeof(submenu), "%s", pending_submenu);
+        hide_save_dialog();
+
+        if (opt == MUX_UNSAVED_SAVE) save_tweak_options();
+
+        if (submenu[0]) {
+            play_sound(SND_CONFIRM);
+            load_mux(submenu);
+        } else {
+            play_sound(opt == MUX_UNSAVED_SAVE ? SND_CONFIRM : SND_BACK);
+            write_text_to_file(MUOS_PDI_LOAD, "w", CHAR, "general");
+        }
+
+        mux_input_stop();
+        return;
+    }
 
     static int16_t KIOSK_PASS = 0;
 
@@ -367,7 +514,9 @@ static void handle_a(void) {
         MENU_CLOCK,
         MENU_HDMI,
         MENU_RGB,
+        MENU_REMAP,
         MENU_ADVANCED,
+        MENU_PASSCODE,
     } menu_action;
 
     typedef int (*visible_fn)(void);
@@ -383,7 +532,9 @@ static void handle_a(void) {
             {"rtc",      &kiosk.DATETIME.CLOCK,   MENU_CLOCK,    NULL},
             {"hdmi",     &kiosk.SETTING.HDMI,     MENU_HDMI,   visible_hdmi},
             {"rgb",      &kiosk.SETTING.RGB,      MENU_RGB,    visible_rgb},
+            {"remap",    &KIOSK_PASS,             MENU_REMAP,    NULL},
             {"tweakadv", &kiosk.SETTING.ADVANCED, MENU_ADVANCED, NULL},
+            {"passcfg",  &KIOSK_PASS,             MENU_PASSCODE, NULL},
             {NULL,       &KIOSK_PASS,             MENU_OPTION,   NULL}, // Brightness
             {NULL,       &KIOSK_PASS,             MENU_OPTION,   NULL}, // Volume
             {NULL,       &KIOSK_PASS,             MENU_TOGGLE, visible_audiosink},
@@ -407,9 +558,16 @@ static void handle_a(void) {
         case MENU_CLOCK:
         case MENU_HDMI:
         case MENU_RGB:
-        case MENU_ADVANCED:
+        case MENU_REMAP:
+        case MENU_PASSCODE:
             if (is_ksk(*entry->kiosk_flag)) {
                 kiosk_denied();
+                return;
+            }
+
+            if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_tweakgen_modified()) {
+                snprintf(pending_submenu, sizeof(pending_submenu), "%s", entry->mux_name);
+                show_save_dialog();
                 return;
             }
 
@@ -418,6 +576,13 @@ static void handle_a(void) {
             load_mux(entry->mux_name);
 
             mux_input_stop();
+            break;
+        case MENU_ADVANCED:
+            if (is_ksk(*entry->kiosk_flag)) {
+                kiosk_denied();
+                return;
+            }
+            show_warn_dialog("tweakadv");
             break;
         case MENU_OPTION:
             update_option_values();
@@ -433,11 +598,23 @@ static void handle_a(void) {
 static void handle_b(void) {
     if (block_input || hold_call) return;
 
+    if (warn_mode) {
+        hide_warn_dialog();
+        return;
+    }
+
+    if (save_mode) {
+        hide_save_dialog();
+        return;
+    }
+
     if (msgbox_active) {
-        play_sound(SND_INFO_CLOSE);
-        msgbox_active = 0;
-        progress_onscreen = 0;
-        lv_obj_add_flag(msgbox_element, LV_OBJ_FLAG_HIDDEN);
+        handle_msgbox_dismiss();
+        return;
+    }
+
+    if (!config.SETTINGS.ADVANCED.TRUSTMODIFY && any_tweakgen_modified()) {
+        show_save_dialog();
         return;
     }
 
@@ -449,21 +626,69 @@ static void handle_b(void) {
     mux_input_stop();
 }
 
+static void handle_dpad_up(void) {
+    if (warn_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&warn_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    if (save_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, -1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_up();
+}
+
+static void handle_dpad_down(void) {
+    if (warn_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&warn_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    if (save_mode) {
+        if (!swap_axis) {
+            dialogue_navigate(&save_dlg, &theme, +1);
+            play_sound(SND_NAVIGATE);
+        }
+        return;
+    }
+
+    handle_list_nav_down();
+}
+
+static void handle_dpad_up_hold(void) {
+    if (save_mode || warn_mode) return;
+
+    handle_list_nav_up_hold();
+}
+
+static void handle_dpad_down_hold(void) {
+    if (save_mode || warn_mode) return;
+
+    handle_list_nav_down_hold();
+}
+
 static void handle_help(void) {
-    if (msgbox_active || progress_onscreen != -1 || !ui_count || block_input || hold_call) return;
+    if (msgbox_active || progress_onscreen != -1 || !ui_count || block_input || hold_call || save_mode || warn_mode) return;
 
     play_sound(SND_INFO_OPEN);
     show_help();
 }
 
 static void launch_danger(void) {
-    if (msgbox_active || hold_call) return;
+    if (msgbox_active || hold_call || save_mode || warn_mode) return;
 
-    if (lv_group_get_focused(ui_group) == ui_lblAdvanced_tweakgen) {
-        load_mux("danger");
-
-        mux_input_stop();
-    }
+    if (lv_group_get_focused(ui_group) == ui_lblAdvanced_tweakgen) show_warn_dialog("danger");
 }
 
 static void init_elements(void) {
@@ -509,6 +734,10 @@ int muxtweakgen_main(void) {
     restore_tweak_options();
     init_dropdown_settings();
 
+    dialogue_init_unsaved(&save_dlg, &theme, ui_screen, lang.GENERIC.UNSAVED, NULL,
+                          lang.GENERIC.SAVE, lang.GENERIC.DISCARD, lang.GENERIC.SELECT, lang.GENERIC.BACK);
+    dialogue_init_warn(&warn_dlg, &theme, ui_screen, lang.MUXTWEAKGEN.WARN, lang.GENERIC.SELECT, lang.GENERIC.BACK);
+
     init_timer(ui_gen_refresh_task, NULL);
 
     mux_input_options input_opts = {
@@ -518,8 +747,8 @@ int muxtweakgen_main(void) {
                     [MUX_INPUT_B] = handle_b,
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_L2] = handle_option_prev_multi,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
@@ -532,8 +761,8 @@ int muxtweakgen_main(void) {
             .hold_handler = {
                     [MUX_INPUT_DPAD_LEFT] = handle_option_prev,
                     [MUX_INPUT_DPAD_RIGHT] = handle_option_next,
-                    [MUX_INPUT_DPAD_UP] = handle_list_nav_up_hold,
-                    [MUX_INPUT_DPAD_DOWN] = handle_list_nav_down_hold,
+                    [MUX_INPUT_DPAD_UP] = handle_dpad_up_hold,
+                    [MUX_INPUT_DPAD_DOWN] = handle_dpad_down_hold,
                     [MUX_INPUT_L1] = handle_list_nav_page_up,
                     [MUX_INPUT_L2] = hold_call_set,
                     [MUX_INPUT_R1] = handle_list_nav_page_down,
