@@ -96,6 +96,7 @@ const LookupName lookup_t_table[] = {
     { "tdfeverj", "터치다운 피버 (일본판)" },
     { "tdoboon", "대포로 도봉" },
     { "tdpgal", "트리플 드로우 포커" },
+    { "tdpgala", "트리플 드로우 포커 (비디오 빌리지)" },
     { "tdragon", "썬더 드래곤 (비보호됨)" },
     { "tdragon1", "썬더 드래곤" },
     { "tdragon2", "썬더 드래곤 2" },

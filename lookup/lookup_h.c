@@ -319,8 +319,10 @@ const LookupName lookup_h_table[] = {
     { "hotgmcki", "대전 핫 기믹 인테그럴 (일본판)" },
     { "hotmemry", "핫 메모리" },
     { "hotmemry11", "핫 메모리 (V1.1,독일판,11/30/94)" },
-    { "hotmind", "핫 마인드 (하드 타임즈 하드웨어)" },
-    { "hotminda", "핫 마인드 (상품 조작가능)" },
+    { "hotmind", "핫 마인드 (하드 타임즈 하드웨어,세트1)" },
+    { "hotminda", "핫 마인드 (상품 조작가능,세트1)" },
+    { "hotmindb", "핫 마인드 (상품 조작가능,세트2)" },
+    { "hotmindc", "핫 마인드 (하드 타임즈 하드웨어,세트2)" },
     { "hotmindff", "핫 마인드 (핏 오브 파이팅 하드웨어)" },
     { "hotnight", "핫 나이트" },
     { "hotpinbl", "핫 핀볼" },
@@ -438,6 +440,7 @@ const LookupName lookup_h_table[] = {
     { "hyprolymb", "트랙 앤 필드/ 하이퍼 올림픽 (해적판,세트1)" },
     { "hyprolymba", "트랙 앤 필드/ 하이퍼 올림픽 (해적판,세트2)" },
     { "hypsptsp", "88 올림픽/ 하이퍼 스포츠 스페셜 (일본판)" },
+    { "hyxevious", "하이퍼 제비우스 (핵)" },
 };
 
 const size_t lookup_h_count = A_SIZE(lookup_h_table);

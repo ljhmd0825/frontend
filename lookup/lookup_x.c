@@ -18,6 +18,7 @@ const LookupName lookup_x_table[] = {
     { "xeviousa", "제비우스 (아타리 세트1)" },
     { "xeviousb", "제비우스 (아타리 세트2)" },
     { "xeviousc", "제비우스 (아타리 세트3)" },
+    { "xeviousd", "제비우스 (아타리 세트4)" },
     { "xeviousng", "제비우스 네오지오 컨버전 (HB,베타1)" },
     { "xexex", "제젝스 (버전EAA)" },
     { "xexexa", "제젝스 (버전AAA)" },

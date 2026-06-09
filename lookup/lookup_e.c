@@ -210,6 +210,7 @@ const LookupName lookup_e_table[] = {
     { "exprrada", "익스프레스 레이더 (미국판 세트2)" },
     { "exprraid", "익스프레스 레이더 (세계판,개정판4)" },
     { "exprraida", "익스프레스 레이더 (미국판 세트2)" },
+    { "exprraidbl", "익스프레스 레이더 (해적판)" },
     { "exprraidi", "익스프레스 레이더 (이탈리아판)" },
     { "exprraidu", "익스프레스 레이더 (미국판,개정판5)" },
     { "exsprt48", "익사이트 스포츠 와이어리스 인터렉티브 TV 게임 48합 (NTSC)" },

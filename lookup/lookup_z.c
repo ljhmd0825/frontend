@@ -64,6 +64,7 @@ const LookupName lookup_z_table[] = {
     { "zigzagb2", "지그 재그 (갤럭시안 하드웨어,세트2)" },
     { "zingzip", "징 징 집" },
     { "zintrckb", "진트릭/ 밀어내기 젠트릭스" },
+    { "zintrckbp", "진트릭/ 밀어내기 젠트릭스 (CD버전 해적판,멀티V)" },
     { "zintrkcd", "진트릭/ 밀어내기 젠트릭스 (네오 CD 변환)" },
     { "zipzap", "집 & 잽" },
     { "zipzapa", "집 & 잽 (Less Explicit)" },

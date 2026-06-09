@@ -1460,6 +1460,7 @@ const LookupName lookup_s_table[] = {
     { "speedatk", "스피드 어택!" },
     { "speedbal", "스피드 볼 (세트1)" },
     { "speedbala", "스피드 볼 (세트2)" },
+    { "speedbalb", "스피드 볼 (세트3)" },
     { "speeddrp", "스피드 드롭" },
     { "speedfrk", "스피드 프릭" },
     { "speedrcr", "스피드 레이서" },

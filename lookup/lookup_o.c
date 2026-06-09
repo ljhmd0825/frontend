@@ -60,6 +60,7 @@ const LookupName lookup_o_table[] = {
     { "omegaa", "오메가 (초기판)" },
     { "omegab", "디 엔드/ 오메가" },
     { "omegaf", "오메가 파이터" },
+    { "omegafa", "오메가 파이터 (세트2)" },
     { "omegafs", "오메가 파이터 스페셜" },
     { "omegrace", "오메가 레이스 (세트1)" },
     { "omegrace2", "오메가 레이스 (세트2)" },
